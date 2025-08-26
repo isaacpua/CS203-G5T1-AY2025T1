@@ -1,12 +1,12 @@
 package com.tariff.tariff_backend.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 import org.springframework.stereotype.Service;
 
 import com.tariff.tariff_backend.model.TariffRequest;
 import com.tariff.tariff_backend.model.TariffResponse;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Service
 public class TariffService {
@@ -16,6 +16,7 @@ public class TariffService {
         BigDecimal tariffRate;
 
         // Simple mock logic: determine the tariff rate based on product category
+        // Use dictionary
         switch (request.getProductCategory().toLowerCase()) {
             case "electronics":
                 tariffRate = new BigDecimal("0.15"); // 15%

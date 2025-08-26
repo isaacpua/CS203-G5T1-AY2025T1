@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import axiosClient from '../api/axiosClient'; // Import our new Axios client
+import axiosClient from '../api/axiosClient';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2, Terminal } from "lucide-react";
 
 function TariffCalculator() {
   const [productCategory, setProductCategory] = useState('electronics');
@@ -18,28 +21,26 @@ function TariffCalculator() {
     setResult(null);
     setError('');
 
-    // This object structure must match your `TariffRequest.java` model
     const requestData = {
       productCategory: productCategory,
       value: value,
-      fromCountry: "USA", // Mock data as per our simplified logic
-      toCountry: "Canada"   // Mock data as per our simplified logic
+      fromCountry: "USA",
+      toCountry: "Canada"
     };
 
     try {
-      // Make the POST request to the /tariffs/calculate endpoint
       const response = await axiosClient.post('/tariffs/calculate', requestData);
-      setResult(response.data); // Save the successful response data
+      setResult(response.data);
     } catch (err) {
-      setError('Failed to calculate tariff. Please check the console and make sure the backend is running.');
+      setError('Failed to calculate tariff. Please ensure the backend is running and reachable.');
       console.error(err);
     } finally {
-      setIsLoading(false); // Stop the loading indicator
+      setIsLoading(false);
     }
   };
 
   return (
-    <Card className="w-[450px] mx-auto my-12">
+    <Card className="w-[450px]">
       <CardHeader>
         <CardTitle>TARIFF Calculator</CardTitle>
         <CardDescription>Calculate import tariffs for your products.</CardDescription>
@@ -49,12 +50,17 @@ function TariffCalculator() {
           <div className="grid w-full items-center gap-4">
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="category">Product Category</Label>
-              <Input
-                id="category"
-                placeholder="e.g., electronics, automotive"
-                value={productCategory}
-                onChange={(e) => setProductCategory(e.target.value)}
-              />
+              <Select onValueChange={setProductCategory} defaultValue={productCategory}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectItem value="electronics">Electronics</SelectItem>
+                  <SelectItem value="automotive">Automotive</SelectItem>
+                  <SelectItem value="apparel">Apparel</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="value">Product Value ($)</Label>
@@ -67,22 +73,38 @@ function TariffCalculator() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Calculating...' : 'Calculate Tariff'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Please wait
+                </>
+              ) : (
+                'Calculate Tariff'
+              )}
             </Button>
           </div>
         </form>
       </CardContent>
-      <CardFooter className="flex flex-col items-start">
-        {/* Display the result if it exists */}
+      <CardFooter className="flex flex-col items-start pt-6">
         {result && (
-          <div className="mt-4 p-4 bg-green-100 rounded-md w-full">
-            <h3 className="font-bold text-green-800">Calculation Result:</h3>
-            <p>Calculated Tariff: ${result.calculatedTariff.toFixed(2)}</p>
-            <p>Total Value: ${result.totalValue.toFixed(2)}</p>
-          </div>
+          <Alert variant="default" className="w-full">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Calculation Successful!</AlertTitle>
+            <AlertDescription className="font-mono">
+              <div>Calculated Tariff: ${result.calculatedTariff.toFixed(2)}</div>
+              <div>Total Value: ${result.totalValue.toFixed(2)}</div>
+            </AlertDescription>
+          </Alert>
         )}
-        {/* Display an error message if it exists */}
-        {error && <p className="mt-4 text-red-500">{error}</p>}
+        {error && (
+          <Alert variant="destructive" className="w-full">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
       </CardFooter>
     </Card>
   );
