@@ -1,8 +1,9 @@
-package com.tariff.tariffbackend.service;
+package com.tariff.tariff_backend.service;
 
-import com.tariff.tariffbackend.model.TariffRequest;
-import com.tariff.tariffbackend.model.TariffResponse;
 import org.springframework.stereotype.Service;
+
+import com.tariff.tariff_backend.model.TariffRequest;
+import com.tariff.tariff_backend.model.TariffResponse;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

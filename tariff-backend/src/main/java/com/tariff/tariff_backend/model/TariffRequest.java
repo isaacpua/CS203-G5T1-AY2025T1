@@ -1,6 +1,7 @@
-package com.tariff.tariffbackend.model;
+package com.tariff.tariff_backend.model;
 
 import java.math.BigDecimal;
+
 import lombok.Getter;
 import lombok.Setter;
 

@@ -1,10 +1,14 @@
-package com.tariff.tariffbackend.controller;
+package com.tariff.tariff_backend.controller;
 
-import com.tariff.tariffbackend.model.TariffRequest;
-import com.tariff.tariffbackend.model.TariffResponse;
-import com.tariff.tariffbackend.service.TariffService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.tariff.tariff_backend.model.TariffRequest;
+import com.tariff.tariff_backend.model.TariffResponse;
+import com.tariff.tariff_backend.service.TariffService;
 
 @RestController
 @RequestMapping("/api/v1/tariffs")
