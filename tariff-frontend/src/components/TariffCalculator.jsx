@@ -40,7 +40,7 @@ function TariffCalculator() {
   };
 
   return (
-    <Card className="w-[450px]">
+    <Card className="-[450px] min-w-[450px] min-h-[450px]">
       <CardHeader>
         <CardTitle>TARIFF Calculator</CardTitle>
         <CardDescription>Calculate import tariffs for your products.</CardDescription>
