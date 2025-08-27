@@ -25,3 +25,7 @@ npm run dev
 cd tariff-backend
 ./mvnw clean spring-boot:run
 ```
+
+``` Postgres Database Connection Test
+./mvnw test  
+```
