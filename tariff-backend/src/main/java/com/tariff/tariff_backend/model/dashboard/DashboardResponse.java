@@ -7,6 +7,6 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class DashboardResponse {
     
-    private boolean success;
+    private Boolean success;
     private String message;
 }
