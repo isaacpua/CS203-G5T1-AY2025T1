@@ -53,7 +53,7 @@ public class DashboardService {
 
             if (hts8 != null) {
                 if (!tariffRepo.findByHts8(hts8).isEmpty()) {
-                    throw new Exception("Unable to create new tariff because the HTS8 code " + hts8 + " already exists.");
+                    throw new Exception("Unable to update tariff because the HTS8 code " + hts8 + " already exists.");
                 }
                 existingTariff.setHts8(hts8);
             }
@@ -66,7 +66,16 @@ public class DashboardService {
                 existingTariff.setMfn_text_rate(mfnTextRate);
             }
 
-            tariffRepo.save(existingTariff);
+            Tariff updatedTariff = tariffRepo.save(existingTariff);
+            if (hts8 != null && !updatedTariff.getHts8().equals(hts8)) {
+                throw new Exception("Failed to update the HTS8 code.");
+            }
+            if (briefDescription != null && !updatedTariff.getBrief_description().equals(briefDescription)) {
+                throw new Exception("Failed to update the brief_description.");
+            }
+            if (mfnTextRate != null && !updatedTariff.getMfn_text_rate().equals(mfnTextRate)) {
+                throw new Exception("Failed to update the mfn_text_rate.");
+            }
         } catch (Exception e) {
             response.setSuccess(false);
             response.setMessage("Internal server error. " + e.getMessage());
