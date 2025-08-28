@@ -10,6 +10,8 @@ import { Loader2, Terminal } from "lucide-react";
 
 function TariffCalculator() {
   const [productCategory, setProductCategory] = useState('electronics');
+  const [fromCountry, setFromCountry] = useState('USA');
+  const [toCountry, setToCountry] = useState('Canada');
   const [value, setValue] = useState(1000);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -24,8 +26,8 @@ function TariffCalculator() {
     const requestData = {
       productCategory: productCategory,
       value: value,
-      fromCountry: "USA",
-      toCountry: "Canada"
+      fromCountry: fromCountry,
+      toCountry: toCountry
     };
 
     try {
@@ -61,6 +63,34 @@ function TariffCalculator() {
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="fromCountry">Export Country</Label>
+                <Select onValueChange={setFromCountry} defaultValue={fromCountry}>
+                  <SelectTrigger id="fromCountry">
+                    <SelectValue placeholder="Select a country" />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectItem value="USA">USA</SelectItem>
+                    <SelectItem value="Canada">Canada</SelectItem>
+                    <SelectItem value="Mexico">Mexico</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="toCountry">Import Country</Label>
+                <Select onValueChange={setToCountry} defaultValue={toCountry}>
+                  <SelectTrigger id="toCountry">
+                    <SelectValue placeholder="Select a country" />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectItem value="USA">USA</SelectItem>
+                    <SelectItem value="Canada">Canada</SelectItem>
+                    <SelectItem value="Mexico">Mexico</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="value">Product Value ($)</Label>

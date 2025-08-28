@@ -37,6 +37,11 @@ public class TariffService {
                 break;
         }
 
+        // Add mock logic for country-specific tariff adjustments
+        if ("USA".equalsIgnoreCase(request.getFromCountry()) && "Canada".equalsIgnoreCase(request.getToCountry())) {
+            tariffRate = tariffRate.multiply(new BigDecimal("0.9")); // e.g. 10% discount for US to Canada
+        }
+
         // Perform the calculation using BigDecimal for accuracy
         BigDecimal value = request.getValue();
         BigDecimal calculatedTariff = value.multiply(tariffRate).setScale(2, RoundingMode.HALF_UP);
