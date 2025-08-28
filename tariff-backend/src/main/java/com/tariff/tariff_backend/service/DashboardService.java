@@ -78,7 +78,7 @@ public class DashboardService {
             }
         } catch (Exception e) {
             response.setSuccess(false);
-            response.setMessage("Internal server error. " + e.getMessage());
+            response.setMessage(e.getMessage());
         }
         return response;
     }
