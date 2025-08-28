@@ -33,8 +33,8 @@ public class TariffController {
         return tariffService.calculateTariff(request);
     }
 
-    @GetMapping("/getTariff")
-    public List<Tariff> getTariff(@RequestParam String hts8) { // .../getTariff?hts8=yourstring
+    @GetMapping("/Tariff")
+    public List<Tariff> getTariff(@RequestParam String hts8) { // .../Tariff?hts8=yourstring
         return tariffService.getTariff(hts8);
     }
 
