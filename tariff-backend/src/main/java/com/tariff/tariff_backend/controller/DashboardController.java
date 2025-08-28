@@ -1,5 +1,6 @@
 package com.tariff.tariff_backend.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,12 +26,20 @@ public class DashboardController {
     }
 
     @PostMapping("/tariffs")
-    public DashboardResponse createTariff(@RequestBody Tariff request) {
-        return dashboardService.createTariff(request);
+    public ResponseEntity<?> createTariff(@RequestBody Tariff request) {
+        DashboardResponse dResponse = dashboardService.createTariff(request);
+        if (!dResponse.getSuccess()) {
+            return ResponseEntity.badRequest().body(dResponse);
+        }
+        return ResponseEntity.ok(dResponse);
     }
 
     @PatchMapping("/tariffs/{id}")
-    public DashboardResponse updateTariff(@PathVariable Integer id, @RequestBody TariffPatchDTO patchDTO) {
-        return dashboardService.updateTariff(id, patchDTO);
+    public ResponseEntity<?> updateTariff(@PathVariable Integer id, @RequestBody TariffPatchDTO patchDTO) {
+        DashboardResponse dResponse = dashboardService.updateTariff(id, patchDTO);
+        if (!dResponse.getSuccess()) {
+            return ResponseEntity.badRequest().body(dResponse);
+        }
+        return ResponseEntity.ok(dResponse);
     }
 }
