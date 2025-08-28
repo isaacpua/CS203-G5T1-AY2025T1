@@ -2,14 +2,22 @@ package com.tariff.tariff_backend.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.tariff.tariff_backend.model.Tariff;
 import com.tariff.tariff_backend.model.TariffRequest;
 import com.tariff.tariff_backend.model.TariffResponse;
+import com.tariff.tariff_backend.repository.TariffRepo;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor // auto generates constructors 
 public class TariffService {
+    private final TariffRepo tariffRepo;
 
     public TariffResponse calculateTariff(TariffRequest request) {
 
@@ -35,5 +43,15 @@ public class TariffService {
         BigDecimal totalValue = value.add(calculatedTariff);
 
         return new TariffResponse(calculatedTariff, totalValue);
+    }
+
+    public List<Tariff> getTariff(String input) {
+        try {
+            Integer hts8 = Integer.valueOf(input);
+            List<Tariff> tariffs = tariffRepo.findByHts8(hts8);
+            return tariffs;
+        } catch (NumberFormatException e) {
+            return new ArrayList<Tariff>(); // return empty list if input wasnt a number
+        }
     }
 }

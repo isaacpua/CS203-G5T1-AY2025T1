@@ -1,12 +1,17 @@
 package com.tariff.tariff_backend.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tariff.tariff_backend.model.Tariff;
 import com.tariff.tariff_backend.model.TariffRequest;
 import com.tariff.tariff_backend.model.TariffResponse;
 import com.tariff.tariff_backend.service.TariffService;
@@ -27,4 +32,10 @@ public class TariffController {
     public TariffResponse calculate(@RequestBody TariffRequest request) {
         return tariffService.calculateTariff(request);
     }
+
+    @GetMapping("/getTariff")
+    public List<Tariff> getTariff(@RequestParam String hts8) { // .../getTariff?hts8=yourstring
+        return tariffService.getTariff(hts8);
+    }
+
 }

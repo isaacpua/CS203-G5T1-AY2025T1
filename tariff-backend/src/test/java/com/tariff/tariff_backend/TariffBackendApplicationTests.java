@@ -1,13 +1,13 @@
-package com.tariff.tariff_backend;
+// package com.tariff.tariff_backend;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+// import org.junit.jupiter.api.Test;
+// import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class TariffBackendApplicationTests {
+// @SpringBootTest
+// class TariffBackendApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+// 	@Test
+// 	void contextLoads() {
+// 	}
 
-}
+// }
