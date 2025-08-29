@@ -82,4 +82,23 @@ public class DashboardService {
         }
         return response;
     }
+
+    public DashboardResponse deleteTariff(Integer id) {
+        DashboardResponse response = new DashboardResponse(true, "Sucessfully deleted the tariff.");
+        try {
+            if (tariffRepo.findById(id).isEmpty()) {
+                throw new Exception("Tariff with ID " + id + " not found");
+            }
+
+            tariffRepo.deleteById(id);
+
+            if (!tariffRepo.findById(id).isEmpty()) {
+                throw new Exception("Failed to delete tariff with ID " + id);
+            }
+        } catch (Exception e) {
+            response.setSuccess(false);
+            response.setMessage(e.getMessage());
+        }
+        return response;
+    }
 }

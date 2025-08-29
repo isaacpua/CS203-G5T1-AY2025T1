@@ -2,6 +2,7 @@ package com.tariff.tariff_backend.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,6 +38,15 @@ public class DashboardController {
     @PatchMapping("/tariffs/{id}")
     public ResponseEntity<?> updateTariff(@PathVariable Integer id, @RequestBody TariffPatchDTO patchDTO) {
         DashboardResponse dResponse = dashboardService.updateTariff(id, patchDTO);
+        if (!dResponse.getSuccess()) {
+            return ResponseEntity.badRequest().body(dResponse);
+        }
+        return ResponseEntity.ok(dResponse);
+    }
+
+    @DeleteMapping("/tariffs/{id}")
+    public ResponseEntity<?> updateTariff(@PathVariable Integer id) {
+        DashboardResponse dResponse = dashboardService.deleteTariff(id);
         if (!dResponse.getSuccess()) {
             return ResponseEntity.badRequest().body(dResponse);
         }
