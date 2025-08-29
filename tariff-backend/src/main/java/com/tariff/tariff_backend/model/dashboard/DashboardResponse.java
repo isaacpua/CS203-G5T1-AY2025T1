@@ -5,8 +5,8 @@ import lombok.AllArgsConstructor;
 
 @Data
 @AllArgsConstructor
-public class CreateResponse {
+public class DashboardResponse {
     
-    private boolean success;
+    private Boolean success;
     private String message;
 }
