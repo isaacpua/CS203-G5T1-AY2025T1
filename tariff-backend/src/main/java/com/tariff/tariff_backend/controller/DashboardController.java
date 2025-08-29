@@ -45,7 +45,7 @@ public class DashboardController {
     }
 
     @DeleteMapping("/tariffs/{id}")
-    public ResponseEntity<?> updateTariff(@PathVariable Integer id) {
+    public ResponseEntity<?> deleteTariff(@PathVariable Integer id) {
         DashboardResponse dResponse = dashboardService.deleteTariff(id);
         if (!dResponse.getSuccess()) {
             return ResponseEntity.badRequest().body(dResponse);
