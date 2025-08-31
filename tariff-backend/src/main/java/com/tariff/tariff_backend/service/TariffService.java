@@ -1,15 +1,14 @@
 package com.tariff.tariff_backend.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.tariff.tariff_backend.model.Tariff;
-import com.tariff.tariff_backend.model.TariffRequest;
-import com.tariff.tariff_backend.model.TariffResponse;
+import com.tariff.tariff_backend.model.TariffSearchRow;
 import com.tariff.tariff_backend.repository.TariffRepo;
 
 import lombok.RequiredArgsConstructor;
@@ -19,44 +18,46 @@ import lombok.RequiredArgsConstructor;
 public class TariffService {
     private final TariffRepo tariffRepo;
 
-    public TariffResponse calculateTariff(TariffRequest request) {
+     public Page<TariffSearchRow> searchTariffs(Integer id, Integer hts8, String q, Pageable pageable) {
+        Page<Tariff> page;
 
-        BigDecimal tariffRate;
-
-        // Simple mock logic: determine the tariff rate based on product category
-        // Use dictionary
-        switch (request.getProductCategory().toLowerCase()) {
-            case "electronics":
-                tariffRate = new BigDecimal("0.15"); // 15%
-                break;
-            case "automotive":
-                tariffRate = new BigDecimal("0.25"); // 25%
-                break;
-            default:
-                tariffRate = new BigDecimal("0.05"); // 5% for all others
-                break;
+        if (id != null) {
+            var one = tariffRepo.findById(id);
+            if (one.isEmpty()) return Page.empty(pageable);
+            return new PageImpl<>(List.of(one.get()), pageable, 1).map(this::toRow);
         }
 
-        // Add mock logic for country-specific tariff adjustments
-        if ("USA".equalsIgnoreCase(request.getFromCountry()) && "Canada".equalsIgnoreCase(request.getToCountry())) {
-            tariffRate = tariffRate.multiply(new BigDecimal("0.9")); // e.g. 10% discount for US to Canada
+        if (hts8 != null) {
+            page = tariffRepo.findByHts8(hts8, pageable);
+            return page.map(this::toRow);
         }
 
-        // Perform the calculation using BigDecimal for accuracy
-        BigDecimal value = request.getValue();
-        BigDecimal calculatedTariff = value.multiply(tariffRate).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal totalValue = value.add(calculatedTariff);
+        if (q != null && !q.isBlank()) {
+            page = tariffRepo.findByBriefDescriptionContainingIgnoreCase(q.trim(), pageable);
+            return page.map(this::toRow);
+        }
 
-        return new TariffResponse(calculatedTariff, totalValue);
+        // no criteria → empty page (or define default browse)
+        return Page.empty(pageable);
     }
 
-    public List<Tariff> getTariff(String input) {
+    private TariffSearchRow toRow(Tariff t) {
+        // Optional: add lightweight parser metadata for the list
+        String overallKind = null;
+        boolean isFree = false;
         try {
-            Integer hts8 = Integer.valueOf(input);
-            List<Tariff> tariffs = tariffRepo.findByHts8(hts8);
-            return tariffs;
-        } catch (NumberFormatException e) {
-            return new ArrayList<Tariff>(); // return empty list if input wasnt a number
-        }
+            var parsed = RateParser.parse(t.getMfnTextRate());
+            overallKind = parsed.overallKind().name();
+            isFree = parsed.isFree();
+        } catch (Exception ignore) {}
+
+        return new TariffSearchRow(
+            t.getId(),
+            t.getHts8(),
+            t.getBriefDescription(),
+            t.getMfnTextRate(),
+            overallKind,
+            isFree
+        );
     }
 }
