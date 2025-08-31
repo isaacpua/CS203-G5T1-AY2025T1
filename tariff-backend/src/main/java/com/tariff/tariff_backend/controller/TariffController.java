@@ -7,10 +7,15 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tariff.tariff_backend.model.TariffComputeRequest;
+import com.tariff.tariff_backend.model.TariffComputeResponse;
 import com.tariff.tariff_backend.model.TariffSearchRow;
 import com.tariff.tariff_backend.service.TariffService;
 
@@ -34,5 +39,14 @@ public class TariffController {
     ) {
         return tariffService.searchTariffs(id, hts8, q, pageable);
     }
+
+    @PostMapping("/compute")
+    public TariffComputeResponse compute(
+        @RequestParam Integer id,
+        @RequestBody TariffComputeRequest req
+    ) {
+        return tariffService.computeTariff(id ,req);
+    }
+    
 
 }

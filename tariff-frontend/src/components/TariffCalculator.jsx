@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Search, Calculator, Terminal } from "lucide-react";
 
-
 function TariffSearchAndCalc() {
   // -------- Search state --------
   const [mode, setMode] = useState("id"); // search mode: "id" | "hts8" | "desc"
@@ -23,24 +22,20 @@ function TariffSearchAndCalc() {
   const [selected, setSelected] = useState(null); // the row clicked from the results
   const [declaredValue, setDeclaredValue] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [uom, setUom] = useState("/unit"); //normalised UOM string
+  const [uom, setUom] = useState("/unit"); // normalised UOM string
   const [computing, setComputing] = useState(false);
   const [computeError, setComputeError] = useState("");
   const [computeRes, setComputeRes] = useState(null);
 
-
-  const debouncedQuery = useDebounce(query, 300); //because i dont want to call the API on every keystroke
+  const debouncedQuery = useDebounce(query, 300); // debounce searches
 
   // ---- search handler ----
-  useEffect(() => { //rerun the search whenever the search mode changes
-    
+  useEffect(() => {
     if (mode === "desc" && debouncedQuery.trim() === "") {
-      // no empty description searches
       setResults({ content: [], totalPages: 0, number: 0, size });
       return;
     }
     if (mode !== "desc" && query.trim() === "") {
-      // no empty id/hts8 searches
       setResults({ content: [], totalPages: 0, number: 0, size });
       return;
     }
@@ -71,7 +66,7 @@ function TariffSearchAndCalc() {
     fetchPage();
   }, [mode, debouncedQuery, query, page, size]);
 
-  // reset when mode changes like if im switching from ID --> HTS8, it clears the thing
+  // reset when mode changes
   useEffect(() => {
     setPage(0);
     setResults({ content: [], totalPages: 0, number: 0, size });
@@ -89,9 +84,9 @@ function TariffSearchAndCalc() {
       const body = {
         declaredValue: numOrZero(declaredValue),
         quantity: numOrZero(quantity),
-        uom, // must match backend normalization (e.g. "/unit", "/kg")
+        uom, // FE sends canonical units (e.g. "/unit", "/kg", "/liter")
       };
-      const { data } = await axiosClient.post(`/tariffs/${selected.id}/compute`, body); //asking the backend to do the computing part
+      const { data } = await axiosClient.post(`/tariffs/compute?id=${selected.id}`, body);
       setComputeRes(data);
     } catch (e) {
       setComputeError("Compute failed. Check /tariffs/{id}/compute.");
@@ -213,32 +208,57 @@ function TariffSearchAndCalc() {
                 <div className="font-mono text-xs mt-1">rate: {selected.mfnTextRate}</div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-1">
-                  <Label>Declared Value ($)</Label>
-                  <Input value={declaredValue} onChange={(e) => setDeclaredValue(e.target.value)} placeholder="e.g. 1000" />
+              {/* Conditionally show inputs based on overallKind */}
+              {selected.overallKind === "AD_VALOREM" && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-1">
+                    <Label>Declared Value ($)</Label>
+                    <Input value={declaredValue} onChange={(e) => setDeclaredValue(e.target.value)} placeholder="e.g. 1000" />
+                  </div>
                 </div>
-                <div className="col-span-1">
-                  <Label>Quantity</Label>
-                  <Input value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="e.g. 200" />
+              )}
+
+              {selected.overallKind === "SPECIFIC_PER_UNIT" && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-1">
+                    <Label>Quantity</Label>
+                    <Input value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="e.g. 200" />
+                  </div>
                 </div>
-                <div className="col-span-1">
-                  <Label>Unit of Measure</Label>
-                  <Select value={uom} onValueChange={setUom}>
-                    <SelectTrigger><SelectValue placeholder="Select UOM" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="/unit">/unit (each, piece)</SelectItem>
-                      <SelectItem value="/kg">/kg</SelectItem>
-                      <SelectItem value="/liter">/liter</SelectItem>
-                      <SelectItem value="/doz">/doz</SelectItem>
-                      <SelectItem value="/gross">/gross</SelectItem>
-                      <SelectItem value="/m3">/m3</SelectItem>
-                      <SelectItem value="/m2">/m2</SelectItem>
-                      <SelectItem value="/m">/m</SelectItem>
-                    </SelectContent>
-                  </Select>
+              )}
+
+              {selected.overallKind === "COMBINED_ADVAL_PLUS_SPECIFIC" && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-1">
+                    <Label>Declared Value ($)</Label>
+                    <Input value={declaredValue} onChange={(e) => setDeclaredValue(e.target.value)} placeholder="e.g. 1000" />
+                  </div>
+                  <div className="col-span-1">
+                    <Label>Quantity</Label>
+                    <Input value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="e.g. 200" />
+                  </div>
+                  <div className="col-span-1">
+                    <Label>Unit of Measure</Label>
+                    <Select value={uom} onValueChange={setUom}>
+                      <SelectTrigger><SelectValue placeholder="Select UOM" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="/unit">/unit (each, piece)</SelectItem>
+                        <SelectItem value="/kg">/kg</SelectItem>
+                        <SelectItem value="/liter">/liter</SelectItem>
+                        <SelectItem value="/doz">/doz</SelectItem>
+                        <SelectItem value="/gross">/gross</SelectItem>
+                        <SelectItem value="/m3">/m3</SelectItem>
+                        <SelectItem value="/m2">/m2</SelectItem>
+                        <SelectItem value="/m">/m</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {(selected.overallKind === "FREE" || selected.overallKind === "UNKNOWN") && (
+                <div className="text-sm text-muted-foreground">No inputs needed — duty is $0.00.</div>
+              )}
 
               <Button className="w-full" onClick={onCompute} disabled={computing}>
                 {computing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Computing…</> : "Compute Duty"}
@@ -281,7 +301,7 @@ function TariffSearchAndCalc() {
 export default TariffSearchAndCalc;
 
 /* ------------ helpers ------------ */
-function useDebounce(value, delayMs = 300) { //wait before updating
+function useDebounce(value, delayMs = 300) {
   const [v, setV] = useState(value);
   useEffect(() => {
     const id = setTimeout(() => setV(value), delayMs);
@@ -289,11 +309,11 @@ function useDebounce(value, delayMs = 300) { //wait before updating
   }, [value, delayMs]);
   return v;
 }
-function numOrZero(x) { //parses the number properly
+function numOrZero(x) {
   const n = Number(x);
   return Number.isFinite(n) ? n : 0;
 }
-function fmtMoney(x) { //formates the money
+function fmtMoney(x) {
   const n = Number(x);
   return Number.isFinite(n) ? `$${n.toFixed(2)}` : "$0.00";
 }

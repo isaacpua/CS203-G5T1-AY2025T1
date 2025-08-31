@@ -28,8 +28,8 @@ public class RateParser {
     public record ParsedRate ( //record basically auto generate constructor and getters with equals and hashcode and tostrings
         String raw,
         List<RateComponent> components
-    ){
-        public boolean isFree(){ //check if its 0 or if its the long words one (default to 0)
+    )
+    {  public boolean isFree(){ //check if its 0 or if its the long words one (default to 0)
             for (RateComponent c : components){
                 if (c.kind == RateKind.FREE || c.kind == RateKind.UNKNOWN){
                     continue;
@@ -84,7 +84,7 @@ public class RateParser {
     private static final Pattern PERCENT = Pattern.compile("^\\s*([+-]?\\d{1,3}(?:,\\d{3})*(?:\\.\\d+)?|[+-]?\\d+(?:\\.\\d+)?)\\s*%\\s*(.*)$", Pattern.CASE_INSENSITIVE);
 
     // "$1.556/kg", "0.12/kg", "$1.13/m3", "$1.34/1000"
-    private static final Pattern DOLLAR_PER_UNIT = Pattern.compile("^\\s*\\$?\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*/\\s*(.+?)\\s*(.*)$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern DOLLAR_PER_UNIT = Pattern.compile("^\\s*\\$?\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*/\\s*([a-zA-Z0-9^]+)\\s*(.*)$", Pattern.CASE_INSENSITIVE);
 
     // "13.7 cents/kg", "0.5 cents/kg", "2.8 cents/doz.", "89.6 cents/1000"
     private static final Pattern CENTS_PER_UNIT = Pattern.compile("^\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*(?:c|cent|cents|¢)\\s*(?:/(.+?)|\\s+(each|jewel|bbl))?\\s*(.*)$", Pattern.CASE_INSENSITIVE);
