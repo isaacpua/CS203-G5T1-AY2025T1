@@ -59,21 +59,21 @@ public class DashboardService {
             }
 
             if (briefDescription != null) {
-                existingTariff.setBrief_description(briefDescription);
+                existingTariff.setBriefDescription(briefDescription);
             }
 
             if (mfnTextRate != null) {
-                existingTariff.setMfn_text_rate(mfnTextRate);
+                existingTariff.setMfnTextRate(mfnTextRate);
             }
 
             Tariff updatedTariff = tariffRepo.save(existingTariff);
             if (hts8 != null && !updatedTariff.getHts8().equals(hts8)) {
                 throw new Exception("Failed to update the HTS8 code.");
             }
-            if (briefDescription != null && !updatedTariff.getBrief_description().equals(briefDescription)) {
+            if (briefDescription != null && !updatedTariff.getBriefDescription().equals(briefDescription)) {
                 throw new Exception("Failed to update the brief_description.");
             }
-            if (mfnTextRate != null && !updatedTariff.getMfn_text_rate().equals(mfnTextRate)) {
+            if (mfnTextRate != null && !updatedTariff.getMfnTextRate().equals(mfnTextRate)) {
                 throw new Exception("Failed to update the mfn_text_rate.");
             }
         } catch (Exception e) {
