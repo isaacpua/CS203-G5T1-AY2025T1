@@ -32,7 +32,14 @@ const Login = () => {
     try {
       const response = await axiosClient.post("/auth/login", credentials);
       if (response.status == 200) {
-        console.log(response.data);
+        localStorage.setItem("accessToken", response.data.accessToken);
+        const accessToken = localStorage.getItem("accessToken");
+        const isValid = await axiosClient.post("/auth/verifyJWT", {}, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        console.log(isValid.data);
       }
     } catch (err) {
       if (err.code == "ERR_NETWORK") {

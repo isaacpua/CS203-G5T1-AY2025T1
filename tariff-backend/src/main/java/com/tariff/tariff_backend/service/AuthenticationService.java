@@ -107,5 +107,8 @@ public class AuthenticationService {
         User user = userRepo.findByUsername(username).orElseThrow();
         return jwtService.isTokenValid(token, user);
     }
+    public boolean validateToken(String token) {
+        return jwtService.isTokenValid(token);
+    }
     // *** TESTING PURPOSES ONLY, REMOVE LATER ***
 }

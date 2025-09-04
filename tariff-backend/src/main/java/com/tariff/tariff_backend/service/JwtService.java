@@ -83,6 +83,19 @@ public class JwtService {
         return false;
     }
 
+    public boolean isTokenValid(String token) {
+        try {
+            Claims claims = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
+            // print payload
+            for (Map.Entry<String, Object> entry : claims.entrySet()) {
+                System.out.println(entry.getKey() + ": " + entry.getValue());
+            }
+            return true;
+        } catch (Exception e) {
+            System.out.println("Invalid JWT received: " + token);
+        }
+        return false;
+    }
 
 
 

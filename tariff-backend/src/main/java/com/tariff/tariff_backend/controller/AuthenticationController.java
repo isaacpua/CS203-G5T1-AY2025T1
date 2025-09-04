@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -68,6 +69,16 @@ public class AuthenticationController {
     @PostMapping("/valid")
     public boolean isValid(@RequestBody Map<String, String> request) { 
         return authenticationService.isValid(request);
+    }
+    @PostMapping("/verifyJWT")
+    public ResponseEntity<?> postMethodName(@RequestHeader("Authorization") String authHeader) {
+        // Remove "Bearer "
+        String token = authHeader.replace("Bearer ", "").trim();
+
+        if (authenticationService.validateToken(token)) {
+            return ResponseEntity.ok("Token is valid");
+        }
+        return ResponseEntity.badRequest().body("Token is invalid");
     }
     // *** TESTING PURPOSES ONLY, REMOVE LATER ***
 }
