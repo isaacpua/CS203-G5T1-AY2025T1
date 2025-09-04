@@ -2,6 +2,7 @@ package com.tariff.tariff_backend.controller;
 
 import java.util.Map;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,7 +11,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tariff.tariff_backend.dto.UserDTO;
 import com.tariff.tariff_backend.model.User;
+import com.tariff.tariff_backend.model.auth.AuthResponse;
 import com.tariff.tariff_backend.service.AuthenticationService;
 
 
@@ -34,6 +37,17 @@ public class AuthenticationController {
         return authenticationService.signup(user);
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody UserDTO user) {
+        AuthResponse authRes = authenticationService.login(user);
+        if (!authRes.getSuccess()) {
+            if (authRes.getMessage().startsWith("Internal Server Error")) {
+                return ResponseEntity.internalServerError().body(authRes);
+            }
+            return ResponseEntity.badRequest().body(authRes);
+        }
+        return ResponseEntity.ok(authRes);
+    }
 
 
 
