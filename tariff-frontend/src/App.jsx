@@ -2,6 +2,7 @@ import TariffCalculator from './components/TariffCalculator';
 import { ModeToggle } from './components/mode-toggle';
 import HelloWorld from './components/HelloWorld';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Login from './pages/Login';
 
 function App() {
   return (
@@ -21,7 +22,7 @@ function App() {
           <main className="flex-1">
             <Routes>
               <Route path="/hello" element={<HelloWorld />} />
-              <Route path="/home"
+              <Route index
                 element={
                   <section className="mx-auto flex max-w-[980px] flex-col items-center gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20">
                     <TariffCalculator />
