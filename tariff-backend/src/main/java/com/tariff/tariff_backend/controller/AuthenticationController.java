@@ -48,7 +48,7 @@ public class AuthenticationController {
             if (authRes.getMessage().startsWith("Internal Server Error")) {
                 return ResponseEntity.internalServerError().body(authRes);
             }
-            return ResponseEntity.badRequest().body(authRes);
+            return ResponseEntity.status(401).body(authRes);
         }
         return ResponseEntity.ok(authRes);
     }
