@@ -37,7 +37,7 @@ const Login = () => {
     } catch (err) {
       if (err.code == "ERR_NETWORK") {
         setError("Our servers are currently down. Please try again later.");
-      } else if (err.response.data.message) {
+      } else if (err.response?.data?.message) {
         setError(err.response.data.message);
       } else {
         setError("An unexpected error occurred. Please try again.")
@@ -62,7 +62,7 @@ const Login = () => {
     } catch (err) {
       if (err.code == "ERR_NETWORK") {
         setError("Our servers are currently down. Please try again later.");
-      } else if (err.response.data.message) {
+      } else if (err.response?.data?.message) {
         setError(err.response.data.message);
       } else {
         setError("An unexpected error occurred. Please try again.")
