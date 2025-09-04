@@ -29,6 +29,10 @@ function App() {
                   </section>
                 }
               />
+              <Route path="/login" element={
+                <section className="flex flex-col items-center justify-center p-6 w-full">
+                  <Login />
+                </section>} />
               {/* Add more  routes here as needed */}
             </Routes>
           </main>
