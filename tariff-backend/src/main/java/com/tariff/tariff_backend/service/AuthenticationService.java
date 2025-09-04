@@ -23,11 +23,34 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
 
 
-    public User signup(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        System.out.println("Reached service, saving user...");
-        System.out.println(user);
-        return userRepo.save(user);
+    public AuthResponse register(UserDTO user) {
+        AuthResponse response = AuthResponse.builder()
+            .success(true)
+            .message("Registration successful")
+            .build();
+        String username = user.getUsername();
+        String pw = passwordEncoder.encode(user.getPassword());
+        try {
+            if (userRepo.existsByUsername(username)) {
+                throw new AuthException("User with username " + username + " already exists");
+            }
+
+            // Create the User object to be saved
+            User newUser = User.builder()
+                .username(username)
+                .password(pw)
+                .roles("default")
+                .build();
+
+            userRepo.save(newUser);
+        } catch (AuthException e) {
+            response.setSuccess(false);
+            response.setMessage(e.getMessage());
+        } catch (Exception e) {
+            response.setSuccess(false);
+            response.setMessage("Internal Server Error: " + e.getMessage());
+        }
+        return response;
     }
 
     public AuthResponse login(UserDTO user) {

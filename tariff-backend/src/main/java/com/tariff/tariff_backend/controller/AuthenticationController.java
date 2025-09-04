@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tariff.tariff_backend.dto.UserDTO;
-import com.tariff.tariff_backend.model.User;
 import com.tariff.tariff_backend.model.auth.AuthResponse;
 import com.tariff.tariff_backend.service.AuthenticationService;
 
@@ -30,11 +29,16 @@ public class AuthenticationController {
     }
 
 
-    @PostMapping("/signup")
-    public User signup(@RequestBody User user) {
-        System.out.println(user);
-        System.out.println("Reached controller, calling service...");
-        return authenticationService.signup(user);
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody UserDTO user) {
+        AuthResponse authRes = authenticationService.register(user);
+        if (!authRes.getSuccess()) {
+            if (authRes.getMessage().startsWith("Internal Server Error")) {
+                return ResponseEntity.internalServerError().body(authRes);
+            }
+            return ResponseEntity.badRequest().body(authRes);
+        }
+        return ResponseEntity.ok(authRes);
     }
 
     @PostMapping("/login")
