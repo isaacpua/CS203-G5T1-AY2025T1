@@ -48,7 +48,28 @@ const Login = () => {
   };
 
   const handleRegister = async () => {
-
+    setIsLoading(true);
+    setError(null);
+    const credentials = JSON.stringify({
+      username: username,
+      password: password,
+    });
+    try {
+      const response = await axiosClient.post("/auth/register", credentials);
+      if (response.status == 200) {
+        console.log(response.data);
+      }
+    } catch (err) {
+      if (err.code == "ERR_NETWORK") {
+        setError("Our servers are currently down. Please try again later.");
+      } else if (err.response.data.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("An unexpected error occurred. Please try again.")
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const toggleMode = () => {
