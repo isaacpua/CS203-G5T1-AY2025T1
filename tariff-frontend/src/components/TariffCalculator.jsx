@@ -70,7 +70,11 @@ function TariffSearchAndCalc() {
       setResults({ content: [], totalPages: 0, number: 0, size });
       return;
     }
-
+    if ((mode === "id" || mode === "hts8") && !isIntegerLike(query)) {
+      setSearchError("Please input an integer.");
+      setResults({ content: [], totalPages: 0, number: 0, size });
+      return;
+    }
     const fetchPage = async () => {
       setSearching(true);
       setSearchError("");
@@ -149,20 +153,23 @@ function TariffSearchAndCalc() {
       const needsQualifierDVs = hasPercent && percentQuals.length > 0;
       const declaredByQualifier = needsQualifierDVs
         ? Object.fromEntries(
-          percentQuals
-            .map((rawQ) => [rawQ, toDecimalOrNull(qualifierValues[rawQ])])
-            .filter(([, v]) => v !== null)
-        )
+            percentQuals
+              .map((rawQ) => [rawQ, toDecimalOrNull(qualifierValues[rawQ])])
+              .filter(([, v]) => v !== null)
+          )
         : undefined;
 
       // ----- Legacy quantity/uom to send to backend -----
       let qtyForLegacy = toDecimalOrZero(quantity);
       let uomForLegacy = uom;
+
       if (pureSpecific) {
         if (specificUnits.length === 1) {
           // Single-unit pure specific
-          qtyForLegacy = toDecimalOrZero(specificQty[specificUnits[0]] || quantity);
-          uomForLegacy = specificUnits[0];
+          const unit = specificUnits[0];
+          qtyForLegacy = toDecimalOrZero(specificQty[unit] || quantity);
+          // map UI unit to backend unit (e.g., /gross -> /line for /line/ gross patterns)
+          uomForLegacy = uiUnitToBackendUnit(selected.mfnTextRate, unit);
         } else {
           // Multi-specific fallback
           qtyForLegacy = toDecimalOrZero(quantity);
@@ -174,7 +181,8 @@ function TariffSearchAndCalc() {
           const unit = specificUnits[0];
           const perUnit = toDecimalOrNull(specificQty[unit]);
           qtyForLegacy = perUnit != null ? perUnit : toDecimalOrZero(quantity);
-          uomForLegacy = unit;
+          // map UI unit to backend unit
+          uomForLegacy = uiUnitToBackendUnit(selected.mfnTextRate, unit);
         } else {
           // multi-specific: use ONE qty (first non-empty per-unit else normal Quantity)
           const perUnitVals = specificUnits
@@ -224,8 +232,8 @@ function TariffSearchAndCalc() {
     hasUnqualifiedPercent,
     specificUnits,
   } = selected
-      ? parseParts(rateText)
-      : {
+    ? parseParts(rateText)
+    : {
         hasSpecific: false,
         hasPercent: false,
         percentQuals: [],
@@ -235,7 +243,8 @@ function TariffSearchAndCalc() {
 
   const cascading = hasUnqualifiedPercent && specificUnits.length > 0;
   const needsQualifierDVs = hasPercent && percentQuals.length > 0;
-  const pureAdValorem = hasPercent && !hasSpecific && !needsQualifierDVs && hasUnqualifiedPercent;
+  const pureAdValorem =
+    hasPercent && !hasSpecific && !needsQualifierDVs && hasUnqualifiedPercent;
   const pureSpecific = hasSpecific && !hasPercent;
 
   // ---- UI ----
@@ -321,8 +330,9 @@ function TariffSearchAndCalc() {
             {results.content.map((row) => (
               <button
                 key={row.id}
-                className={`w-full text-left p-3 hover:bg-muted/50 ${selected?.id === row.id ? "bg-muted/70" : ""
-                  }`}
+                className={`w-full text-left p-3 hover:bg-muted/50 ${
+                  selected?.id === row.id ? "bg-muted/70" : ""
+                }`}
                 onClick={() => {
                   // just set; effect will clear & re-init inputs
                   setSelected(row);
@@ -528,7 +538,7 @@ function TariffSearchAndCalc() {
                           <div key={i}>
                             • {c.kind}: duty={fmtMoney(c.dutyAmount)} | adVal=
                             {c.adValorem ?? 0} | spec=
-                            {c.specificPerUnit ?? 0} {c.unit ?? ""} {c.qualifier ?? ""}
+                            {c.specificPerUnit ?? 0} {displayUnitForUI(selected?.mfnTextRate, c.unit)} {c.qualifier ?? ""}
                           </div>
                         ))}
                       </div>
@@ -586,6 +596,15 @@ function prettyQualifier(q) {
   return firstOr.trim();
 }
 
+/** Map a UI unit to what the backend parser expects (special-casing /line/ gross). */
+function uiUnitToBackendUnit(rateText, uiUnit) {
+  const t = (rateText || "").toLowerCase();
+  if (uiUnit === "/gross" && /\/\s*line\s*\/\s*gross/.test(t)) {
+    return "/line";
+  }
+  return uiUnit;
+}
+
 /** Parse flags + RAW % qualifiers + list of SPECIFIC unit tokens */
 function parseParts(rateText) {
   if (!rateText)
@@ -611,7 +630,7 @@ function parseParts(rateText) {
 
   const hasSpecific = parts.some(looksSpecific);
   const hasPercent = parts.some((s) => /%|\bad\s*valorem\b/.test(s));
-
+  
   // collect specific units
   const units = new Set();
   for (const p of parts) {
@@ -629,8 +648,15 @@ function parseParts(rateText) {
     }
   }
 
+  // --- UI normalization: collapse "/line/ gross" to just "/gross"
+  const text = rateText.toLowerCase();
+  if (/\/\s*line\s*\/\s*gross/.test(text)) {
+    units.delete("/line");
+    units.add("/gross");
+  }
+
   // % qualifiers
- const percentQuals = [];
+  const percentQuals = [];
   let hasUnqualifiedPercent = false;
 
   for (const p of parts) {
@@ -660,4 +686,16 @@ function NeedBadge({ children }) {
       {children}
     </span>
   );
+}
+
+function displayUnitForUI(rateText, unit) {
+  const t = (rateText || "").toLowerCase();
+  if (unit === "/line" && /\/\s*line\s*\/\s*gross/.test(t)) {
+    return "/gross";
+  }
+  return unit ?? "";
+}
+
+function isIntegerLike(str) {
+  return /^\d+$/.test(str.trim());
 }
