@@ -17,18 +17,19 @@ public class RateParser {
     }
 
     public record RateComponent(
-            RateKind kind,
-            BigDecimal adValorem,
-            BigDecimal specificPerUnit, // bigdecimal is btr cos double and float will round off and idw that
-            String unit, // "/kg", "/liter"
-            String qualifier, // for stuff like "on the battery"/"drained weight" and what not
-            String raw // original input (for debugging)
+        RateKind kind,
+        BigDecimal adValorem,
+        BigDecimal specificPerUnit, // bigdecimal is btr cos double and float will round off and idw that
+        String unit, // "/kg", "/liter"
+        String qualifier, // for stuff like "on the battery"/"drained weight" and what not
+        String raw // original input (for debugging)
     ) {
     }
 
     public record ParsedRate( // record basically auto generate constructor and getters with equals and hashcode and tostrings
-            String raw,
-            List<RateComponent> components) {
+        String raw,
+        List<RateComponent> components) 
+        {
         public boolean isFree() { // check if its 0 or if its the long words one (default to 0)
             for (RateComponent c : components) {
                 if (c.kind == RateKind.FREE || c.kind == RateKind.UNKNOWN) {
@@ -85,19 +86,20 @@ public class RateParser {
     private static final Pattern FREE_ZERO = Pattern.compile("^\\s*0+(?:\\.0+)?%?\\s*$"); // matching 0.0,0.0%
 
     private static final Pattern PERCENT = Pattern.compile(
-            "^\\s*([+-]?\\d{1,3}(?:,\\d{3})*(?:\\.\\d+)?|[+-]?\\d+(?:\\.\\d+)?)\\s*%\\s*(.*)$",
-            Pattern.CASE_INSENSITIVE);
+        "^\\s*([+-]?\\d{1,3}(?:,\\d{3})*(?:\\.\\d+)?|[+-]?\\d+(?:\\.\\d+)?)\\s*%\\s*(.*)$",
+        Pattern.CASE_INSENSITIVE);
 
     // "$1.556/kg", "0.12/kg", "$1.13/m3", "$1.34/1000"
-    private static final Pattern DOLLAR_PER_UNIT = Pattern
-            .compile("^\\s*\\$?\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*/\\s*([a-zA-Z0-9^]+)\\s*(.*)$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern DOLLAR_PER_UNIT = Pattern.compile(
+        "^\\s*\\$?\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*/\\s*([a-zA-Z0-9^]+)\\s*(.*)$", 
+        Pattern.CASE_INSENSITIVE);
 
     // "13.7 cents/kg", "0.5 cents/kg", "2.8 cents/doz.", "89.6 cents/1000"
     private static final Pattern CENTS_PER_UNIT = Pattern.compile(
-            "^\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*(?:cents?|cent|c)\\s*" +
-            "(?:/\\s*([0-9]+|[a-zA-Z][a-zA-Z0-9.\\-]*)|\\s+(each|jewel|bbl))?" +
-            "\\s*(.*)$",
-            Pattern.CASE_INSENSITIVE);
+        "^\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*(?:cents?|cent|c)\\s*" +
+        "(?:/\\s*([0-9]+|[a-zA-Z][a-zA-Z0-9.\\-]*)|\\s+(each|jewel|bbl))?" +
+        "\\s*(.*)$",
+        Pattern.CASE_INSENSITIVE);
 
     // number without the % or wtv incase got any tariff value written as only numbers
     private static final Pattern NUMBER_ONLY = Pattern.compile("^\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*%?\\s*$");
