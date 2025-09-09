@@ -1,9 +1,9 @@
 package com.tariff.tariff_backend.model;
-
 import java.math.BigDecimal;
 import java.util.List;
-
 import com.tariff.tariff_backend.service.RateParser.RateKind;
+
+//what did the backend compute and how it breakdown the data
 
 public record TariffComputeResponse(
     BigDecimal totalDuty,
