@@ -1,28 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axiosClient from "../api/axiosClient";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import {Card, CardContent, CardFooter, CardHeader, CardTitle,CardDescription,} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue,} from "@/components/ui/select";
+import {Alert,AlertDescription,AlertTitle,} from "@/components/ui/alert";
 import { Loader2, Search, Calculator, Terminal } from "lucide-react";
 
 function TariffSearchAndCalc() {
@@ -59,20 +42,29 @@ function TariffSearchAndCalc() {
   const [computeRes, setComputeRes] = useState(null);
 
   const debouncedQuery = useDebounce(query, 300);
-
+  const prevDQRef = useRef(debouncedQuery);
   // ---- search handler ----
   useEffect(() => {
     const dQ = debouncedQuery.trim(); //only once u stop typing then it sends
+
     if (dQ === "") {
       setSearchError(""); // also clear error if you want
       setResults({ content: [], totalPages: 0, number: 0, size });
+      prevDQRef.current = debouncedQuery;
       return;
     }
     if ((mode === "id" || mode === "hts8") && !isIntegerLike(dQ)) {
       setSearchError("Please input an integer.");
       setResults({ content: [], totalPages: 0, number: 0, size });
+      prevDQRef.current = debouncedQuery;
       return;
     }
+    if (prevDQRef.current !== debouncedQuery && page !== 0) {
+      setPage(0);
+      prevDQRef.current = debouncedQuery;
+      return; // don't fetch yet
+    }
+    prevDQRef.current = debouncedQuery;
     const fetchPage = async () => {
       setSearching(true);
       setSearchError("");
