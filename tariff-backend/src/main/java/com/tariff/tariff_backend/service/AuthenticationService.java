@@ -65,7 +65,7 @@ public class AuthenticationService {
             // Check credentials against DB
             Optional<User> optionalUser = userRepo.findByUsername(username);
             if (optionalUser.isEmpty()) {
-                throw new AuthException("User with username " + username + " not found");
+                throw new AuthException("The username or password you entered is incorrect.");
             }
             User matchingUser = optionalUser.get();
 
