@@ -44,6 +44,7 @@ function TariffSearchAndCalc() {
       setSearching(true);
       setSearchError("");
       try {
+        const token = localStorage.getItem("accessToken");
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("size", String(size));
@@ -52,12 +53,17 @@ function TariffSearchAndCalc() {
         if (mode === "hts8") params.set("hts8", query.trim());
         if (mode === "desc") params.set("q", debouncedQuery.trim());
 
-        const { data } = await axiosClient.get(`/tariffs/search?${params.toString()}`);
+        const { data } = await axiosClient.get(`/tariffs/search?${params.toString()}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setResults(data);
       } catch (e) {
         setSearchError("Search failed. Check backend /tariffs/search.");
         setResults({ content: [], totalPages: 0, number: 0, size });
         console.error(e);
+        window.location.reload(); // force reload to login if token expired, IS THERE A BETTER WAY TO DO THIS???
       } finally {
         setSearching(false);
       }
@@ -76,6 +82,7 @@ function TariffSearchAndCalc() {
 
   // ---- compute handler ----
   const onCompute = async () => {
+    const token = localStorage.getItem("accessToken");
     if (!selected) return;
     setComputing(true);
     setComputeError("");
@@ -86,11 +93,16 @@ function TariffSearchAndCalc() {
         quantity: numOrZero(quantity),
         uom, // FE sends canonical units (e.g. "/unit", "/kg", "/liter")
       };
-      const { data } = await axiosClient.post(`/tariffs/compute?id=${selected.id}`, body);
+      const { data } = await axiosClient.post(`/tariffs/compute?id=${selected.id}`, body, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setComputeRes(data);
     } catch (e) {
       setComputeError("Compute failed. Check /tariffs/{id}/compute.");
       console.error(e);
+      window.location.reload(); // force reload to login if token expired, IS THERE A BETTER WAY TO DO THIS???
     } finally {
       setComputing(false);
     }

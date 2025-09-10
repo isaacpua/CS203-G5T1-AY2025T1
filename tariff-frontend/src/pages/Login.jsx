@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"; import { AlertCircle, X } from "lucide-react";
 import { useState } from "react";
+import {useLocation, useNavigate} from "react-router-dom";
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -21,6 +22,10 @@ const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/";
 
   const handleLogin = async () => {
     setIsLoading(true);
@@ -33,13 +38,16 @@ const Login = () => {
       const response = await axiosClient.post("/auth/login", credentials);
       if (response.status == 200) {
         localStorage.setItem("accessToken", response.data.accessToken);
-        const accessToken = localStorage.getItem("accessToken");
-        const isValid = await axiosClient.post("/auth/verifyJWT", {}, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-        console.log(isValid.data);
+        return navigate(from, { replace: true }); // go to original page that required login
+
+        // CODE FOR TESTING TOKEN EXISTENCE
+        // const accessToken = localStorage.getItem("accessToken");
+        // const isValid = await axiosClient.post("/auth/verifyJWT", {}, {
+        //   headers: {
+        //     Authorization: `Bearer ${accessToken}`,
+        //   },
+        // });
+        // console.log(isValid.data);
       }
     } catch (err) {
       if (err.code == "ERR_NETWORK") {
@@ -63,9 +71,8 @@ const Login = () => {
     });
     try {
       const response = await axiosClient.post("/auth/register", credentials);
-      if (response.status == 200) {
-        console.log(response.data);
-      }
+      console.log(response.data);
+      toggleMode(); // switch back to login mode
     } catch (err) {
       if (err.code == "ERR_NETWORK") {
         setError("Our servers are currently down. Please try again later.");

@@ -1,8 +1,9 @@
-import TariffCalculator from './components/TariffCalculator';
+import TariffCalculator from './pages/TariffCalculator';
 import { ModeToggle } from './components/mode-toggle';
 import HelloWorld from './components/HelloWorld';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from './pages/Login';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -21,19 +22,19 @@ function App() {
           </header>
           <main className="flex-1">
             <Routes>
-              <Route path="/hello" element={<HelloWorld />} />
-              <Route index
+              <Route path="/" element={<ProtectedRoute><HelloWorld /></ProtectedRoute>} />
+              <Route path="/calculator"
                 element={
                   <section className="mx-auto flex max-w-[980px] flex-col items-center gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20">
-                    <TariffCalculator />
+                    <ProtectedRoute><TariffCalculator /></ProtectedRoute>
                   </section>
                 }
               />
               <Route path="/login" element={
                 <section className="flex flex-col items-center justify-center p-6 w-full">
                   <Login />
-                </section>} />
-              {/* Add more  routes here as needed */}
+                </section>}
+              />
             </Routes>
           </main>
         </div>
