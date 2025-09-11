@@ -5,7 +5,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useState } from 'react';
-import HistoricalTariffExplorer from './components/HistoricalTariffExplorer';
+import HistoricalTariffExplorer from './pages/HistoricalTariffExplorer';
 
 function App() {
   return (

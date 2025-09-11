@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "./ui/card";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "./ui/select";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../components/ui/select";
 import axiosClient from "../api/axiosClient";
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from "recharts";
+import { Relogin } from "@/components/Relogin";
+
+
 
 function Field({ id, label, children }) {
   return (
@@ -31,6 +34,9 @@ export default function HistoricalTariffExplorer() {
   const [series, setSeries] = useState(null);
   const [error, setError] = useState("");
 
+  const [showRelogin, setShowRelogin] = useState(false);
+
+
 
 // this part is to bullshit the recommended suggestions, we should add more to make it more full and make it more legit 
   useEffect(() => {
@@ -43,11 +49,13 @@ export default function HistoricalTariffExplorer() {
           },
         });
         setSuggestions(data || []);
-      } catch {
-        setSuggestions([
-          { title: "SG→CN Electronics", reporter: "Singapore", partner: "China", itemCode: "8471" },
-          { title: "US→EU Steel", reporter: "United States", partner: "European Union", itemCode: "7208" },
-        ]);
+      } catch (e) {
+        if (e.response?.status === 401) {
+          console.log("found 401 error wow")
+          setShowRelogin(true);
+          return;
+        }
+        console.error(e);
       }
     })();
   }, []);
@@ -64,7 +72,12 @@ export default function HistoricalTariffExplorer() {
         },
       });
       setSeries(data);
-    } catch {
+    } catch (e) {
+      if (e.response?.status === 401) {
+        console.log("found 401 error wow")
+        setShowRelogin(true);
+        return;
+      }
       setError("No historical data found.");
       setSeries(null);
     } finally {
@@ -106,6 +119,8 @@ export default function HistoricalTariffExplorer() {
   }
 
   return (
+    <>
+    {showRelogin && <Relogin />}
     <Card>
       <CardHeader>
         <CardTitle>Enter Data</CardTitle>
@@ -160,5 +175,6 @@ export default function HistoricalTariffExplorer() {
         </div>
       </CardContent>
     </Card>
+    </>
   );
 }
