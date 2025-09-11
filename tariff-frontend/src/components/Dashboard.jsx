@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [mode, setMode] = useState("desc"); // "id" | "hts8" | "desc"
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
+  const [pageInput, setPageInput] = useState("1");
   const [pageSize, setPageSize] = useState(50);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -80,6 +81,7 @@ export default function Dashboard() {
           `/tariffs/search?${params.toString()}`
         );
         setResults(data);
+        setPageInput(String(data.number + 1));
       } catch (err) {
         setError("Failed to fetch tariffs. Please try again.");
         console.error(err);
@@ -95,6 +97,24 @@ export default function Dashboard() {
   useEffect(() => {
     setPage(0);
   }, [debouncedQuery, mode]);
+  
+  const handlePageInputChange = (e) => {
+    setPageInput(e.target.value);
+  };
+
+  const handlePageJump = () => {
+    const pageNum = Number(pageInput);
+    if (
+      !isNaN(pageNum) &&
+      pageNum > 0 &&
+      pageNum <= results.totalPages
+    ) {
+      setPage(pageNum - 1);
+    } else {
+      setPageInput(String(page + 1)); // Reset to current page if invalid
+    }
+  };
+
 
   return (
     <Card>
@@ -197,8 +217,19 @@ export default function Dashboard() {
             >
               Previous
             </Button>
-            <div className="text-sm text-muted-foreground">
-              Page {results.number + 1} of {results.totalPages}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                Page
+                <Input
+                  type="number"
+                  className="h-8 w-16 text-center"
+                  value={pageInput}
+                  onChange={handlePageInputChange}
+                  onKeyDown={(e) => e.key === 'Enter' && handlePageJump()}
+                  onBlur={handlePageJump}
+                  min="1"
+                  max={results.totalPages}
+                />
+                of {results.totalPages}
             </div>
             <Button
               variant="outline"
