@@ -33,6 +33,7 @@ public class UserManagementService {
 
             response.setUsers(userMgmtDTOs);
         } catch (DataAccessException e) {
+            response.setSuccess(false);
             response.setMessage("Failed to retrieve users due to database errors.");
         } catch (Exception e) {
             response.setSuccess(false);
