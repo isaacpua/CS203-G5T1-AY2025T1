@@ -3,6 +3,7 @@ package com.tariff.tariff_backend.controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tariff.tariff_backend.dto.UserManagementDTO;
 import com.tariff.tariff_backend.model.user_management.UserManagementResponse;
 import com.tariff.tariff_backend.service.UserManagementService;
 
@@ -12,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 
 @RestController
@@ -37,6 +40,18 @@ public class UserManagementController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable UUID id) {
         UserManagementResponse userMgmtRes = userMgmtSvc.deleteUser(id);
+        if (!userMgmtRes.getSuccess()) {
+            if (userMgmtRes.getMessage().startsWith("Internal Server Error")) {
+                return ResponseEntity.internalServerError().body(userMgmtRes);
+            }
+            return ResponseEntity.badRequest().body(userMgmtRes);
+        }
+        return ResponseEntity.ok(userMgmtRes);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable UUID id, @RequestBody UserManagementDTO dto) {
+        UserManagementResponse userMgmtRes = userMgmtSvc.updateUser(id, dto);
         if (!userMgmtRes.getSuccess()) {
             if (userMgmtRes.getMessage().startsWith("Internal Server Error")) {
                 return ResponseEntity.internalServerError().body(userMgmtRes);

@@ -1,6 +1,7 @@
 package com.tariff.tariff_backend.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -57,6 +58,34 @@ public class UserManagementService {
         } catch (DataAccessException e) {
             response.setSuccess(false);
             response.setMessage("Failed to delete user due to database errors.");
+        } catch (UserManagementException e) {
+            response.setSuccess(false);
+            response.setMessage(e.getMessage());
+        } catch (Exception e) {
+            response.setSuccess(false);
+            response.setMessage("Internal Server Error: " + e.getMessage());
+        }
+        return response;
+    }
+
+    public UserManagementResponse updateUser(UUID id, UserManagementDTO dto) {
+        UserManagementResponse response = UserManagementResponse.builder()
+            .message("Successfully updated the requested user.")
+            .success(true)
+            .build();
+        try {
+            Optional<User> optionalUser = userRepo.findById(id);
+            if (optionalUser.isEmpty()) {
+                throw new UserManagementException("User with id " + id + " cannot be found in the database.");
+            }
+            
+            User user = optionalUser.get();
+            user.setUsername(dto.getUsername());
+            user.setRoles(dto.getRoles());
+            userRepo.save(user);
+        } catch (DataAccessException e) {
+            response.setSuccess(false);
+            response.setMessage("Failed to update user due to database errors.");
         } catch (UserManagementException e) {
             response.setSuccess(false);
             response.setMessage(e.getMessage());
