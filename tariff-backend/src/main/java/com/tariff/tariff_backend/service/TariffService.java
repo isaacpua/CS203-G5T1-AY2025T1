@@ -21,20 +21,20 @@ import com.tariff.tariff_backend.service.RateParser.RateKind;
 import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor // auto generates constructors 
+@RequiredArgsConstructor // auto generates constructors
 public class TariffService {
     private final TariffRepo tariffRepo;
 
-     public Page<TariffSearchRow> searchTariffs(Integer id, Integer hts8, String q, Pageable pageable) {
+    public Page<TariffSearchRow> searchTariffs(Integer id, Integer hts8, String q, Pageable pageable) {
         Page<Tariff> page;
 
-        if (id != null) { //Id lookup
+        if (id != null) { // Id lookup
             Optional<Tariff> one = tariffRepo.findById(id);
             if (one.isPresent()) {
                 List<Tariff> resultList = new ArrayList<>();
                 resultList.add(one.get());
 
-                page = new PageImpl<>(resultList, pageable, 1); //creating page manually
+                page = new PageImpl<>(resultList, pageable, 1); // creating page manually
                 return page.map(this::toRow); // map is a helper to convert the page to rows based on my helper function
             } else {
                 return Page.empty(pageable);
@@ -62,22 +62,22 @@ public class TariffService {
             var parsed = RateParser.parse(t.getMfnTextRate());
             overallKind = parsed.overallKind().name();
             isFree = parsed.isFree();
-        } catch (Exception ignore) {}
+        } catch (Exception ignore) {
+        }
 
         return new TariffSearchRow(
-            t.getId(),
-            t.getHts8(),
-            t.getBriefDescription(),
-            t.getMfnTextRate(),
-            overallKind,
-            isFree
-        );
+                t.getId(),
+                t.getHts8(),
+                t.getBriefDescription(),
+                t.getMfnTextRate(),
+                overallKind,
+                isFree);
     }
 
-    public TariffComputeResponse computeTariff(Integer id, TariffComputeRequest req){
+    public TariffComputeResponse computeTariff(Integer id, TariffComputeRequest req) {
         Tariff t = tariffRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("Tariff not found: " + id));
         ParsedRate parsed = RateParser.parse(t.getMfnTextRate());
-        
+
         BigDecimal declared;
         BigDecimal qty;
 
@@ -87,60 +87,164 @@ public class TariffService {
             declared = req.declaredValue();
         }
 
-        if (req.quantity() == null){
+        if (req.quantity() == null) {
             qty = BigDecimal.ZERO;
         } else {
             qty = req.quantity();
         }
-
+        String uom = req.uom();
+        TariffComputeResponse cascade = tryComputeCascadeNoMap(parsed, declared, qty, uom);
+        if (cascade != null) {
+            return cascade;
+        }
         BigDecimal totalDuty = BigDecimal.ZERO;
 
         List<TariffComputeResponse.BreakdownLine> lines = new ArrayList<>();
 
-
         List<RateParser.RateComponent> comps = parsed.components();
 
-        for (RateParser.RateComponent c : comps){
+        for (RateParser.RateComponent c : comps) {
 
-            if (c.kind() == RateParser.RateKind.FREE || c.kind() == RateParser.RateKind.UNKNOWN){
+            if (c.kind() == RateParser.RateKind.FREE || c.kind() == RateParser.RateKind.UNKNOWN) {
                 continue;
             }
+
             if (c.kind() == RateParser.RateKind.AD_VALOREM) {
-                //c.adValorem is already a fraction
-                BigDecimal duty = c.adValorem();
-                duty = duty.multiply(declared);
+                // c.adValorem is already a fraction
+                BigDecimal base = declared;
+                if (c.qualifier() != null && req.declaredByQualifier() != null) {
+                    BigDecimal override = req.declaredByQualifier().get(c.qualifier());
+                    if (override != null) {
+                        base = override;
+                    }
+                }
+                BigDecimal duty = base.multiply(c.adValorem());
                 totalDuty = totalDuty.add(duty);
-                lines.add(new TariffComputeResponse.BreakdownLine(
-                    RateKind.AD_VALOREM,
-                    duty,
-                    c.adValorem(),
-                    null,
-                    null,
-                    c.qualifier()
-                ));
+                lines.add(new TariffComputeResponse.BreakdownLine(RateKind.AD_VALOREM, duty, c.adValorem(), null, null,
+                        c.qualifier()));
                 continue;
             }
-            if (c.kind() == RateParser.RateKind.SPECIFIC_PER_UNIT){
-                BigDecimal rate = c.specificPerUnit(); //for now doesnt work with those that have like 10 cents/1000
+
+            if (c.kind() == RateParser.RateKind.SPECIFIC_PER_UNIT) {
+                BigDecimal rate = c.specificPerUnit();
                 BigDecimal duty = rate.multiply(qty);
 
                 totalDuty = totalDuty.add(duty);
-                lines.add(new TariffComputeResponse.BreakdownLine(
-                    RateKind.SPECIFIC_PER_UNIT,
-                    duty,
-                    null,
-                    rate,
-                    c.unit(),
-                    c.qualifier()
-                ));
+                lines.add(new TariffComputeResponse.BreakdownLine(RateKind.SPECIFIC_PER_UNIT, duty, null, rate,
+                        c.unit(), c.qualifier()));
             }
         }
-        return new TariffComputeResponse(
-            totalDuty,
-            declared,
-            lines
-        );
+        return new TariffComputeResponse(totalDuty, declared, lines);
     }
 
+    private TariffComputeResponse tryComputeCascadeNoMap(
+            ParsedRate parsed,
+            BigDecimal declared,
+            BigDecimal qty,
+            String uom) {
+        RateParser.RateComponent adComp = null; // unqualified %
+        List<RateParser.RateComponent> specificComps = new ArrayList<>();
 
+        for (RateParser.RateComponent c : parsed.components()) {
+            if (c.kind() == RateParser.RateKind.AD_VALOREM &&
+                    (c.qualifier() == null || c.qualifier().isBlank())) {
+                if (adComp == null) {
+                    adComp = c; // first unqualified %
+                } else {
+                    // more than one unqualified % → not a simple cascade
+                    return null;
+                }
+            }
+            if (c.kind() == RateParser.RateKind.SPECIFIC_PER_UNIT) {
+                specificComps.add(c);
+            }
+        }
+
+        if (adComp == null || specificComps.isEmpty()) {
+            return null; // not a cascade case
+        }
+
+        // Compute specifics
+        BigDecimal specSubtotal = BigDecimal.ZERO;
+        List<TariffComputeResponse.BreakdownLine> lines = new ArrayList<>();
+
+        // Normalize uom
+        String normUom = (uom == null) ? null : uom.trim().toLowerCase();
+
+        // Track if we matched at least one unit with uom
+        boolean anyMatchedUom = false;
+
+        for (RateParser.RateComponent sc : specificComps) {
+            String unit = (sc.unit() == null || sc.unit().isBlank())
+                    ? "each"
+                    : sc.unit().trim().toLowerCase();
+
+            // Decide which quantity to use for this specific line
+            BigDecimal qForUnit = BigDecimal.ZERO;
+
+            // match by explicit uom
+            if (normUom != null && !normUom.isBlank()) {
+                if (unit.equals(normUom)) {
+                    qForUnit = qty;
+                    anyMatchedUom = true;
+                }
+            } else {
+                // if uom not provided, "each" is a sensible default
+                if ("each".equals(unit)) {
+                    qForUnit = qty;
+                    anyMatchedUom = true;
+                }
+            }
+
+            BigDecimal rate = sc.specificPerUnit(); // already per one unit via parser normalization
+            BigDecimal specDuty = rate.multiply(qForUnit == null ? BigDecimal.ZERO : qForUnit);
+
+            lines.add(new TariffComputeResponse.BreakdownLine(
+                    RateKind.SPECIFIC_PER_UNIT,
+                    specDuty,
+                    null,
+                    rate,
+                    unit,
+                    sc.qualifier()));
+
+            specSubtotal = specSubtotal.add(specDuty);
+        }
+
+        // If nothing matched uom (e.g., multiple units present, one quantity provided),
+        // fallback: apply the same qty to ALL specific lines (temporary behavior).
+        if (!anyMatchedUom && qty != null && qty.compareTo(BigDecimal.ZERO) > 0) {
+            specSubtotal = BigDecimal.ZERO;
+            lines.clear();
+            for (RateParser.RateComponent sc : specificComps) {
+                String unit = (sc.unit() == null || sc.unit().isBlank())
+                        ? "each"
+                        : sc.unit().trim().toLowerCase();
+                BigDecimal rate = sc.specificPerUnit();
+                BigDecimal specDuty = rate.multiply(qty);
+                lines.add(new TariffComputeResponse.BreakdownLine(
+                        RateKind.SPECIFIC_PER_UNIT,
+                        specDuty,
+                        null,
+                        rate,
+                        unit,
+                        sc.qualifier()));
+                specSubtotal = specSubtotal.add(specDuty);
+            }
+        }
+
+        // Apply the unqualified % onto the subtotal
+        BigDecimal adVal = (adComp.adValorem() == null) ? BigDecimal.ZERO : adComp.adValorem();
+        BigDecimal adDuty = specSubtotal.multiply(adVal);
+
+        lines.add(new TariffComputeResponse.BreakdownLine(
+                RateKind.AD_VALOREM,
+                adDuty,
+                adVal,
+                null,
+                null,
+                "(applied on specific duty subtotal)"));
+
+        BigDecimal totalDuty = specSubtotal.add(adDuty);
+        return new TariffComputeResponse(totalDuty, declared, lines);
+    }
 }
