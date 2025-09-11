@@ -12,5 +12,4 @@ public class TariffBackendApplication {
 		LoadEnvVar.loadEnvVar();
 		SpringApplication.run(TariffBackendApplication.class, args);
 	}
-
 }
