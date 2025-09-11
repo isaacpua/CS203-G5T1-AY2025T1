@@ -7,6 +7,7 @@ import TariffCalculator from "./components/TariffCalculator";
 import HistoricalTariffExplorer from "./components/HistoricalTariffExplorer";
 import HelloWorld from "./components/HelloWorld";
 import Login from "./pages/Login";
+import Dashboard from "./components/Dashboard"; // Import the new Dashboard component
 
 function App() {
   return (
@@ -33,7 +34,7 @@ function App() {
                 <Route
                   index
                   element={
-                    <section className="mx-auto flex max-w-[980px] flex-col gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20 px-4 w-full">
+                    <section className="mx-auto flex max-w-5xl flex-col gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20 px-4 w-full">
                       <TabsWithTariff />
                     </section>
                   }
@@ -82,12 +83,22 @@ function TabsWithTariff() {
           >
             Historical Explorer
           </button>
+          <button
+            className={`px-4 py-2 rounded-lg text-sm transition ${
+              tab === "dashboard" ? "bg-background shadow" : "opacity-70 hover:opacity-100"
+            }`}
+            onClick={() => setTab("dashboard")}
+          >
+            Dashboard
+          </button>
         </div>
       </div>
 
       {/* Content */}
       <div className="grid gap-6">
-        {tab === "search" ? <TariffCalculator /> : <HistoricalTariffExplorer />}
+        {tab === "search" && <TariffCalculator />}
+        {tab === "historical" && <HistoricalTariffExplorer />}
+        {tab === "dashboard" && <Dashboard />}
       </div>
     </div>
   );
