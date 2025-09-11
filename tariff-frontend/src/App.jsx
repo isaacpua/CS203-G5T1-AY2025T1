@@ -7,7 +7,7 @@ import TariffCalculator from "./components/TariffCalculator";
 import HistoricalTariffExplorer from "./components/HistoricalTariffExplorer";
 import HelloWorld from "./components/HelloWorld";
 import Login from "./pages/Login";
-import Dashboard from "./components/Dashboard"; // Import the new Dashboard component
+import Dashboard from "./components/Dashboard";
 
 function App() {
   return (
@@ -15,7 +15,6 @@ function App() {
       <Router>
         <div className="min-h-screen bg-background font-sans antialiased">
           <div className="relative flex min-h-screen flex-col">
-            {/* Header (keeps main’s look & links) */}
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="flex h-14 items-center justify-between px-4">
                 <a className="flex items-center space-x-2" href="/">
@@ -27,10 +26,8 @@ function App() {
 
             <main className="flex-1">
               <Routes>
-                {/* Keeps main’s /hello route */}
                 <Route path="/hello" element={<HelloWorld />} />
 
-                {/* Index route now includes your Tabs + Historical explorer */}
                 <Route
                   index
                   element={
@@ -40,7 +37,6 @@ function App() {
                   }
                 />
 
-                {/* Keeps main’s /login route */}
                 <Route
                   path="/login"
                   element={
@@ -58,13 +54,11 @@ function App() {
   );
 }
 
-/** Inline component to keep App tidy: your tab UI + content */
 function TabsWithTariff() {
   const [tab, setTab] = useState("search");
 
   return (
     <div className="w-full">
-      {/* Tabs (your original UI, lightly adapted) */}
       <div className="mb-4 border-b">
         <div className="inline-flex rounded-xl bg-muted p-1">
           <button
@@ -77,28 +71,27 @@ function TabsWithTariff() {
           </button>
           <button
             className={`px-4 py-2 rounded-lg text-sm transition ${
-              tab === "historical" ? "bg-background shadow" : "opacity-70 hover:opacity-100"
-            }`}
-            onClick={() => setTab("historical")}
-          >
-            Historical Explorer
-          </button>
-          <button
-            className={`px-4 py-2 rounded-lg text-sm transition ${
               tab === "dashboard" ? "bg-background shadow" : "opacity-70 hover:opacity-100"
             }`}
             onClick={() => setTab("dashboard")}
           >
             Dashboard
           </button>
+          <button
+            className={`px-4 py-2 rounded-lg text-sm transition ${
+              tab === "historical" ? "bg-background shadow" : "opacity-70 hover:opacity-100"
+            }`}
+            onClick={() => setTab("historical")}
+          >
+            Historical Explorer
+          </button>
         </div>
       </div>
 
-      {/* Content */}
       <div className="grid gap-6">
         {tab === "search" && <TariffCalculator />}
-        {tab === "historical" && <HistoricalTariffExplorer />}
         {tab === "dashboard" && <Dashboard />}
+        {tab === "historical" && <HistoricalTariffExplorer />}
       </div>
     </div>
   );
