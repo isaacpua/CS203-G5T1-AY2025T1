@@ -97,7 +97,14 @@ public class JwtService {
         return false;
     }
 
+    public boolean isAdmin(String token) {
+        String roles = extractCustomClaim(token, "roles", String.class);
+        return roles.contains("admin");
+    }
 
+    public String getTokenFromHeader(String authHeader) {
+        return authHeader.substring(7);
+    }
 
 
 
@@ -113,5 +120,7 @@ public class JwtService {
     private Claims extractAllClaims(String token) {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
     }
-
+    public <T> T extractCustomClaim(String token, String claimKey, Class<T> type) {
+        return extractClaim(token, claims -> claims.get(claimKey, type));
+    }
 }
