@@ -35,8 +35,13 @@ export default function HistoricalTariffExplorer() {
 // this part is to bullshit the recommended suggestions, we should add more to make it more full and make it more legit 
   useEffect(() => {
     (async () => {
+      const token = localStorage.getItem("accessToken");
       try {
-        const { data } = await axiosClient.get("/tariffs/recommendations");
+        const { data } = await axiosClient.get("/tariffs/recommendations", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setSuggestions(data || []);
       } catch {
         setSuggestions([
@@ -51,7 +56,13 @@ export default function HistoricalTariffExplorer() {
     try {
       setLoading(true);
       setError("");
-      const { data } = await axiosClient.get("/tariffs/history", { params });
+      const token = localStorage.getItem("accessToken");
+      const { data } = await axiosClient.get("/tariffs/history", {
+        params,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setSeries(data);
     } catch {
       setError("No historical data found.");
