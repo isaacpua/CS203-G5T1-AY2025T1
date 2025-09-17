@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useState } from 'react';
 import HistoricalTariffExplorer from './pages/HistoricalTariffExplorer';
+import UserManagement from './pages/UserManagement';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
                     </section>
                   }
                 />
+                <Route path="/user-management" element={<UserManagement />}/>
               </Route>
             </Routes>
           </main>
