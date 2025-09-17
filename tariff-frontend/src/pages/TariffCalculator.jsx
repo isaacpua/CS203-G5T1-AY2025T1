@@ -74,18 +74,13 @@ function TariffSearchAndCalc() {
       setSearching(true);
       setSearchError("");
       try {
-        const token = localStorage.getItem("accessToken");
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("size", String(size));
         if (mode === "id") params.set("id", dQ);
         if (mode === "hts8") params.set("hts8", dQ);
         if (mode === "desc") params.set("q", dQ);
-        const { data } = await axiosClient.get(`/tariffs/search?${params.toString()}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const { data } = await axiosClient.get(`/tariffs/search?${params.toString()}`);
         setResults(data);
       } catch (e) {
         if (e.response?.status === 401) {
@@ -137,7 +132,6 @@ function TariffSearchAndCalc() {
 
   // ---- compute handler ----
   const onCompute = async () => {
-    const token = localStorage.getItem("accessToken");
     if (!selected) return;
     setComputing(true);
     setComputeError("");
@@ -215,11 +209,7 @@ function TariffSearchAndCalc() {
           ? { declaredByQualifier }
           : {}),
       };
-      const { data } = await axiosClient.post(`/tariffs/compute?id=${selected.id}`, body, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const { data } = await axiosClient.post(`/tariffs/compute?id=${selected.id}`, body);
       setComputeRes(data);
     } catch (e) {
       if (e.response?.status === 401) {
