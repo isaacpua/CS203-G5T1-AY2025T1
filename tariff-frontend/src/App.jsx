@@ -24,19 +24,24 @@ function App() {
           </header>
           <main className="flex-1">
             <Routes>
-              <Route path="/" element={<ProtectedRoute><HelloWorld /></ProtectedRoute>} />
-              <Route path="/calculator"
-                element={
-                  <section className="mx-auto flex max-w-[980px] flex-col items-center gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20">
-                    <ProtectedRoute><TabsWithTariff /></ProtectedRoute>
-                  </section>
-                }
-              />
+              {/* PUBLIC ROUTES */}
               <Route path="/login" element={
                 <section className="flex flex-col items-center justify-center p-6 w-full">
                   <Login />
                 </section>}
               />
+
+              {/* PROTECTED ROUTES */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<HelloWorld />} />
+                <Route path="/calculator"
+                  element={
+                    <section className="mx-auto flex max-w-[980px] flex-col items-center gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20">
+                      <TabsWithTariff />
+                    </section>
+                  }
+                />
+              </Route>
             </Routes>
           </main>
         </div>
