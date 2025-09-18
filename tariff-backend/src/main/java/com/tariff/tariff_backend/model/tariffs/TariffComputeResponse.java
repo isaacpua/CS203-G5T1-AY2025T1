@@ -1,4 +1,4 @@
-package com.tariff.tariff_backend.model;
+package com.tariff.tariff_backend.model.tariffs;
 import java.math.BigDecimal;
 import java.util.List;
 import com.tariff.tariff_backend.service.RateParser.RateKind;

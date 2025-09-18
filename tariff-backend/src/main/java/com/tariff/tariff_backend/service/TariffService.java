@@ -10,10 +10,10 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import com.tariff.tariff_backend.model.Tariff;
-import com.tariff.tariff_backend.model.TariffComputeRequest;
-import com.tariff.tariff_backend.model.TariffComputeResponse;
-import com.tariff.tariff_backend.model.TariffSearchRow;
+import com.tariff.tariff_backend.model.tariffs.Tariff;
+import com.tariff.tariff_backend.model.tariffs.TariffComputeRequest;
+import com.tariff.tariff_backend.model.tariffs.TariffComputeResponse;
+import com.tariff.tariff_backend.model.tariffs.TariffSearchRow;
 import com.tariff.tariff_backend.repository.TariffRepo;
 import com.tariff.tariff_backend.service.RateParser.ParsedRate;
 import com.tariff.tariff_backend.service.RateParser.RateKind;

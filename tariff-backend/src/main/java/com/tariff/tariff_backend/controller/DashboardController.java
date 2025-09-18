@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.tariff.tariff_backend.model.Tariff;
 import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
 import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
+import com.tariff.tariff_backend.model.tariffs.Tariff;
 import com.tariff.tariff_backend.service.DashboardService;
 
 @RestController

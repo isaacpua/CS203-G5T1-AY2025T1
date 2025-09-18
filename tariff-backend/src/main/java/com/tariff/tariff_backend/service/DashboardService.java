@@ -5,9 +5,9 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.tariff.tariff_backend.model.Tariff;
 import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
 import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
+import com.tariff.tariff_backend.model.tariffs.Tariff;
 import com.tariff.tariff_backend.repository.TariffRepo;
 
 import lombok.RequiredArgsConstructor;
