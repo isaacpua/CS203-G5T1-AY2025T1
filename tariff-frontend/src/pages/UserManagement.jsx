@@ -7,7 +7,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +19,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Table,
   TableBody,
   TableCell,
@@ -27,10 +34,29 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import axiosClient from "@/api/axiosClient";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Spinner } from "@/components/ui/shadcn-io/spinner"
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
+  const [deleteAction, setDeleteAction] = useState(false);
+  const [deleteUser, setDeleteUser] = useState(null);
+  const [editAction, setEditAction] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  
+  // If I don't have these 2 lines, then the edit users will re-render the dialog everytime something is changed.
+  const usernameRef = useRef(null);
+  const roleRef = useRef(null);
+
   useEffect(() => {
     const fetchAllUsers = async () => {
       try {
@@ -48,10 +74,210 @@ const UserManagement = () => {
     fetchAllUsers();
   }, []);
 
+  const closeDialogs = () => {
+    setEditAction(false);
+    setDeleteAction(false);
+    setEditUser(null);
+    setDeleteUser(null);
+  };
+
+  const SaveButton = () => {
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleSave = async (event) => {
+      event.preventDefault();
+      setIsLoading(true);
+      
+      try {
+        const newUsername = usernameRef.current?.value || editUser.username;
+        const newRoles = roleRef.current || editUser.roles;
+        const userID = editUser.id;
+        
+        const response = await axiosClient.put(`/users/${userID}`, {
+          username: newUsername,
+          roles: newRoles,
+        });
+        
+        if (response.status === 200) {
+          location.reload();
+        }
+      } catch (err) {
+        console.error("Error updating user:", err);
+      } finally {
+        setIsLoading(false);
+        closeDialogs();
+      }
+    };
+
+    return (
+      <Button type="submit" disabled={isLoading} onClick={handleSave}>
+        {isLoading ? <Spinner /> : "Save changes"}
+      </Button>
+    );
+  };
+
+  const DeleteButton = () => {
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleDelete = async (event) => {
+      event.preventDefault();
+      setIsLoading(true);
+      
+      try {
+        const userID = deleteUser.id;
+        const response = await axiosClient.delete(`/users/${userID}`);
+        
+        if (response.status === 200) {
+          location.reload();
+        }
+      } catch (err) {
+        console.error("Error deleting user:", err);
+      } finally {
+        setIsLoading(false);
+        closeDialogs();
+      }
+    };
+
+    return (
+      <Button type="submit" disabled={isLoading} variant="destructive" onClick={handleDelete}>
+        {isLoading ? <Spinner />  : "Delete"}
+      </Button>
+    );
+  };
+
+  const ActionsMenu = ({ user }) => {
+    return (
+      <Dialog open={editAction || deleteAction} onOpenChange={closeDialogs}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <MoreHorizontal />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => navigator.clipboard.writeText(user.id)}
+            >
+              Copy UserID
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {  setEditAction(true); setEditUser(user); }}
+            >
+              Edit User
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => { setDeleteAction(true); setDeleteUser(user); }}>
+              Delete User
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DialogContent>
+          {editAction ? <EditMenu />
+            : deleteAction ? <DeleteConfirmation />
+              : <></>}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const DeleteConfirmation = () => {
+    return (
+      <div>
+        <DialogHeader>
+          <DialogTitle>Are you absolutely sure?</DialogTitle>
+          <DialogDescription>
+            This action cannot be undone. This will permanently delete the user account
+            and remove the data from our servers.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <span>ID: {deleteUser.id}</span>
+          <span>Username: {deleteUser.username}</span>
+          <span>Roles: {deleteUser.roles}</span>
+        </div>
+        <DialogFooter>
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={closeDialogs}
+          >
+            Cancel
+          </Button>
+          <DeleteButton />
+        </DialogFooter>
+      </div>
+    );
+  };
+
+  const EditMenu = () => {
+    const handleRoleChange = (value) => {
+      roleRef.current = value;
+    };
+
+    return (
+      <div>
+        <DialogHeader>
+          <DialogTitle>Edit User</DialogTitle>
+          <DialogDescription>
+            Make changes to the user here. Click save when you're done.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label>Username</Label>
+            <Input
+              name="username"
+              ref={usernameRef}
+              defaultValue={editUser.username}
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label>Roles</Label>
+            <Select
+              defaultValue={editUser.roles}
+              onValueChange={handleRoleChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">admin</SelectItem>
+                <SelectItem value="default">default</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={closeDialogs}
+          >
+            Cancel
+          </Button>
+          <SaveButton />
+        </DialogFooter>
+      </div>
+    );
+  }
+
   const columns = [
     {
       accessorKey: "id",
-      header: "ID",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            style={{ padding: 0 }}
+          >
+            ID
+            <ArrowUpDown />
+          </Button>
+        )
+      },
       cell: ({ row }) => (<div className="capitalize">{row.getValue("id")}</div>),
     },
     {
@@ -61,7 +287,7 @@ const UserManagement = () => {
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            style={{padding: 0}}
+            style={{ padding: 0 }}
           >
             Username
             <ArrowUpDown />
@@ -72,8 +298,20 @@ const UserManagement = () => {
     },
     {
       accessorKey: "roles",
-      header: () => <div className="text-right">Roles</div>,
-      cell: ({ row }) => (<div className="text-right font-medium">{row.getValue("roles")}</div>),
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            style={{ padding: 0 }}
+            className={"text-right"}
+          >
+            Roles
+            <ArrowUpDown />
+          </Button>
+        )
+      },
+      cell: ({ row }) => (<div className="font-medium">{row.getValue("roles")}</div>),
     },
     {
       id: "actions",
@@ -81,26 +319,7 @@ const UserManagement = () => {
       cell: ({ row }) => {
         const user = row.original
 
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(user.id)}
-              >
-                Copy user ID
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Edit User</DropdownMenuItem>
-              <DropdownMenuItem>Delete User</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )
+        return <ActionsMenu user={user} />
       },
     },
   ]
