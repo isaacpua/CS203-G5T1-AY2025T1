@@ -51,8 +51,9 @@ public class TariffService {
             return page.map(this::toRow);
         }
 
-        // no criteria → empty page (or define default browse)
-        return Page.empty(pageable);
+        // If no criteria, return all tariffs (default browse mode)
+        page = tariffRepo.findAll(pageable);
+        return page.map(this::toRow);
     }
 
     private TariffSearchRow toRow(Tariff t) {

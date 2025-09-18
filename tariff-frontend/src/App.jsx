@@ -52,13 +52,11 @@ function App() {
   );
 }
 
-/** Inline component to keep App tidy: your tab UI + content */
 function TabsWithTariff() {
   const [tab, setTab] = useState("search");
 
   return (
     <div className="w-full">
-      {/* Tabs (your original UI, lightly adapted) */}
       <div className="mb-4 border-b">
         <div className="inline-flex rounded-xl bg-muted p-1">
           <button
@@ -69,8 +67,17 @@ function TabsWithTariff() {
             Search &amp; Compute
           </button>
           <button
-            className={`px-4 py-2 rounded-lg text-sm transition ${tab === "historical" ? "bg-background shadow" : "opacity-70 hover:opacity-100"
-              }`}
+            className={`px-4 py-2 rounded-lg text-sm transition ${
+              tab === "dashboard" ? "bg-background shadow" : "opacity-70 hover:opacity-100"
+            }`}
+            onClick={() => setTab("dashboard")}
+          >
+            Dashboard
+          </button>
+          <button
+            className={`px-4 py-2 rounded-lg text-sm transition ${
+              tab === "historical" ? "bg-background shadow" : "opacity-70 hover:opacity-100"
+            }`}
             onClick={() => setTab("historical")}
           >
             Historical Explorer
@@ -78,9 +85,10 @@ function TabsWithTariff() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="grid gap-6">
-        {tab === "search" ? <TariffCalculator /> : <HistoricalTariffExplorer />}
+        {tab === "search" && <TariffCalculator />}
+        {tab === "dashboard" && <Dashboard />}
+        {tab === "historical" && <HistoricalTariffExplorer />}
       </div>
     </div>
   );
