@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue,} from "@/components/ui/select";
 import {Alert,AlertDescription,AlertTitle,} from "@/components/ui/alert";
 import { Loader2, Search, Calculator, Terminal } from "lucide-react";
+import { Relogin } from "@/components/Relogin";
 
 function TariffSearchAndCalc() {
   // -------- Search state --------
@@ -40,6 +41,10 @@ function TariffSearchAndCalc() {
   const [computing, setComputing] = useState(false);
   const [computeError, setComputeError] = useState("");
   const [computeRes, setComputeRes] = useState(null);
+
+
+  const [showRelogin, setShowRelogin] = useState(false);
+
 
   const debouncedQuery = useDebounce(query, 300);
   const prevDQRef = useRef(debouncedQuery);
@@ -78,6 +83,11 @@ function TariffSearchAndCalc() {
         const { data } = await axiosClient.get(`/tariffs/search?${params.toString()}`);
         setResults(data);
       } catch (e) {
+        if (e.response?.status === 401) {
+          console.log("found 401 error wow")
+          setShowRelogin(true);
+          return;
+        }
         setSearchError("Search failed. Check backend /tariffs/search.");
         setResults({ content: [], totalPages: 0, number: 0, size });
         console.error(e);
@@ -199,13 +209,14 @@ function TariffSearchAndCalc() {
           ? { declaredByQualifier }
           : {}),
       };
-
-      const { data } = await axiosClient.post(
-        `/tariffs/compute?id=${selected.id}`,
-        body
-      );
+      const { data } = await axiosClient.post(`/tariffs/compute?id=${selected.id}`, body);
       setComputeRes(data);
     } catch (e) {
+      if (e.response?.status === 401) {
+        console.log("found 401 error wow")
+        setShowRelogin(true);
+        return;
+      }
       setComputeError("Compute failed. Check /tariffs/compute.");
       console.error(e);
     } finally {
@@ -239,6 +250,8 @@ function TariffSearchAndCalc() {
 
   // ---- UI ----
   return (
+    <>
+    {showRelogin && <Relogin />}
     <div className="grid gap-6 md:grid-cols-2">
       {/* Search Card */}
       <Card>
@@ -549,6 +562,7 @@ function TariffSearchAndCalc() {
         <CardFooter />
       </Card>
     </div>
+    </>
   );
 }
 

@@ -9,8 +9,10 @@ import org.springframework.stereotype.Service;
 
 import com.tariff.tariff_backend.dto.UserDTO;
 import com.tariff.tariff_backend.exception.AuthException;
+import com.tariff.tariff_backend.model.Role;
 import com.tariff.tariff_backend.model.User;
 import com.tariff.tariff_backend.model.auth.AuthResponse;
+import com.tariff.tariff_backend.repository.RoleRepo;
 import com.tariff.tariff_backend.repository.UserRepo;
 
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthenticationService {
     private final UserRepo userRepo;
+    private final RoleRepo roleRepo;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
 
@@ -35,11 +38,20 @@ public class AuthenticationService {
                 throw new AuthException("User with username " + username + " already exists");
             }
 
+            Role role = roleRepo.findById(1).orElseGet(()-> { // find default role, else create it
+                Role newRole = Role.builder()
+                    .id(1)
+                    .name("default")
+                    .build();
+                return roleRepo.save(newRole);
+            });
+
+            System.out.println("ROLE ID ISSS: " + role.getId());
             // Create the User object to be saved
             User newUser = User.builder()
                 .username(username)
                 .password(pw)
-                .roles("default")
+                .role(role)
                 .build();
 
             userRepo.save(newUser);
@@ -77,7 +89,7 @@ public class AuthenticationService {
 
             // Generate an Access Token
             Map<String, Object> claims = new HashMap<>();
-            claims.put("roles", matchingUser.getRoles());
+            claims.put("roles", matchingUser.getRole().getName());
             String accessToken = jwtService.generateToken(claims, matchingUser);
             response.setAccessToken(accessToken);
         } catch (AuthException e) {
