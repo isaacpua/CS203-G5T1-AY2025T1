@@ -44,7 +44,7 @@ public class UserManagementController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(failedRes);
         }
         String token = jwtService.getTokenFromHeader(authHeader);
-        if (!jwtService.isAdmin(token)) {
+        if (!jwtService.hasRole(token, "admin")) {
             failedRes.setMessage("You do not have enough permissions.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(failedRes);
         }
@@ -71,7 +71,7 @@ public class UserManagementController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(failedRes);
         }
         String token = jwtService.getTokenFromHeader(authHeader);
-        if (!jwtService.isAdmin(token)) {
+        if (!jwtService.hasRole(token, "admin")) {
             failedRes.setMessage("You do not have enough permissions.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(failedRes);
         }
@@ -98,7 +98,7 @@ public class UserManagementController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(failedRes);
         }
         String token = jwtService.getTokenFromHeader(authHeader);
-        if (!jwtService.isAdmin(token)) {
+        if (!jwtService.hasRole(token, "admin")) {
             failedRes.setMessage("You do not have enough permissions.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(failedRes);
         }

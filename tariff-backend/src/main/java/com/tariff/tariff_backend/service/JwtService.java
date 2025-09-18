@@ -97,9 +97,9 @@ public class JwtService {
         return false;
     }
 
-    public boolean isAdmin(String token) {
+    public boolean hasRole(String token, String role) {
         String roles = extractCustomClaim(token, "roles", String.class);
-        return roles.contains("admin");
+        return roles.equals(role);
     }
 
     public String getTokenFromHeader(String authHeader) {
