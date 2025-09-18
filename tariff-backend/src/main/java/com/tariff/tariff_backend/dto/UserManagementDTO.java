@@ -14,12 +14,12 @@ import lombok.Builder;
 public class UserManagementDTO {
     private UUID id;
     private String username;
-    private String roles;
+    private String role;
 
     // Constructor without ID for create operations
-    public UserManagementDTO(String username, String roles) {
+    public UserManagementDTO(String username, String role) {
         this.username = username;
-        this.roles = roles;
+        this.role = role;
         this.id = null;
     }
 }

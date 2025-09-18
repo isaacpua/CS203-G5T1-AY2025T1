@@ -10,9 +10,11 @@ import org.springframework.stereotype.Service;
 
 import com.tariff.tariff_backend.dto.UserManagementDTO;
 import com.tariff.tariff_backend.exception.UserManagementException;
+import com.tariff.tariff_backend.model.Role;
 import com.tariff.tariff_backend.model.User;
 import com.tariff.tariff_backend.model.user_management.UserManagementResponse;
 import com.tariff.tariff_backend.repository.UserRepo;
+import com.tariff.tariff_backend.repository.RoleRepo;
 
 import lombok.RequiredArgsConstructor;
 
@@ -20,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UserManagementService {
     private final UserRepo userRepo;
+    private final RoleRepo roleRepo;
 
     public UserManagementResponse getAllUsers() {
         UserManagementResponse response = UserManagementResponse.builder()
@@ -78,10 +81,16 @@ public class UserManagementService {
             if (optionalUser.isEmpty()) {
                 throw new UserManagementException("User with id " + id + " cannot be found in the database.");
             }
-            
             User user = optionalUser.get();
             user.setUsername(dto.getUsername());
-            user.setRoles(dto.getRoles());
+
+            Optional<Role> optionalRole = roleRepo.findByName(dto.getRole());
+            if (optionalRole.isEmpty()) {
+                throw new UserManagementException("Role " + dto.getRole() + " does not exist.");
+            }
+            Role role = optionalRole.get();
+            user.setRole(role);
+
             userRepo.save(user);
         } catch (DataAccessException e) {
             response.setSuccess(false);
@@ -100,7 +109,7 @@ public class UserManagementService {
         return UserManagementDTO.builder()
             .id(user.getId())
             .username(user.getUsername())
-            .roles(user.getRoles())
+            .role(user.getRole().getName())
             .build();
     }
 }

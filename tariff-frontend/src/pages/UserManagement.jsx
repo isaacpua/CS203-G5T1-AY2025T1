@@ -90,12 +90,12 @@ const UserManagement = () => {
       
       try {
         const newUsername = usernameRef.current?.value || editUser.username;
-        const newRoles = roleRef.current || editUser.roles;
+        const newRole = roleRef.current || editUser.role;
         const userID = editUser.id;
         
         const response = await axiosClient.put(`/users/${userID}`, {
           username: newUsername,
-          roles: newRoles,
+          role: newRole,
         });
         
         if (response.status === 200) {
@@ -194,7 +194,7 @@ const UserManagement = () => {
         <div className="grid gap-4 py-4">
           <span>ID: {deleteUser.id}</span>
           <span>Username: {deleteUser.username}</span>
-          <span>Roles: {deleteUser.roles}</span>
+          <span>Role: {deleteUser.role}</span>
         </div>
         <DialogFooter>
           <Button 
@@ -234,9 +234,9 @@ const UserManagement = () => {
             />
           </div>
           <div className="grid gap-2">
-            <Label>Roles</Label>
+            <Label>Role</Label>
             <Select
-              defaultValue={editUser.roles}
+              defaultValue={editUser.role}
               onValueChange={handleRoleChange}
             >
               <SelectTrigger>
@@ -297,7 +297,7 @@ const UserManagement = () => {
       cell: ({ row }) => (<div className="lowercase">{row.getValue("username")}</div>),
     },
     {
-      accessorKey: "roles",
+      accessorKey: "role",
       header: ({ column }) => {
         return (
           <Button
@@ -306,12 +306,12 @@ const UserManagement = () => {
             style={{ padding: 0 }}
             className={"text-right"}
           >
-            Roles
+            Role
             <ArrowUpDown />
           </Button>
         )
       },
-      cell: ({ row }) => (<div className="font-medium">{row.getValue("roles")}</div>),
+      cell: ({ row }) => (<div className="font-medium">{row.getValue("role")}</div>),
     },
     {
       id: "actions",
@@ -356,9 +356,9 @@ const UserManagement = () => {
           />
           <Input
             placeholder="Filter roles..."
-            value={(table.getColumn("roles")?.getFilterValue()) ?? ""}
+            value={(table.getColumn("role")?.getFilterValue()) ?? ""}
             onChange={(event) =>
-              table.getColumn("roles")?.setFilterValue(event.target.value)
+              table.getColumn("role")?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
           />
