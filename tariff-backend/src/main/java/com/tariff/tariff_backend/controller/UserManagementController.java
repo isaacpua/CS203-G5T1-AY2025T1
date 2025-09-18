@@ -4,6 +4,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tariff.tariff_backend.dto.UserManagementDTO;
+import com.tariff.tariff_backend.exception.AuthException;
+import com.tariff.tariff_backend.exception.UserManagementException;
 import com.tariff.tariff_backend.model.user_management.UserManagementResponse;
 import com.tariff.tariff_backend.service.JwtService;
 import com.tariff.tariff_backend.service.UserManagementService;
@@ -35,81 +37,66 @@ public class UserManagementController {
     @GetMapping("/")
     @SecurityRequirement(name = "Authorization")
     public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String authHeader) {
-        // There has got be a better way of writing once and applying everywhere needed
-        UserManagementResponse failedRes = UserManagementResponse.builder()
-            .success(false)
-            .build();
-        if (authHeader == null) {
-            failedRes.setMessage("Authorization token is missing.");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(failedRes);
-        }
-        String token = jwtService.getTokenFromHeader(authHeader);
-        if (!jwtService.hasRole(token, "admin")) {
-            failedRes.setMessage("You do not have enough permissions.");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(failedRes);
-        }
-        
-        UserManagementResponse userMgmtRes = userMgmtSvc.getAllUsers();
-        if (!userMgmtRes.getSuccess()) {
-            if (userMgmtRes.getMessage().startsWith("Internal Server Error")) {
-                return ResponseEntity.internalServerError().body(userMgmtRes);
+        UserManagementResponse response = UserManagementResponse.builder().build();
+        try {
+            if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
+                throw new AuthException("You do not have enough permissions.");
             }
-            return ResponseEntity.badRequest().body(userMgmtRes);
+            response.setUsers(userMgmtSvc.getAllUsers());
+            return ResponseEntity.ok().body(response);
+        } catch (AuthException e) {
+            response.setMessage(e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            response.setMessage("Internal Server Error");
+            return ResponseEntity.internalServerError().body(response);
         }
-        return ResponseEntity.ok(userMgmtRes);
     }
+
 
     @DeleteMapping("/{id}")
     @SecurityRequirement(name = "Authorization")
     public ResponseEntity<?> deleteUser(@RequestHeader("Authorization") String authHeader, @PathVariable UUID id) {
-        // There has got be a better way of writing once and applying everywhere needed
-        UserManagementResponse failedRes = UserManagementResponse.builder()
-            .success(false)
-            .build();
-        if (authHeader == null) {
-            failedRes.setMessage("Authorization token is missing.");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(failedRes);
-        }
-        String token = jwtService.getTokenFromHeader(authHeader);
-        if (!jwtService.hasRole(token, "admin")) {
-            failedRes.setMessage("You do not have enough permissions.");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(failedRes);
-        }
-
-        UserManagementResponse userMgmtRes = userMgmtSvc.deleteUser(id);
-        if (!userMgmtRes.getSuccess()) {
-            if (userMgmtRes.getMessage().startsWith("Internal Server Error")) {
-                return ResponseEntity.internalServerError().body(userMgmtRes);
+        UserManagementResponse response = UserManagementResponse.builder().build();
+        try {
+            if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
+                throw new AuthException("You do not have enough permissions.");
             }
-            return ResponseEntity.badRequest().body(userMgmtRes);
+            userMgmtSvc.deleteUser(id);
+            response.setMessage("Deleted Successfully");
+            return ResponseEntity.ok().body(response);
+        } catch (AuthException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (UserManagementException e) {
+            response.setMessage(e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return ResponseEntity.internalServerError().body("Internal Server Error");
         }
-        return ResponseEntity.ok(userMgmtRes);
     }
+    
 
     @PutMapping("/{id}")
     @SecurityRequirement(name = "Authorization")
     public ResponseEntity<?> updateUser(@RequestHeader("Authorization") String authHeader, @PathVariable UUID id, @RequestBody UserManagementDTO dto) {
-        // There has got be a better way of writing once and applying everywhere needed
-        UserManagementResponse failedRes = UserManagementResponse.builder()
-            .success(false)
-            .build();
-        if (authHeader == null) {
-            failedRes.setMessage("Authorization token is missing.");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(failedRes);
-        }
-        String token = jwtService.getTokenFromHeader(authHeader);
-        if (!jwtService.hasRole(token, "admin")) {
-            failedRes.setMessage("You do not have enough permissions.");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(failedRes);
-        }
-
-        UserManagementResponse userMgmtRes = userMgmtSvc.updateUser(id, dto);
-        if (!userMgmtRes.getSuccess()) {
-            if (userMgmtRes.getMessage().startsWith("Internal Server Error")) {
-                return ResponseEntity.internalServerError().body(userMgmtRes);
+        UserManagementResponse response = UserManagementResponse.builder().build();
+        try {
+            if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
+                throw new AuthException("You do not have enough permissions.");
             }
-            return ResponseEntity.badRequest().body(userMgmtRes);
+            userMgmtSvc.updateUser(id, dto);
+            response.setMessage("Updated Successfully");
+            return ResponseEntity.ok().body(response);
+        } catch (AuthException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (UserManagementException e) {
+            response.setMessage(e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return ResponseEntity.internalServerError().body("Internal Server Error");
         }
-        return ResponseEntity.ok(userMgmtRes);
     }
 }

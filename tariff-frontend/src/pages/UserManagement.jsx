@@ -47,6 +47,7 @@ import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
 
 import { Relogin } from "@/components/Relogin";
+import { Forbidden } from "@/components/Forbidden";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -56,6 +57,8 @@ const UserManagement = () => {
   const [editUser, setEditUser] = useState(null);
 
   const [showRelogin, setShowRelogin] = useState(false);
+  const [showForbidden, setShowForbidden] = useState(false);
+
   
   // If I don't have these 2 lines, then the edit users will re-render the dialog everytime something is changed.
   const usernameRef = useRef(null);
@@ -74,6 +77,12 @@ const UserManagement = () => {
         if (error.response?.status === 401) {
           console.log("found 401 error wow")
           setShowRelogin(true);
+          return;
+        }
+
+        if (error.response?.status === 403) {
+          console.log("found 403 error wow")
+          setShowForbidden(true);
           return;
         }
         console.error("Error fetching users:", error);
@@ -108,6 +117,7 @@ const UserManagement = () => {
         });
         
         if (response.status === 200) {
+          console.log(response.data.message)
           location.reload();
         }
       } catch (err) {
@@ -142,6 +152,7 @@ const UserManagement = () => {
         const response = await axiosClient.delete(`/users/${userID}`);
         
         if (response.status === 200) {
+          console.log(response.data.message)
           location.reload();
         }
       } catch (err) {
@@ -458,6 +469,7 @@ const UserManagement = () => {
 
   return (
     <>
+    {showForbidden && <Forbidden />}
     {showRelogin && <Relogin />}
     <UserTable />
     </>

@@ -11,7 +11,6 @@ import lombok.Builder;
 @Data
 @Builder
 public class UserManagementResponse {
-    private Boolean success;
     private String message;
     private List<UserManagementDTO> users;
 }
