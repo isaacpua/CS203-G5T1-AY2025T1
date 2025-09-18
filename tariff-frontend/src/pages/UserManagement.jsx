@@ -46,12 +46,16 @@ import {
 import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
 
+import { Relogin } from "@/components/Relogin";
+
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [deleteAction, setDeleteAction] = useState(false);
   const [deleteUser, setDeleteUser] = useState(null);
   const [editAction, setEditAction] = useState(false);
   const [editUser, setEditUser] = useState(null);
+
+  const [showRelogin, setShowRelogin] = useState(false);
   
   // If I don't have these 2 lines, then the edit users will re-render the dialog everytime something is changed.
   const usernameRef = useRef(null);
@@ -67,6 +71,11 @@ const UserManagement = () => {
           setUsers(response.data.users);
         }
       } catch (error) {
+        if (error.response?.status === 401) {
+          console.log("found 401 error wow")
+          setShowRelogin(true);
+          return;
+        }
         console.error("Error fetching users:", error);
       }
     };
@@ -102,6 +111,11 @@ const UserManagement = () => {
           location.reload();
         }
       } catch (err) {
+        if (err.response?.status === 401) {
+          console.log("found 401 error wow")
+          setShowRelogin(true);
+          return;
+        }
         console.error("Error updating user:", err);
       } finally {
         setIsLoading(false);
@@ -131,6 +145,11 @@ const UserManagement = () => {
           location.reload();
         }
       } catch (err) {
+        if (err.response?.status === 401) {
+          console.log("found 401 error wow")
+          setShowRelogin(true);
+          return;
+        }
         console.error("Error deleting user:", err);
       } finally {
         setIsLoading(false);
@@ -438,7 +457,10 @@ const UserManagement = () => {
   }
 
   return (
+    <>
+    {showRelogin && <Relogin />}
     <UserTable />
+    </>
   );
 };
 
