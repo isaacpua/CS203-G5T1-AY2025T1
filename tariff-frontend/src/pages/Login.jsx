@@ -35,6 +35,9 @@ const Login = () => {
       password: password,
     });
     try {
+      // Edge case: Due to the new axiosClient auto sending the JWT, if you were logged into a deleted user, you are sending an invalid JWT
+      // so delete the current accessToken
+      localStorage.removeItem("accessToken");
       const response = await axiosClient.post("/auth/login", credentials);
       if (response.status == 200) {
         localStorage.setItem("accessToken", response.data.accessToken);
