@@ -1,4 +1,4 @@
-package com.tariff.tariff_backend.model.tariffs;
+package com.tariff.tariff_backend.model.tariffs_old;
 
 import java.math.BigDecimal;
 

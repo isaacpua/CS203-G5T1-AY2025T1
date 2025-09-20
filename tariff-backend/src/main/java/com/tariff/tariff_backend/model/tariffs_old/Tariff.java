@@ -1,4 +1,4 @@
-package com.tariff.tariff_backend.model.tariffs;
+package com.tariff.tariff_backend.model.tariffs_old;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor // auto generate constructors
 @Data // auto generates getter,setters,toString etc so udn to write out
 @Entity // tells springboot that this class is an entity in our DB
-@Table(name="tariff", schema = "tariffs") // where to look for the entity
+@Table(name="tariffs_old", schema = "tariffs") // where to look for the entity
 
 public class Tariff {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) //ID is the primary key, generated value just helps to keep track that if u add one in it increments auto

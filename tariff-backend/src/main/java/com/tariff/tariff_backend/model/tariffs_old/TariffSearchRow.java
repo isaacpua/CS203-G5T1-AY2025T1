@@ -1,4 +1,4 @@
-package com.tariff.tariff_backend.model.tariffs;
+package com.tariff.tariff_backend.model.tariffs_old;
 
 public record TariffSearchRow( //This is a DTO. So for eg, if your Tariff entity got more data right, this will just take what you need and nothing else so u dont expose sus information
     Integer id,

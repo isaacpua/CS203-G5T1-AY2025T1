@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
 import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
-import com.tariff.tariff_backend.model.tariffs.Tariff;
+import com.tariff.tariff_backend.model.tariffs_old.Tariff;
 import com.tariff.tariff_backend.repository.TariffRepo;
 
 import lombok.RequiredArgsConstructor;

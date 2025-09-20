@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.tariff.tariff_backend.model.tariffs.TariffComputeRequest;
-import com.tariff.tariff_backend.model.tariffs.TariffComputeResponse;
-import com.tariff.tariff_backend.model.tariffs.TariffSearchRow;
+import com.tariff.tariff_backend.model.tariffs_old.TariffComputeRequest;
+import com.tariff.tariff_backend.model.tariffs_old.TariffComputeResponse;
+import com.tariff.tariff_backend.model.tariffs_old.TariffSearchRow;
 import com.tariff.tariff_backend.service.TariffService;
 
 @RestController
