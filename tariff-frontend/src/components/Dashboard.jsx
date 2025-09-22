@@ -18,6 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Search } from "lucide-react";
+import { Grid, useClientRowDataSource } from "@1771technologies/lytenyte-core";
+import "@1771technologies/lytenyte-core/grid.css";
+import { useId } from "react";
 
 // A debounced hook to prevent API calls on every keystroke
 function useDebounce(value, delayMs = 500) {
@@ -55,6 +58,28 @@ export default function Dashboard() {
 
   const debouncedQuery = useDebounce(query);
 
+  // LyteNyte Grid setup (hooks must be top-level)
+  const columns = [
+    { id: "tariffid", name: "Tariff ID" },
+    { id: "name", name: "Name" },
+    { id: "category", name: "Category" },
+    { id: "descriptionwcountry", name: "Description" },
+    { id: "partnercountry", name: "Partner Country" },
+    { id: "reportercountry", name: "Reporter Country" },
+    { id: "advalorem", name: "Ad Valorem" },
+    { id: "specificperunit", name: "Specific/Unit" },
+    { id: "unitid", name: "Unit ID" },
+  ];
+  const ds = useClientRowDataSource({
+    data: results.content,
+  });
+  const grid = Grid.useLyteNyte({
+    gridId: useId(),
+    columns,
+    rowDataSource: ds,
+  });
+  const view = grid.view.useValue();
+
   useEffect(() => {
     const fetchTariffs = async () => {
       setLoading(true);
@@ -80,7 +105,24 @@ export default function Dashboard() {
         const { data } = await axiosClient.get(
           `/tariffs/search?${params.toString()}`
         );
-        setResults(data);
+        // Map tariff_new columns for grid
+        setResults({
+          ...data,
+          content: Array.isArray(data.content)
+            ? data.content.map((row) => ({
+                tariffid: row.tariffid,
+                name: row.name,
+                category: row.category,
+                descriptionwcountry: row.descriptionwcountry,
+                partnercountry: row.partnercountry,
+                reportercountry: row.reportercountry,
+                advalorem: row.advalorem ?? row.ad_valorem,
+                specificperunit: row.specificperunit ?? row.specific_per_unit,
+                unitid: row.unitid,
+                id: row.id,
+              }))
+            : [],
+        });
         setPageInput(String(data.number + 1));
       } catch (err) {
         setError("Failed to fetch tariffs. Please try again.");
@@ -167,43 +209,43 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="border rounded-md">
-          <div className="grid grid-cols-[auto_auto_1fr_1fr_auto] p-4 font-bold border-b gap-4">
-            <div className="w-16">ID</div>
-            <div className="w-24">HTS8</div>
-            <div>Description</div>
-            <div>MFN Rate</div>
-            <div>Rate Type</div>
-          </div>
-          {results.content.length > 0 ? (
-            results.content.map((tariff) => (
-              <div
-                key={tariff.id}
-                className="grid grid-cols-[auto_auto_1fr_1fr_auto] p-4 border-b gap-4 items-center"
-              >
-                <div className="font-mono text-muted-foreground w-16">
-                  {tariff.id}
-                </div>
-                <div className="font-mono w-24">{tariff.hts8}</div>
-                <div>{tariff.briefDescription}</div>
-                <div className="font-mono">{tariff.mfnTextRate}</div>
-                <div>
-                  <span
-                    className={`px-2 py-1 text-xs rounded-full whitespace-nowrap ${
-                      tariff.isFree
-                        ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"
-                        : "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300"
-                    }`}
-                  >
-                    {tariff.overallKind}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center p-12">
-              {!loading && "No results found."}
-            </div>
+  <div className="border rounded-md lng-grid light" style={{ width: "100%", height: "400px" }}>
+          <Grid.Root grid={grid}>
+            <Grid.Viewport>
+              <Grid.Header>
+                {view.header.layout.map((row, i) => (
+                  <Grid.HeaderRow headerRowIndex={i} key={i}>
+                    {row.map((c) => {
+                      if (c.kind === "group") {
+                        return (
+                          <Grid.HeaderGroupCell cell={c} key={c.idOccurrence} />
+                        );
+                      }
+                      return <Grid.HeaderCell cell={c} key={c.column.id} />;
+                    })}
+                  </Grid.HeaderRow>
+                ))}
+              </Grid.Header>
+              <Grid.RowsContainer>
+                <Grid.RowsCenter>
+                  {view.rows.center.map((row) => {
+                    if (row.kind === "full-width") {
+                      return <Grid.RowFullWidth row={row} key={row.id} />;
+                    }
+                    return (
+                      <Grid.Row key={row.id} row={row} accepted={["row"]}>
+                        {row.cells.map((cell) => (
+                          <Grid.Cell cell={cell} key={cell.id} />
+                        ))}
+                      </Grid.Row>
+                    );
+                  })}
+                </Grid.RowsCenter>
+              </Grid.RowsContainer>
+            </Grid.Viewport>
+          </Grid.Root>
+          {results.content.length === 0 && !loading && (
+            <div className="text-center p-12">No results found.</div>
           )}
         </div>
 

@@ -11,9 +11,7 @@ import com.tariff.tariff_backend.model.Tariff;
 
 // interfaces with jparepo to allow you to use their CRUD methods on your own class (Tariff)
 public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecificationExecutor<Tariff>{
-    List<Tariff> findByHts8(Integer hts8);
-    
-    Page<Tariff> findByHts8(Integer hts8, Pageable pageable); //Pages return both the data and metadata, metadata helps the frontend to know if there are more results
-    
-    Page<Tariff> findByBriefDescriptionContainingIgnoreCase(String q, Pageable pageable); 
+    List<Tariff> findByTariffid(Integer tariffid);
+    Page<Tariff> findByTariffid(Integer tariffid, Pageable pageable);
+    Page<Tariff> findByDescriptionwcountryContainingIgnoreCase(String q, Pageable pageable);
 }

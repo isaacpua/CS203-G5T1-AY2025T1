@@ -1,10 +1,10 @@
 package com.tariff.tariff_backend.model;
 
-public record TariffSearchRow( //This is a DTO. So for eg, if your Tariff entity got more data right, this will just take what you need and nothing else so u dont expose sus information
+public record TariffSearchRow(
     Integer id,
-    Integer hts8,
-    String briefDescription,
-    String mfnTextRate,
-    String overallKind, //from RateParser
-    boolean isFree      //from RateParser
+    Integer tariffid,
+    String descriptionwcountry,
+    String name,
+    String overallKind,
+    boolean isFree
 ) {}

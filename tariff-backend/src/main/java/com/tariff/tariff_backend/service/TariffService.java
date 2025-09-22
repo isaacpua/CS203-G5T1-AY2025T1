@@ -33,21 +33,20 @@ public class TariffService {
             if (one.isPresent()) {
                 List<Tariff> resultList = new ArrayList<>();
                 resultList.add(one.get());
-
-                page = new PageImpl<>(resultList, pageable, 1); // creating page manually
-                return page.map(this::toRow); // map is a helper to convert the page to rows based on my helper function
+                page = new PageImpl<>(resultList, pageable, 1);
+                return page.map(this::toRow);
             } else {
                 return Page.empty(pageable);
             }
         }
 
         if (hts8 != null) {
-            page = tariffRepo.findByHts8(hts8, pageable);
+            page = tariffRepo.findByTariffid(hts8, pageable);
             return page.map(this::toRow);
         }
 
         if (q != null && !q.isBlank()) {
-            page = tariffRepo.findByBriefDescriptionContainingIgnoreCase(q.trim(), pageable);
+            page = tariffRepo.findByDescriptionwcountryContainingIgnoreCase(q.trim(), pageable);
             return page.map(this::toRow);
         }
 
@@ -60,24 +59,25 @@ public class TariffService {
         String overallKind = null;
         boolean isFree = false;
         try {
-            var parsed = RateParser.parse(t.getMfnTextRate());
+            var parsed = RateParser.parse(t.getDescriptionwcountry());
             overallKind = parsed.overallKind().name();
             isFree = parsed.isFree();
         } catch (Exception ignore) {
         }
 
+        // Map new fields to TariffSearchRow (update constructor as needed)
         return new TariffSearchRow(
-                t.getId(),
-                t.getHts8(),
-                t.getBriefDescription(),
-                t.getMfnTextRate(),
-                overallKind,
-                isFree);
+            t.getId(),
+            t.getTariffid(),
+            t.getDescriptionwcountry(),
+            t.getName(),
+            overallKind,
+            isFree);
     }
 
     public TariffComputeResponse computeTariff(Integer id, TariffComputeRequest req) {
         Tariff t = tariffRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("Tariff not found: " + id));
-        ParsedRate parsed = RateParser.parse(t.getMfnTextRate());
+        ParsedRate parsed = RateParser.parse(t.getDescriptionwcountry());
 
         BigDecimal declared;
         BigDecimal qty;

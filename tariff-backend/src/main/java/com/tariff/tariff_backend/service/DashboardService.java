@@ -21,15 +21,15 @@ public class DashboardService {
 
     public DashboardResponse createTariff(Tariff newTariff) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully created the new tariff.");
-        Integer hts8 = newTariff.getHts8();
+        Integer tariffid = newTariff.getTariffid();
         try {
-            if (!tariffRepo.findByHts8(hts8).isEmpty()) {
-                throw new Exception("Unable to create new tariff because the HTS8 code " + hts8 + " already exists.");
+            if (!tariffRepo.findByTariffid(tariffid).isEmpty()) {
+                throw new Exception("Unable to create new tariff because the Tariff ID " + tariffid + " already exists.");
             }
 
             Tariff savedTariff = tariffRepo.save(newTariff);
 
-            if (savedTariff == null || tariffRepo.findByHts8(hts8).isEmpty()) {
+            if (savedTariff == null || tariffRepo.findByTariffid(tariffid).isEmpty()) {
                 throw new Exception("Unable to create the new tariff.");
             }
         } catch (Exception e) {
@@ -41,9 +41,9 @@ public class DashboardService {
 
     public DashboardResponse updateTariff(Integer id, TariffPatchDTO patchDTO) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully updated the tariff.");
-        Integer hts8 = patchDTO.getHts8();
-        String briefDescription = patchDTO.getBriefDescription();
-        String mfnTextRate = patchDTO.getMfnTextRate();
+            Integer tariffid = patchDTO.getTariffid();
+            String descriptionwcountry = patchDTO.getDescriptionwcountry();
+            String name = patchDTO.getName();
         try {
             Optional<Tariff> optionalTariff = tariffRepo.findById(id);
             if (optionalTariff.isEmpty()) {
@@ -51,30 +51,30 @@ public class DashboardService {
             }
             Tariff existingTariff = optionalTariff.get();
 
-            if (hts8 != null) {
-                if (!tariffRepo.findByHts8(hts8).isEmpty()) {
-                    throw new Exception("Unable to update tariff because the HTS8 code " + hts8 + " already exists.");
+                if (tariffid != null) {
+                    if (!tariffRepo.findByTariffid(tariffid).isEmpty()) {
+                        throw new Exception("Unable to update tariff because the Tariff ID " + tariffid + " already exists.");
                 }
-                existingTariff.setHts8(hts8);
+                    existingTariff.setTariffid(tariffid);
             }
 
-            if (briefDescription != null) {
-                existingTariff.setBriefDescription(briefDescription);
+                if (descriptionwcountry != null) {
+                    existingTariff.setDescriptionwcountry(descriptionwcountry);
             }
 
-            if (mfnTextRate != null) {
-                existingTariff.setMfnTextRate(mfnTextRate);
+                if (name != null) {
+                    existingTariff.setName(name);
             }
 
             Tariff updatedTariff = tariffRepo.save(existingTariff);
-            if (hts8 != null && !updatedTariff.getHts8().equals(hts8)) {
-                throw new Exception("Failed to update the HTS8 code.");
+                if (tariffid != null && !updatedTariff.getTariffid().equals(tariffid)) {
+                    throw new Exception("Failed to update the Tariff ID.");
             }
-            if (briefDescription != null && !updatedTariff.getBriefDescription().equals(briefDescription)) {
-                throw new Exception("Failed to update the brief_description.");
+                if (descriptionwcountry != null && !updatedTariff.getDescriptionwcountry().equals(descriptionwcountry)) {
+                    throw new Exception("Failed to update the descriptionwcountry.");
             }
-            if (mfnTextRate != null && !updatedTariff.getMfnTextRate().equals(mfnTextRate)) {
-                throw new Exception("Failed to update the mfn_text_rate.");
+                if (name != null && !updatedTariff.getName().equals(name)) {
+                    throw new Exception("Failed to update the name.");
             }
         } catch (Exception e) {
             response.setSuccess(false);
