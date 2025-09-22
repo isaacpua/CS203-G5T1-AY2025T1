@@ -113,6 +113,17 @@ export default function Dashboard() {
     enableColumnReordering: true,
     enableFiltering: true,
     enableGrouping: true,
+    enableSorting: true,
+    enableColumnPinning: true,
+    enableColumnVisibility: true,
+    enableColumnAutosizing: true,
+    enableRowPinning: true,
+    enableRowGrouping: true,
+    enableRowSorting: true,
+    enableRowPagination: true,
+    enableRowDragging: true,
+    enableCellEditing: true,
+    enableExport: true,
     theme: "dark",
     fontFamily: "'Inter', 'Segoe UI', 'Arial', sans-serif",
     rowHeight: 44,
@@ -125,6 +136,24 @@ export default function Dashboard() {
     }
   });
   const view = grid.view.useValue();
+
+  // Grid state atoms (safe checks)
+  const selectedRows = grid.state.rowSelectedIds?.useValue?.() ?? [];
+  const columnOrder = grid.state.columnOrder?.useValue?.() ?? columns.map(c => c.id);
+  const filters = grid.state.filters?.useValue?.() ?? {};
+  const pinnedColumns = grid.state.columnPinnedIds?.useValue?.() ?? [];
+  const groupedColumns = grid.state.columnGroupIds?.useValue?.() ?? [];
+  const sorting = grid.state.sorting?.useValue?.() ?? [];
+  const pagination = grid.state.pagination?.useValue?.() ?? { page: 0, pageSize: 50 };
+
+  // Example: Watch for selection changes
+  useEffect(() => {
+    const remove = grid.state.rowSelectedIds.watch(() => {
+      // You could trigger analytics, chart updates, etc.
+      // console.log("Selected rows changed:", grid.state.rowSelectedIds.get());
+    });
+    return remove;
+  }, [grid.state.rowSelectedIds]);
 
   useEffect(() => {
     const fetchTariffs = async () => {
@@ -254,13 +283,20 @@ export default function Dashboard() {
             </div>
         </div>
 
+        {/* Essential grid actions only */}
+        <div className="my-4 flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => grid.export.csv()}>Export CSV</Button>
+          <Button size="sm" variant="outline" onClick={() => grid.export.excel()}>Export Excel</Button>
+          <Button size="sm" variant="outline" onClick={() => grid.state.rowSelectedIds?.set?.([])}>Clear Selection</Button>
+        </div>
+
         {loading && (
           <div className="flex justify-center items-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         )}
 
-  <div className="border rounded-xl shadow-lg bg-card" style={{ width: "100%", height: "480px", overflow: "hidden" }}>
+        <div className="border rounded-xl shadow-lg bg-card" style={{ width: "100%", height: "480px", overflow: "hidden" }}>
           <Grid.Root grid={grid}>
             <Grid.Viewport>
               <Grid.Header>
