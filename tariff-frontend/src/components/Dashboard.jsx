@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import axiosClient from "../api/axiosClient";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +56,24 @@ export default function Dashboard() {
     totalPages: 0,
     number: 0,
   });
+  // CRUD modal state
+  const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [form, setForm] = useState({
+    tariffid: "",
+    name: "",
+    category: "",
+    descriptionwcountry: "",
+    partnercountry: "",
+    reportercountry: "",
+    advalorem: "",
+    specificperunit: "",
+    unitid: ""
+  });
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   const debouncedQuery = useDebounce(query);
 
@@ -69,6 +88,16 @@ export default function Dashboard() {
     { id: "advalorem", name: "Ad Valorem" },
     { id: "specificperunit", name: "Specific/Unit" },
     { id: "unitid", name: "Unit ID" },
+    {
+      id: "actions",
+      name: "Actions",
+      render: (row) => (
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => { setSelectedRow(row); setForm(row); setShowEdit(true); }}>Edit</Button>
+          <Button size="sm" variant="destructive" onClick={() => { setSelectedRow(row); setShowDelete(true); }}>Delete</Button>
+        </div>
+      )
+    }
   ];
   const ds = useClientRowDataSource({
     data: results.content,
@@ -161,10 +190,15 @@ export default function Dashboard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Tariff Dashboard</CardTitle>
-        <CardDescription>
-          Displaying entries from the database. Use the search bar to filter.
-        </CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Tariff Dashboard</CardTitle>
+            <CardDescription>
+              Displaying entries from the database. Use the search bar to filter.
+            </CardDescription>
+          </div>
+          <Button onClick={() => { setForm({ tariffid: "", name: "", category: "", descriptionwcountry: "", partnercountry: "", reportercountry: "", advalorem: "", specificperunit: "", unitid: "" }); setShowCreate(true); }}>+ Create Tariff</Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-4">
@@ -209,7 +243,7 @@ export default function Dashboard() {
           </div>
         )}
 
-  <div className="border rounded-md lng-grid light" style={{ width: "100%", height: "400px" }}>
+        <div className="border rounded-md lng-grid light" style={{ width: "100%", height: "400px" }}>
           <Grid.Root grid={grid}>
             <Grid.Viewport>
               <Grid.Header>
@@ -237,6 +271,11 @@ export default function Dashboard() {
                         {row.cells.map((cell) => (
                           <Grid.Cell cell={cell} key={cell.id} />
                         ))}
+                        {/* Action column */}
+                        <td>
+                          <Button size="sm" variant="outline" onClick={() => { setSelectedRow(row); setForm(row); setShowEdit(true); }}>Edit</Button>
+                          <Button size="sm" variant="destructive" onClick={() => { setSelectedRow(row); setShowDelete(true); }}>Delete</Button>
+                        </td>
                       </Grid.Row>
                     );
                   })}
@@ -248,6 +287,100 @@ export default function Dashboard() {
             <div className="text-center p-12">No results found.</div>
           )}
         </div>
+      {/* Create Modal */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Tariff</DialogTitle>
+          </DialogHeader>
+          {/* Form fields */}
+          {Object.keys(form).map((key) => (
+            <div key={key} className="mb-2">
+              <Label>{key}</Label>
+              <Input value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
+            </div>
+          ))}
+          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+          <DialogFooter>
+            <Button disabled={actionLoading} onClick={async () => {
+              setActionLoading(true);
+              setActionError("");
+              try {
+                await axiosClient.post("/tariffs", form);
+                setShowCreate(false);
+                setForm({ tariffid: "", name: "", category: "", descriptionwcountry: "", partnercountry: "", reportercountry: "", advalorem: "", specificperunit: "", unitid: "" });
+                // Refresh grid
+                setPage(0);
+              } catch (err) {
+                setActionError("Failed to create tariff.");
+              } finally {
+                setActionLoading(false);
+              }
+            }}>Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Modal */}
+      <Dialog open={showEdit} onOpenChange={setShowEdit}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Tariff</DialogTitle>
+          </DialogHeader>
+          {Object.keys(form).map((key) => (
+            <div key={key} className="mb-2">
+              <Label>{key}</Label>
+              <Input value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
+            </div>
+          ))}
+          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+          <DialogFooter>
+            <Button disabled={actionLoading} onClick={async () => {
+              setActionLoading(true);
+              setActionError("");
+              try {
+                await axiosClient.put(`/tariffs/${form.id}`, form);
+                setShowEdit(false);
+                setSelectedRow(null);
+                // Refresh grid
+                setPage(0);
+              } catch (err) {
+                setActionError("Failed to update tariff.");
+              } finally {
+                setActionLoading(false);
+              }
+            }}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Modal */}
+      <Dialog open={showDelete} onOpenChange={setShowDelete}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Tariff</DialogTitle>
+          </DialogHeader>
+          <p>Are you sure you want to delete tariff <b>{selectedRow?.tariffid}</b>?</p>
+          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+          <DialogFooter>
+            <Button variant="destructive" disabled={actionLoading} onClick={async () => {
+              setActionLoading(true);
+              setActionError("");
+              try {
+                await axiosClient.delete(`/tariffs/${selectedRow.id}`);
+                setShowDelete(false);
+                setSelectedRow(null);
+                // Refresh grid
+                setPage(0);
+              } catch (err) {
+                setActionError("Failed to delete tariff.");
+              } finally {
+                setActionLoading(false);
+              }
+            }}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
         {/* Pagination */}
         {results.totalPages > 1 && (

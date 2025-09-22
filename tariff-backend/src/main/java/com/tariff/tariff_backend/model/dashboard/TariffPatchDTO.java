@@ -1,6 +1,6 @@
 package com.tariff.tariff_backend.model.dashboard;
-import lombok.Data;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 
 @Data
 @AllArgsConstructor
