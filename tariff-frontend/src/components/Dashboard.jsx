@@ -79,15 +79,15 @@ export default function Dashboard() {
 
   // LyteNyte Grid setup (hooks must be top-level)
   const columns = [
-    { id: "tariffid", name: "Tariff ID" },
-    { id: "name", name: "Name" },
-    { id: "category", name: "Category" },
-    { id: "descriptionwcountry", name: "Description" },
-    { id: "partnercountry", name: "Partner Country" },
-    { id: "reportercountry", name: "Reporter Country" },
-    { id: "advalorem", name: "Ad Valorem" },
-    { id: "specificperunit", name: "Specific/Unit" },
-    { id: "unitid", name: "Unit ID" },
+    { id: "tariffid", name: "Tariff ID", resizable: true, reorderable: true, filterable: true },
+    { id: "name", name: "Name", resizable: true, reorderable: true, filterable: true },
+    { id: "category", name: "Category", resizable: true, reorderable: true, filterable: true },
+    { id: "descriptionwcountry", name: "Description", resizable: true, reorderable: true, filterable: true },
+    { id: "partnercountry", name: "Partner Country", resizable: true, reorderable: true, filterable: true },
+    { id: "reportercountry", name: "Reporter Country", resizable: true, reorderable: true, filterable: true },
+    { id: "advalorem", name: "Ad Valorem", resizable: true, reorderable: true, filterable: true },
+    { id: "specificperunit", name: "Specific/Unit", resizable: true, reorderable: true, filterable: true },
+    { id: "unitid", name: "Unit ID", resizable: true, reorderable: true, filterable: true },
     {
       id: "actions",
       name: "Actions",
@@ -96,7 +96,10 @@ export default function Dashboard() {
           <Button size="sm" variant="outline" onClick={() => { setSelectedRow(row); setForm(row); setShowEdit(true); }}>Edit</Button>
           <Button size="sm" variant="destructive" onClick={() => { setSelectedRow(row); setShowDelete(true); }}>Delete</Button>
         </div>
-      )
+      ),
+      resizable: false,
+      reorderable: false,
+      filterable: false
     }
   ];
   const ds = useClientRowDataSource({
@@ -106,6 +109,20 @@ export default function Dashboard() {
     gridId: useId(),
     columns,
     rowDataSource: ds,
+    enableColumnResizing: true,
+    enableColumnReordering: true,
+    enableFiltering: true,
+    enableGrouping: true,
+    theme: "dark",
+    fontFamily: "'Inter', 'Segoe UI', 'Arial', sans-serif",
+    rowHeight: 44,
+    headerHeight: 48,
+    style: {
+      background: "var(--background)",
+      color: "var(--foreground)",
+      borderRadius: "0.75rem",
+      fontSize: "1rem"
+    }
   });
   const view = grid.view.useValue();
 
@@ -243,7 +260,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="border rounded-md lng-grid light" style={{ width: "100%", height: "400px" }}>
+  <div className="border rounded-xl shadow-lg bg-card" style={{ width: "100%", height: "480px", overflow: "hidden" }}>
           <Grid.Root grid={grid}>
             <Grid.Viewport>
               <Grid.Header>
@@ -271,11 +288,6 @@ export default function Dashboard() {
                         {row.cells.map((cell) => (
                           <Grid.Cell cell={cell} key={cell.id} />
                         ))}
-                        {/* Action column */}
-                        <td>
-                          <Button size="sm" variant="outline" onClick={() => { setSelectedRow(row); setForm(row); setShowEdit(true); }}>Edit</Button>
-                          <Button size="sm" variant="destructive" onClick={() => { setSelectedRow(row); setShowDelete(true); }}>Delete</Button>
-                        </td>
                       </Grid.Row>
                     );
                   })}
