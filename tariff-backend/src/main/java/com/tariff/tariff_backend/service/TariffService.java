@@ -1,3 +1,4 @@
+// ...existing code...
 package com.tariff.tariff_backend.service;
 
 import java.math.BigDecimal;
@@ -23,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor // auto generates constructors
 public class TariffService {
+    // CREATE
     private final TariffRepo tariffRepo;
 
     public Page<TariffSearchRow> searchTariffs(Integer id, Integer hts8, String q, Pageable pageable) {
@@ -247,5 +249,33 @@ public class TariffService {
 
         BigDecimal totalDuty = specSubtotal.add(adDuty);
         return new TariffComputeResponse(totalDuty, declared, lines);
+    }
+
+    // CREATE
+    public Tariff createTariff(Tariff tariff) {
+        return tariffRepo.save(tariff);
+    }
+
+    // UPDATE
+    public Tariff updateTariff(Integer id, Tariff patch) {
+        Tariff existing = tariffRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("Tariff not found: " + id));
+        // Update fields
+        existing.setTariffid(patch.getTariffid());
+        existing.setName(patch.getName());
+        existing.setCategory(patch.getCategory());
+        existing.setDescriptionwcountry(patch.getDescriptionwcountry());
+        existing.setPartnercountry(patch.getPartnercountry());
+        existing.setReportercountry(patch.getReportercountry());
+        existing.setAdvalorem(patch.getAdvalorem());
+        existing.setSpecificperunit(patch.getSpecificperunit());
+        existing.setUnitid(patch.getUnitid());
+        existing.setAd_valorem(patch.getAd_valorem());
+        existing.setSpecific_per_unit(patch.getSpecific_per_unit());
+        return tariffRepo.save(existing);
+    }
+
+    // DELETE
+    public void deleteTariff(Integer id) {
+        tariffRepo.deleteById(id);
     }
 }
