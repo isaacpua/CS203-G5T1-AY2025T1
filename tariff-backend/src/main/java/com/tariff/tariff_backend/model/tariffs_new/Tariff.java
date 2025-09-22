@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor // constructor with all fields
-@Entity
+@Entity (name = "TariffNew")
 @Table(name = "Tariffs", schema = "tariffs")
 public class Tariff {
     @Id 
