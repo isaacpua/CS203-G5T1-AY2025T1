@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import javax.persistence.criteria.Predicate;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -27,34 +28,34 @@ public class TariffService {
     // CREATE
     private final TariffRepo tariffRepo;
 
-    public Page<TariffSearchRow> searchTariffs(Integer id, Integer hts8, String q, Pageable pageable) {
-        Page<Tariff> page;
-
-        if (id != null) { // Id lookup
-            Optional<Tariff> one = tariffRepo.findById(id);
-            if (one.isPresent()) {
-                List<Tariff> resultList = new ArrayList<>();
-                resultList.add(one.get());
-                page = new PageImpl<>(resultList, pageable, 1);
-                return page.map(this::toRow);
-            } else {
-                return Page.empty(pageable);
-            }
-        }
-
-        if (hts8 != null) {
-            page = tariffRepo.findByTariffid(hts8, pageable);
-            return page.map(this::toRow);
-        }
-
-        if (q != null && !q.isBlank()) {
-            page = tariffRepo.findByDescriptionwcountryContainingIgnoreCase(q.trim(), pageable);
-            return page.map(this::toRow);
-        }
-
-        // If no criteria, return all tariffs (default browse mode)
-        page = tariffRepo.findAll(pageable);
-        return page.map(this::toRow);
+    public Page<TariffSearchRow> searchTariffs(
+        Integer tariffid,
+        String descriptionwcountry,
+        Integer partnercountry,
+        Integer reportercountry,
+        Integer unitid,
+        String name,
+        String category,
+        Double advalorem,
+        Double specificperunit,
+        Integer id,
+        Pageable pageable
+    ) {
+        // Use JPA Specification for flexible filtering
+        return tariffRepo.findAll((root, query, cb) -> {
+            List<javax.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            if (tariffid != null) predicates.add(cb.equal(root.get("tariffid"), tariffid));
+            if (descriptionwcountry != null && !descriptionwcountry.isBlank()) predicates.add(cb.like(cb.lower(root.get("descriptionwcountry")), "%" + descriptionwcountry.toLowerCase() + "%"));
+            if (partnercountry != null) predicates.add(cb.equal(root.get("partnercountry"), partnercountry));
+            if (reportercountry != null) predicates.add(cb.equal(root.get("reportercountry"), reportercountry));
+            if (unitid != null) predicates.add(cb.equal(root.get("unitid"), unitid));
+            if (name != null && !name.isBlank()) predicates.add(cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+            if (category != null && !category.isBlank()) predicates.add(cb.like(cb.lower(root.get("category")), "%" + category.toLowerCase() + "%"));
+            if (advalorem != null) predicates.add(cb.equal(root.get("advalorem"), advalorem));
+            if (specificperunit != null) predicates.add(cb.equal(root.get("specificperunit"), specificperunit));
+            if (id != null) predicates.add(cb.equal(root.get("id"), id));
+            return cb.and(predicates.toArray(new javax.persistence.criteria.Predicate[0]));
+        }, pageable).map(this::toRow);
     }
 
     private TariffSearchRow toRow(Tariff t) {
