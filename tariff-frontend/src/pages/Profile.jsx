@@ -145,10 +145,8 @@ export default function Profile({ user, setUser }) {
             {/* Actions */}
             <div className="pt-6 border-t border-border">
               <div className="flex space-x-3">
-                <EditProfileDialog userDetails={userDetails} setUser={setUser}/>
-                <Button variant="secondary" className="flex-1">
-                  Change Password
-                </Button>
+                <EditProfileDialog userDetails={userDetails} setUser={setUser} />
+                <ChangePasswordDialog userDetails={userDetails} />
               </div>
             </div>
           </CardContent>
@@ -261,3 +259,96 @@ function EditProfileDialog({ userDetails, setUser }) {
   );
 }
 
+function ChangePasswordDialog({ userDetails }) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (!newPassword.trim()) {
+      alert("Password cannot be empty");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await axiosClient.put(`/users/${userDetails.id}/password`, {
+        password: newPassword.trim(),
+      });
+
+      alert("Password updated successfully. Please login again.");
+      localStorage.removeItem("accessToken");
+      location.reload();
+      setIsDialogOpen(false);
+    } catch (err) {
+      console.error("Error changing password:", err);
+      alert("Failed to change password. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogTrigger asChild>
+        <Button className="flex-1" variant="secondary">
+          Change Password
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Change Password</DialogTitle>
+          <DialogDescription>
+            Enter a new password for your account. You will be required to relogin after this.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">New Password</Label>
+            <Input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter new password"
+              disabled={isLoading}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+        <div className="flex justify-end space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsDialogOpen(false)}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleChangePassword}
+            disabled={
+              isLoading || !newPassword.trim() || newPassword !== confirmPassword
+            }
+          >
+            {isLoading ? "Updating..." : "Save Changes"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.tariff.tariff_backend.dto.UserManagementDTO;
@@ -21,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 public class UserManagementService {
     private final UserRepo userRepo;
     private final RoleRepo roleRepo;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     public UserManagementDTO getUserByUsername(String jwtUsername, String requestedUsername)
             throws UserManagementException {
@@ -92,6 +94,24 @@ public class UserManagementService {
 
         // Update username
         user.setUsername(newUsername);
+        userRepo.save(user);
+    }
+
+    public void updatePassword(UUID userId, String jwtUsername, String newPassword) throws UserManagementException {
+        Optional<User> optionalUser = userRepo.findById(userId);
+        if (optionalUser.isEmpty()) {
+            throw new UserManagementException("User with id " + userId + " cannot be found in the database.");
+        }
+
+        User user = optionalUser.get();
+
+        if (!user.getUsername().equals(jwtUsername)) {
+            throw new UserManagementException("You are not authorized to update this user's password.");
+        }
+
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        user.setPassword(encodedPassword);
+
         userRepo.save(user);
     }
 

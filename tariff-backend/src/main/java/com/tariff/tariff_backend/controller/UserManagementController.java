@@ -3,10 +3,12 @@ package com.tariff.tariff_backend.controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tariff.tariff_backend.dto.PasswordUpdateDTO;
 import com.tariff.tariff_backend.dto.UserManagementDTO;
 import com.tariff.tariff_backend.dto.UsernameUpdateDTO;
 import com.tariff.tariff_backend.exception.AuthException;
 import com.tariff.tariff_backend.exception.UserManagementException;
+import com.tariff.tariff_backend.model.user_management.PasswordUpdateResponse;
 import com.tariff.tariff_backend.model.user_management.UserManagementResponse;
 import com.tariff.tariff_backend.model.user_management.UserResponse;
 import com.tariff.tariff_backend.model.user_management.UsernameUpdateResponse;
@@ -123,7 +125,8 @@ public class UserManagementController {
     }
 
     @PutMapping("/{id}/username")
-    public ResponseEntity<?> updateUsername(@RequestHeader("Authorization") String authHeader, @PathVariable UUID id, @RequestBody @Valid UsernameUpdateDTO dto) {
+    public ResponseEntity<?> updateUsername(@RequestHeader("Authorization") String authHeader, @PathVariable UUID id,
+            @RequestBody @Valid UsernameUpdateDTO dto) {
         UsernameUpdateResponse response = UsernameUpdateResponse.builder().build();
         try {
             String jwtUsername = jwtService.extractUsername(jwtService.getTokenFromHeader(authHeader));
@@ -140,4 +143,24 @@ public class UserManagementController {
             return ResponseEntity.internalServerError().body(response);
         }
     }
+
+    @PutMapping("/{id}/password")
+    public ResponseEntity<?> updatePassword(@RequestHeader("Authorization") String authHeader, @PathVariable UUID id,
+            @RequestBody @Valid PasswordUpdateDTO dto) {
+        PasswordUpdateResponse response = PasswordUpdateResponse.builder().build();
+        try {
+            String jwtUsername = jwtService.extractUsername(jwtService.getTokenFromHeader(authHeader));
+            userMgmtSvc.updatePassword(id, jwtUsername, dto.getPassword());
+            response.setMessage("Password updated successfully");
+            return ResponseEntity.ok().body(response);
+        } catch (UserManagementException e) {
+            response.setMessage(e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            System.out.println("Error updating password: " + e.getMessage());
+            response.setMessage("Internal Server Error");
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
 }
