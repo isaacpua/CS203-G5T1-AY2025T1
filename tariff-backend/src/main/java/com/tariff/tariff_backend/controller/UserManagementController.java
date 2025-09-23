@@ -7,6 +7,7 @@ import com.tariff.tariff_backend.dto.UserManagementDTO;
 import com.tariff.tariff_backend.exception.AuthException;
 import com.tariff.tariff_backend.exception.UserManagementException;
 import com.tariff.tariff_backend.model.user_management.UserManagementResponse;
+import com.tariff.tariff_backend.model.user_management.UserResponse;
 import com.tariff.tariff_backend.service.JwtService;
 import com.tariff.tariff_backend.service.UserManagementService;
 
@@ -51,6 +52,24 @@ public class UserManagementController {
             System.out.println(e.getMessage());
             response.setMessage("Internal Server Error");
             return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    @GetMapping("/{requestedUsername}")
+    public ResponseEntity<?> getUser(@RequestHeader("Authorization") String authHeader, @PathVariable String requestedUsername) {
+        UserResponse response = UserResponse.builder().build();
+        try {
+            String jwtUsername = jwtService.extractUsername(jwtService.getTokenFromHeader(authHeader));
+            UserManagementDTO userDetails = userMgmtSvc.getUserByUsername(jwtUsername, requestedUsername);
+            response.setUser(userDetails);
+            response.setMessage("Retrieved user details successfully");
+            return ResponseEntity.ok().body(response);
+        } catch (UserManagementException e) {
+            response.setMessage(e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return ResponseEntity.internalServerError().body("Internal Server Error");
         }
     }
 

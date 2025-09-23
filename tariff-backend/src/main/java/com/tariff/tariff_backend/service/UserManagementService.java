@@ -22,6 +22,19 @@ public class UserManagementService {
     private final UserRepo userRepo;
     private final RoleRepo roleRepo;
 
+    public UserManagementDTO getUserByUsername(String jwtUsername, String requestedUsername) throws UserManagementException {
+        if (!jwtUsername.equals(requestedUsername)) {
+            throw new UserManagementException("You are not authorised to access this resource.");
+        }
+        Optional<User> optionalUser = userRepo.findByUsername(requestedUsername);
+        if (optionalUser.isEmpty()) {
+            throw new UserManagementException("User with username " + requestedUsername + " cannot be found in the database.");
+        }
+        User user = optionalUser.get();
+        UserManagementDTO result = convertToDTO(user);
+        return result;
+    }
+
     public List<UserManagementDTO> getAllUsers() {
         List<User> users = userRepo.findAll();
         List<UserManagementDTO> userMgmtDTOs = users.stream()
