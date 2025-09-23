@@ -106,10 +106,6 @@ public class JwtService {
         return authHeader.substring(7);
     }
 
-
-
-
-
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject); // when u wanna pass in a method as a parameter
     }
