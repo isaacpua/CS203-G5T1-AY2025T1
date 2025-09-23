@@ -34,12 +34,22 @@ public class TariffController {
 
     @GetMapping("/search")
     public Page<TariffSearchRow> search(
+        @RequestParam(required = false) Integer tariffid,
+        @RequestParam(required = false) String descriptionwcountry,
+        @RequestParam(required = false) Integer partnercountry,
+        @RequestParam(required = false) Integer reportercountry,
+        @RequestParam(required = false) Integer unitid,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String category,
+        @RequestParam(required = false) Double advalorem,
+        @RequestParam(required = false) Double specificperunit,
         @RequestParam(required = false) Integer id,
-        @RequestParam(required = false) Integer hts8,
-        @RequestParam(required = false) String q,
-        @PageableDefault(size = 10, sort = "hts8", direction = Sort.Direction.ASC) Pageable pageable
+        @PageableDefault(size = 10, sort = "tariffid", direction = Sort.Direction.ASC) Pageable pageable
     ) {
-        return tariffService.searchTariffs(id, hts8, q, pageable);
+        return tariffService.searchTariffs(
+            tariffid, descriptionwcountry, partnercountry, reportercountry,
+            unitid, name, category, advalorem, specificperunit, id, pageable
+        );
     }
 
     @PostMapping("/compute")
