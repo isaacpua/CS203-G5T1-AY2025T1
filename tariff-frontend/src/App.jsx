@@ -1,12 +1,12 @@
 import TariffCalculator from './pages/TariffCalculator';
 import { ModeToggle } from './components/mode-toggle';
-import HelloWorld from './components/HelloWorld';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useState } from 'react';
 import HistoricalTariffExplorer from './pages/HistoricalTariffExplorer';
 import UserManagement from './pages/UserManagement';
+import Dashboard from './components/Dashboard';
 
 function App() {
   return (
@@ -26,15 +26,21 @@ function App() {
           <main className="flex-1">
             <Routes>
               {/* PUBLIC ROUTES */}
-              <Route path="/login" element={
-                <section className="flex flex-col items-center justify-center p-6 w-full">
-                  <Login />
-                </section>}
-              />
+              <Route path="/">
+                <Route index element={
+                  <section className="flex flex-col items-center justify-center p-6 w-full">
+                    <Login />
+                  </section>}
+                />
+                <Route path="login" element={
+                  <section className="flex flex-col items-center justify-center p-6 w-full">
+                    <Login />
+                  </section>}
+                />
+              </Route>
 
               {/* PROTECTED ROUTES */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/" element={<HelloWorld />} />
                 <Route path="/calculator"
                   element={
                     <section className="mx-auto flex max-w-[980px] flex-col items-center gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20">
