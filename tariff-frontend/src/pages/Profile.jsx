@@ -24,6 +24,7 @@ import { User, Shield, Hash, Edit } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
 import { getUserInitials } from "@/utils/AvatarHelpers";
 import { toast } from "sonner";
+import { logout } from "@/utils/logout";
 
 export default function Profile({ user, setUser }) {
   const navigate = useNavigate();
@@ -148,7 +149,7 @@ export default function Profile({ user, setUser }) {
             <div className="pt-6 border-t border-border">
               <div className="flex space-x-3">
                 <EditProfileDialog userDetails={userDetails} setUser={setUser} />
-                <ChangePasswordDialog userDetails={userDetails} />
+                <ChangePasswordDialog userDetails={userDetails} setUser={setUser} />
               </div>
             </div>
           </CardContent>
@@ -189,10 +190,7 @@ function EditProfileDialog({ userDetails, setUser }) {
         usernameUpdateDTO
       );
       toast.success("Username updated successfully");
-      setUser(null);
-      localStorage.removeItem("accessToken");
-      location.reload();
-      setIsDialogOpen(false);
+      logout(setUser);
     } catch (err) {
       console.error("Error updating username:", err);
       toast.error("Failed to update username. Please try again.");
@@ -262,7 +260,7 @@ function EditProfileDialog({ userDetails, setUser }) {
   );
 }
 
-function ChangePasswordDialog({ userDetails }) {
+function ChangePasswordDialog({ userDetails, setUser }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -285,9 +283,7 @@ function ChangePasswordDialog({ userDetails }) {
       });
 
       toast.success("Password updated successfully. Please log in again.");
-      localStorage.removeItem("accessToken");
-      location.reload();
-      setIsDialogOpen(false);
+      logout(setUser);
     } catch (err) {
       console.error("Error changing password:", err);
       toast.error("Failed to change password. Please try again.");

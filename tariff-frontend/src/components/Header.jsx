@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { getUserInitials } from "@/utils/AvatarHelpers"
 import { ModeToggle } from "./mode-toggle"
+import { logout } from "@/utils/logout"
 
 export default function Header({ user, setUser }) {
   const navigate = useNavigate()
@@ -17,9 +18,7 @@ export default function Header({ user, setUser }) {
   }
 
   const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem("accessToken");
-    navigate("/login");
+    logout(setUser);
   }
 
   return (
