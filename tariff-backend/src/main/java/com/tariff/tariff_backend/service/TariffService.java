@@ -5,7 +5,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import javax.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Root;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -43,7 +45,7 @@ public class TariffService {
     ) {
         // Use JPA Specification for flexible filtering
         return tariffRepo.findAll((root, query, cb) -> {
-            List<javax.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            List<Predicate> predicates = new ArrayList<>();
             if (tariffid != null) predicates.add(cb.equal(root.get("tariffid"), tariffid));
             if (descriptionwcountry != null && !descriptionwcountry.isBlank()) predicates.add(cb.like(cb.lower(root.get("descriptionwcountry")), "%" + descriptionwcountry.toLowerCase() + "%"));
             if (partnercountry != null) predicates.add(cb.equal(root.get("partnercountry"), partnercountry));
@@ -54,7 +56,7 @@ public class TariffService {
             if (advalorem != null) predicates.add(cb.equal(root.get("advalorem"), advalorem));
             if (specificperunit != null) predicates.add(cb.equal(root.get("specificperunit"), specificperunit));
             if (id != null) predicates.add(cb.equal(root.get("id"), id));
-            return cb.and(predicates.toArray(new javax.persistence.criteria.Predicate[0]));
+            return cb.and(predicates.toArray(new Predicate[0]));
         }, pageable).map(this::toRow);
     }
 
