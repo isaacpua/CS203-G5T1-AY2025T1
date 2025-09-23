@@ -39,14 +39,22 @@ const Login = ({ setUser }) => {
   const handleLogin = async () => {
     setIsLoading(true);
     setError(null);
-    const credentials = JSON.stringify({
-      username: username,
-      password: password,
-    });
+
     try {
       // Edge case: Due to the new axiosClient auto sending the JWT, if you were logged into a deleted user, you are sending an invalid JWT
       // so delete the current accessToken
       localStorage.removeItem("accessToken");
+
+      const trimmedUsername = username.trim();
+      const trimmedPassword = password.trim();
+      if (trimmedUsername == "" || trimmedPassword == "") {
+        throw "BLANK";
+      }
+      const credentials = JSON.stringify({
+        username: trimmedUsername,
+        password: trimmedPassword,
+      });
+
       const response = await axiosClient.post("/auth/login", credentials);
       if (response.status == 200) {
         localStorage.setItem("accessToken", response.data.accessToken);
@@ -66,7 +74,9 @@ const Login = ({ setUser }) => {
         // console.log(isValid.data);
       }
     } catch (err) {
-      if (err.code == "ERR_NETWORK") {
+      if (err == "BLANK") {
+        setError("Username or password cannot be blank!")
+      } else if (err.code == "ERR_NETWORK") {
         setError("Our servers are currently down. Please try again later.");
       } else if (err.response?.data?.message) {
         setError(err.response.data.message);
@@ -81,16 +91,25 @@ const Login = ({ setUser }) => {
   const handleRegister = async () => {
     setIsLoading(true);
     setError(null);
-    const credentials = JSON.stringify({
-      username: username,
-      password: password,
-    });
+
     try {
+      const trimmedUsername = username.trim();
+      const trimmedPassword = password.trim();
+      if (trimmedUsername == "" || trimmedPassword == "") {
+        throw "BLANK";
+      }
+      const credentials = JSON.stringify({
+        username: trimmedUsername,
+        password: trimmedPassword,
+      });
+
       const response = await axiosClient.post("/auth/register", credentials);
       console.log(response.data);
       toggleMode(); // switch back to login mode
     } catch (err) {
-      if (err.code == "ERR_NETWORK") {
+      if (err == "BLANK") {
+        setError("Username or password cannot be blank!")
+      } else if (err.code == "ERR_NETWORK") {
         setError("Our servers are currently down. Please try again later.");
       } else if (err.response?.data?.message) {
         setError(err.response.data.message);
