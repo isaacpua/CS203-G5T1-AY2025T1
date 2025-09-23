@@ -28,7 +28,7 @@ import com.tariff.tariff_backend.service.TariffService;
 
 @RestController
 @RequestMapping("/api/v1/tariffs")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class TariffController {
 
     private final TariffService tariffService;
