@@ -7,6 +7,7 @@ import { useState } from 'react';
 import HistoricalTariffExplorer from './pages/HistoricalTariffExplorer';
 import UserManagement from './pages/UserManagement';
 import Dashboard from './components/Dashboard';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
                   }
                 />
                 <Route path="/user-management" element={<UserManagement />}/>
+                <Route path="/profile" element={<Profile />}/>
               </Route>
             </Routes>
           </main>

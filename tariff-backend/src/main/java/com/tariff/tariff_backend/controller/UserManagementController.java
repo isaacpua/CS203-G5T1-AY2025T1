@@ -4,14 +4,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tariff.tariff_backend.dto.UserManagementDTO;
+import com.tariff.tariff_backend.dto.UsernameUpdateDTO;
 import com.tariff.tariff_backend.exception.AuthException;
 import com.tariff.tariff_backend.exception.UserManagementException;
 import com.tariff.tariff_backend.model.user_management.UserManagementResponse;
 import com.tariff.tariff_backend.model.user_management.UserResponse;
+import com.tariff.tariff_backend.model.user_management.UsernameUpdateResponse;
 import com.tariff.tariff_backend.service.JwtService;
 import com.tariff.tariff_backend.service.UserManagementService;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 
 import java.util.UUID;
 
@@ -24,12 +27,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserManagementController {
     private UserManagementService userMgmtSvc;
     private JwtService jwtService;
+
     public UserManagementController(UserManagementService userMgmtSvc, JwtService jwtService) {
         this.userMgmtSvc = userMgmtSvc;
         this.jwtService = jwtService;
@@ -56,7 +59,8 @@ public class UserManagementController {
     }
 
     @GetMapping("/{requestedUsername}")
-    public ResponseEntity<?> getUser(@RequestHeader("Authorization") String authHeader, @PathVariable String requestedUsername) {
+    public ResponseEntity<?> getUser(@RequestHeader("Authorization") String authHeader,
+            @PathVariable String requestedUsername) {
         UserResponse response = UserResponse.builder().build();
         try {
             String jwtUsername = jwtService.extractUsername(jwtService.getTokenFromHeader(authHeader));
@@ -72,7 +76,6 @@ public class UserManagementController {
             return ResponseEntity.internalServerError().body("Internal Server Error");
         }
     }
-
 
     @DeleteMapping("/{id}")
     @SecurityRequirement(name = "Authorization")
@@ -95,11 +98,11 @@ public class UserManagementController {
             return ResponseEntity.internalServerError().body("Internal Server Error");
         }
     }
-    
 
     @PutMapping("/{id}")
     @SecurityRequirement(name = "Authorization")
-    public ResponseEntity<?> updateUser(@RequestHeader("Authorization") String authHeader, @PathVariable UUID id, @RequestBody UserManagementDTO dto) {
+    public ResponseEntity<?> updateUser(@RequestHeader("Authorization") String authHeader, @PathVariable UUID id,
+            @RequestBody UserManagementDTO dto) {
         UserManagementResponse response = UserManagementResponse.builder().build();
         try {
             if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
@@ -116,6 +119,25 @@ public class UserManagementController {
         } catch (Exception e) {
             System.out.println(e.getMessage());
             return ResponseEntity.internalServerError().body("Internal Server Error");
+        }
+    }
+
+    @PutMapping("/{id}/username")
+    public ResponseEntity<?> updateUsername(@RequestHeader("Authorization") String authHeader, @PathVariable UUID id, @RequestBody @Valid UsernameUpdateDTO dto) {
+        UsernameUpdateResponse response = UsernameUpdateResponse.builder().build();
+        try {
+            String jwtUsername = jwtService.extractUsername(jwtService.getTokenFromHeader(authHeader));
+            userMgmtSvc.updateUsername(id, jwtUsername, dto.getUsername());
+            response.setMessage("Username updated successfully");
+            response.setNewUsername(dto.getUsername());
+            return ResponseEntity.ok().body(response);
+        } catch (UserManagementException e) {
+            response.setMessage(e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            System.out.println("Error updating username: " + e.getMessage());
+            response.setMessage("Internal Server Error");
+            return ResponseEntity.internalServerError().body(response);
         }
     }
 }
