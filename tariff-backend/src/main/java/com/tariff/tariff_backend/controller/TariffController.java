@@ -1,6 +1,10 @@
 package com.tariff.tariff_backend.controller;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -46,10 +50,67 @@ public class TariffController {
         @RequestParam(required = false) Integer id,
         @PageableDefault(size = 10, sort = "tariffid", direction = Sort.Direction.ASC) Pageable pageable
     ) {
-        return tariffService.searchTariffs(
+        Page<TariffSearchRow> results = tariffService.searchTariffs(
             tariffid, descriptionwcountry, partnercountry, reportercountry,
             unitid, name, category, advalorem, specificperunit, id, pageable
         );
+
+        // If DB returns no rows, provide 3 mocked rows for development/demo so the UI shows data
+        if (results == null || results.isEmpty()) {
+            List<TariffSearchRow> demo = new ArrayList<>();
+            demo.add(new TariffSearchRow(
+                1,
+                12345,
+                "Sunglasses, plastic frame - USA",
+                "Sunglasses",
+                "AD_VALOREM",
+                false,
+                840,
+                840,
+                1,
+                "Apparel",
+                new BigDecimal("0.10"),
+                new BigDecimal("0.00"),
+                new BigDecimal("0.10"),
+                new BigDecimal("0.00")
+            ));
+            demo.add(new TariffSearchRow(
+                2,
+                23456,
+                "LED bulbs, 5W - China",
+                "LED Bulb",
+                "SPECIFIC_PER_UNIT",
+                false,
+                156,
+                156,
+                2,
+                "Electronics",
+                new BigDecimal("0.00"),
+                new BigDecimal("0.50"),
+                new BigDecimal("0.00"),
+                new BigDecimal("0.50")
+            ));
+            demo.add(new TariffSearchRow(
+                3,
+                34567,
+                "Cotton T-shirt - India",
+                "T-Shirt",
+                "FREE",
+                true,
+                356,
+                356,
+                1,
+                "Apparel",
+                new BigDecimal("0.00"),
+                new BigDecimal("0.00"),
+                new BigDecimal("0.00"),
+                new BigDecimal("0.00")
+            ));
+
+            return new PageImpl<>(demo, pageable, demo.size());
+        }
+
+        return results;
     }
 
     @PostMapping("/compute")
