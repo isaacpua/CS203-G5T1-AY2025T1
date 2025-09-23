@@ -1,16 +1,22 @@
 package com.tariff.tariff_backend.controller;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tariff.tariff_backend.model.Tariff;
+import com.tariff.tariff_backend.model.dashboard.DashboardMetrics;
 import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
 import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
 import com.tariff.tariff_backend.service.DashboardService;
@@ -51,5 +57,20 @@ public class DashboardController {
             return ResponseEntity.badRequest().body(dResponse);
         }
         return ResponseEntity.ok(dResponse);
+    }
+
+    @GetMapping("/tariffs")
+    public ResponseEntity<DashboardMetrics> getTariffs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) Integer id,
+            @RequestParam(name = "q", required = false) String descriptionQuery) {
+
+        int safePage = Math.max(page, 0);
+        int safeSize = size > 0 ? size : 50;
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("tariffid").ascending());
+        String trimmedQuery = descriptionQuery != null ? descriptionQuery.trim() : null;
+        DashboardMetrics metrics = dashboardService.getTariffs(id, trimmedQuery, pageable);
+        return ResponseEntity.ok(metrics);
     }
 }

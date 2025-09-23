@@ -52,59 +52,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [results, setResults] = useState({
-    // Provide demo rows as initial data so the grid is visible during development.
-    content: [
-      {
-        id: 1,
-        tariffid: 12345,
-        descriptionwcountry: "Sunglasses, plastic frame - USA",
-        name: "Sunglasses",
-        overallKind: "AD_VALOREM",
-        isFree: false,
-        partnercountry: 840,
-        reportercountry: 840,
-        unitid: 1,
-        category: "Apparel",
-        advalorem: 0.10,
-        specificperunit: 0.0,
-        ad_valorem: 0.10,
-        specific_per_unit: 0.0
-      },
-      {
-        id: 2,
-        tariffid: 23456,
-        descriptionwcountry: "LED bulbs, 5W - China",
-        name: "LED Bulb",
-        overallKind: "SPECIFIC_PER_UNIT",
-        isFree: false,
-        partnercountry: 156,
-        reportercountry: 156,
-        unitid: 2,
-        category: "Electronics",
-        advalorem: 0.0,
-        specificperunit: 0.5,
-        ad_valorem: 0.0,
-        specific_per_unit: 0.5
-      },
-      {
-        id: 3,
-        tariffid: 34567,
-        descriptionwcountry: "Cotton T-shirt - India",
-        name: "T-Shirt",
-        overallKind: "FREE",
-        isFree: true,
-        partnercountry: 356,
-        reportercountry: 356,
-        unitid: 1,
-        category: "Apparel",
-        advalorem: 0.0,
-        specificperunit: 0.0,
-        ad_valorem: 0.0,
-        specific_per_unit: 0.0
-      }
-    ],
-    totalPages: 1,
+    content: [],
+    totalPages: 0,
     number: 0,
+    totalElements: 0,
   });
   // CRUD modal state
   const [showCreate, setShowCreate] = useState(false);
@@ -211,14 +162,14 @@ export default function Dashboard() {
       setError("");
       try {
         const params = new URLSearchParams({
-          page: page,
-          size: pageSize,
+          page: String(page),
+          size: String(pageSize),
         });
-        const dQ = debouncedQuery.trim();
+        const dQ = (debouncedQuery ?? "").trim();
         if (dQ) {
       if (mode === "id" && !isIntegerLike(dQ)) {
                 setError("Please input an integer.");
-                setResults({ content: [], totalPages: 0, number: 0 });
+                setResults({ content: [], totalPages: 0, number: 0, totalElements: 0 });
                 setLoading(false);
                 return;
             }
@@ -227,29 +178,35 @@ export default function Dashboard() {
         }
 
         const { data } = await axiosClient.get(
-          `/tariffs/search?${params.toString()}`
+          `/dashboard/tariffs?${params.toString()}`
         );
-        // Map tariff_new columns for grid
+        const mappedContent = Array.isArray(data.content)
+          ? data.content.map((row) => ({
+              tariffid: row.tariffid,
+              name: row.name,
+              category: row.category,
+              descriptionwcountry: row.descriptionwcountry,
+              partnercountry: row.partnercountry,
+              reportercountry: row.reportercountry,
+              advalorem: row.advalorem ?? row.ad_valorem,
+              specificperunit: row.specificperunit ?? row.specific_per_unit,
+              unitid: row.unitid,
+              id: row.id,
+            }))
+          : [];
+
         setResults({
-          ...data,
-          content: Array.isArray(data.content)
-            ? data.content.map((row) => ({
-                tariffid: row.tariffid,
-                name: row.name,
-                category: row.category,
-                descriptionwcountry: row.descriptionwcountry,
-                partnercountry: row.partnercountry,
-                reportercountry: row.reportercountry,
-                advalorem: row.advalorem ?? row.ad_valorem,
-                specificperunit: row.specificperunit ?? row.specific_per_unit,
-                unitid: row.unitid,
-                id: row.id,
-              }))
-            : [],
+          content: mappedContent,
+          totalPages: data.totalPages ?? 0,
+          number: data.number ?? 0,
+          totalElements: data.totalElements ?? mappedContent.length,
         });
-        setPageInput(String(data.number + 1));
+
+        const pageNumber = typeof data.number === "number" ? data.number : 0;
+        setPageInput(String(pageNumber + 1));
       } catch (err) {
         setError("Failed to fetch tariffs. Please try again.");
+        setResults({ content: [], totalPages: 0, number: 0, totalElements: 0 });
         console.error(err);
       } finally {
         setLoading(false);
@@ -351,7 +308,10 @@ export default function Dashboard() {
           <div className="text-center text-destructive p-4">{error}</div>
         )}
 
-        <div className="border rounded-xl shadow-lg bg-card" style={{ width: "100%", height: "480px", overflow: "hidden" }}>
+        <div
+          className="border rounded-xl shadow-lg bg-card"
+          style={{ width: "100%", height: "480px", overflow: "auto" }}
+        >
           <Grid.Root grid={grid}>
             <Grid.Viewport>
               <Grid.Header>

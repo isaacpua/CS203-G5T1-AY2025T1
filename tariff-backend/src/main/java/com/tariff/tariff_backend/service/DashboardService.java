@@ -3,9 +3,12 @@ package com.tariff.tariff_backend.service;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.tariff.tariff_backend.model.Tariff;
+import com.tariff.tariff_backend.model.dashboard.DashboardMetrics;
 import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
 import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
 import com.tariff.tariff_backend.repository.TariffRepo;
@@ -100,5 +103,23 @@ public class DashboardService {
             response.setMessage(e.getMessage());
         }
         return response;
+    }
+
+    public DashboardMetrics getTariffs(Integer tariffId, String descriptionQuery, Pageable pageable) {
+        Page<Tariff> pageResult;
+
+        if (tariffId != null) {
+            pageResult = tariffRepo.findByTariffid(tariffId, pageable);
+        } else if (descriptionQuery != null && !descriptionQuery.isBlank()) {
+            pageResult = tariffRepo.findByDescriptionwcountryContainingIgnoreCase(descriptionQuery, pageable);
+        } else {
+            pageResult = tariffRepo.findAll(pageable);
+        }
+
+        return new DashboardMetrics(
+                pageResult.getContent(),
+                pageResult.getNumber(),
+                pageResult.getTotalPages(),
+                pageResult.getTotalElements());
     }
 }
