@@ -2,7 +2,7 @@ package com.tariff.tariff_backend.repository;
 
 import com.tariff.tariff_backend.model.tariffs_new.TransactionLine;
 import com.tariff.tariff_backend.model.User;
-import com.tariff.tariff_backend.model.tariffs_new.TariffNew;
+import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.math.BigDecimal;
@@ -15,7 +15,7 @@ public interface TransactionLineRepo extends JpaRepository<TransactionLine, Inte
 
     List<TransactionLine> findByUser(User user);
 
-    List<TransactionLine> findByTariff(TariffNew tariff);
+    List<TransactionLine> findByTariff(Tariff tariff);
 
     List<TransactionLine> findByCalculatedValue(BigDecimal calculatedValue);
 

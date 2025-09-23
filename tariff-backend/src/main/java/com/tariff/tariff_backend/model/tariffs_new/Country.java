@@ -25,7 +25,7 @@ import lombok.NoArgsConstructor;
 public class Country {
     @Id 
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer countryID;
+    private Integer countryId;
 
     @Column(nullable = false, unique = true)
     private String iso2;
@@ -35,17 +35,17 @@ public class Country {
 
     @JsonIgnore 
     @OneToMany(mappedBy = "partnerCountry", fetch = FetchType.LAZY)
-    private List<TariffNew> partnerTariffs = new ArrayList<>(); //search by partnertariffs
+    private List<Tariff> partnerTariffs = new ArrayList<>(); //search by partnertariffs
 
     @JsonIgnore 
     @OneToMany(mappedBy = "reporterCountry", fetch = FetchType.LAZY)
-    private List<TariffNew> reporterTariffs = new ArrayList<>(); //search by reportertariffs
+    private List<Tariff> reporterTariffs = new ArrayList<>(); //search by reportertariffs
 
-    public void addPartnerTariff(TariffNew t) {
+    public void addPartnerTariff(Tariff t) {
         partnerTariffs.add(t);
         t.setPartnerCountry(this);
     }
-    public void addReporterTariff(TariffNew t) {
+    public void addReporterTariff(Tariff t) {
         reporterTariffs.add(t);
         t.setReporterCountry(this);
     }

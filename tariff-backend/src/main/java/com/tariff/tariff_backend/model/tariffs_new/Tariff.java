@@ -20,20 +20,24 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor // constructor with all fields
 @Entity
 @Table(name = "tariff_new", schema = "tariffs")
-public class TariffNew {
+public class Tariff {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer TariffID;
+    @Column(name = "tariffid")
+    private Integer tariffId;
 
     @Column (name = "descriptionwcountry", nullable = false)
     private String descriptionwcountry;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn (name = "partnercountry", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore 
     private Country partnerCountry;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn (name = "reportercountry", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore 
     private Country reporterCountry;
 
     @Column (nullable = false)

@@ -25,15 +25,16 @@ import lombok.NoArgsConstructor;
 public class TransactionLine {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer transactionID;
+    @Column(name = "transactionid")
+    private Integer transactionId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "userid", nullable = false)
-    private User userID;
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "tariffid", nullable = false)
-    private TariffNew tariffID;
+    private Tariff tariff;
 
     @Column(name = "value", nullable = false)
     private BigDecimal calculatedValue;

@@ -1,4 +1,4 @@
-package com.tariff.tariff_backend.dto;
+package com.tariff.tariff_backend.dto.CalculationDTO;
 
 import java.math.BigDecimal;
 

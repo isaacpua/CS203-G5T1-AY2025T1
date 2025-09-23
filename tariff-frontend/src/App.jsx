@@ -1,4 +1,4 @@
-import TariffCalculator from './pages/TariffCalculator';
+import TariffCalculatorv2 from './pages/TariffCalculatorv2';
 import { ModeToggle } from './components/mode-toggle';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from './pages/Login';
@@ -92,7 +92,7 @@ function TabsWithTariff() {
       </div>
 
       <div className="grid gap-6">
-        {tab === "search" && <TariffCalculator />}
+        {tab === "search" && <TariffCalculatorv2 />}
         {tab === "dashboard" && <Dashboard />}
         {tab === "historical" && <HistoricalTariffExplorer />}
       </div>
