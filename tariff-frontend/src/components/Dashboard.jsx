@@ -285,8 +285,12 @@ export default function Dashboard() {
 
         {/* Essential grid actions only */}
         <div className="my-4 flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => grid.export.csv()}>Export CSV</Button>
-          <Button size="sm" variant="outline" onClick={() => grid.export.excel()}>Export Excel</Button>
+          {grid.export?.csv && (
+            <Button size="sm" variant="outline" onClick={() => grid.export.csv()}>Export CSV</Button>
+          )}
+          {grid.export?.excel && (
+            <Button size="sm" variant="outline" onClick={() => grid.export.excel()}>Export Excel</Button>
+          )}
           <Button size="sm" variant="outline" onClick={() => grid.state.rowSelectedIds?.set?.([])}>Clear Selection</Button>
         </div>
 
@@ -294,6 +298,9 @@ export default function Dashboard() {
           <div className="flex justify-center items-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
+        )}
+        {error && (
+          <div className="text-center text-destructive p-4">{error}</div>
         )}
 
         <div className="border rounded-xl shadow-lg bg-card" style={{ width: "100%", height: "480px", overflow: "hidden" }}>

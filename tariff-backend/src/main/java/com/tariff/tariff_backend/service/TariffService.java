@@ -4,13 +4,8 @@ package com.tariff.tariff_backend.service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.Root;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +17,7 @@ import com.tariff.tariff_backend.repository.TariffRepo;
 import com.tariff.tariff_backend.service.RateParser.ParsedRate;
 import com.tariff.tariff_backend.service.RateParser.RateKind;
 
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 
 @Service
