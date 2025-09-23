@@ -18,6 +18,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -29,6 +32,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private JwtService jwtService;
+
+    // Simple in-memory cache for UserDetails to avoid repeated DB lookups during bursts of requests
+    // Key: username, Value: CachedUserDetails
+    private final Map<String, CachedUserDetails> userDetailsCache = new ConcurrentHashMap<>();
+    // cache TTL in seconds
+    private static final long CACHE_TTL_SECONDS = 30;
+
+    private static class CachedUserDetails {
+        final UserDetails userDetails;
+        final Instant expiresAt;
+
+        CachedUserDetails(UserDetails userDetails, Instant expiresAt) {
+            this.userDetails = userDetails;
+            this.expiresAt = expiresAt;
+        }
+    }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, 
@@ -53,7 +72,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Validate token
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+            // Try cache first
+            CachedUserDetails cached = userDetailsCache.get(username);
+            UserDetails userDetails;
+            if (cached != null && Instant.now().isBefore(cached.expiresAt)) {
+                userDetails = cached.userDetails;
+            } else {
+                userDetails = this.userDetailsService.loadUserByUsername(username);
+                if (userDetails != null) {
+                    userDetailsCache.put(username, new CachedUserDetails(userDetails, Instant.now().plusSeconds(CACHE_TTL_SECONDS)));
+                }
+            }
             
             if (this.jwtService.isTokenValid(token, userDetails)) {
                 // Token is valid, set authentication in context
