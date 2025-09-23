@@ -73,7 +73,15 @@ public class TariffService {
             t.getDescriptionwcountry(),
             t.getName(),
             overallKind,
-            isFree);
+            isFree,
+            t.getPartnercountry(),
+            t.getReportercountry(),
+            t.getUnitid(),
+            t.getCategory(),
+            t.getAdvalorem(),
+            t.getSpecificperunit(),
+            t.getAd_valorem(),
+            t.getSpecific_per_unit());
     }
 
     public TariffComputeResponse computeTariff(Integer id, TariffComputeRequest req) {
