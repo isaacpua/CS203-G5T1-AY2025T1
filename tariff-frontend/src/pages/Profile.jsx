@@ -8,34 +8,44 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { User, Shield, Hash, Edit } from 'lucide-react';
 import axiosClient from '@/api/axiosClient';
-import { decodeJWT } from '@/utils/jwtDecoder';
+import { getUserInitials } from '@/utils/AvatarHelpers';
 
-const Profile = () => {
-  const [user, setUser] = useState({
+const Profile = ({ user }) => {
+  const [userDetails, setUserDetails] = useState({
     id: "NULL",
     username: "NULL",
     role: "NULL"
   });
+
   const [editUsername, setEditUsername] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // ✅ Only update userDetails when `user` changes
+  useEffect(() => {
+    if (user) {
+      setUserDetails(user);
+    }
+  }, [user]);
+
   useEffect(() => {
     const getUserData = async () => {
-      const decodedJWT = decodeJWT(localStorage.getItem("accessToken"));
       try {
-        const { data } = await axiosClient.get(`/users/${decodedJWT.sub}`);
+        const { data } = await axiosClient.get(`/users/${userDetails.username}`);
         if (!data.user) {
           throw new Error();
         }
-        setUser(data.user);
-        setEditUsername(data.user.username); // Initialize edit username
+        setUserDetails(data.user);
+        setEditUsername(data.user.username);
       } catch (err) {
         console.error(err);
       }
     };
-    getUserData();
-  }, []);
+
+    if (userDetails.username !== "NULL") {
+      getUserData();
+    }
+  }, [userDetails.username]); // ✅ only refetch when username changes
 
   const handleEditProfile = async () => {
     if (!editUsername.trim()) {
@@ -43,18 +53,15 @@ const Profile = () => {
       return;
     }
 
-    if (editUsername.trim() === user.username) {
+    if (editUsername.trim() === userDetails.username) {
       alert("Username hasn't changed");
       return;
     }
 
     setIsLoading(true);
     try {
-      const usernameUpdateDTO = {
-        username: editUsername.trim()
-      };
-
-      await axiosClient.put(`/users/${user.id}/username`, usernameUpdateDTO);
+      const usernameUpdateDTO = { username: editUsername.trim() };
+      await axiosClient.put(`/users/${userDetails.id}/username`, usernameUpdateDTO);
       location.reload();
       setIsDialogOpen(false);
     } catch (err) {
@@ -72,11 +79,10 @@ const Profile = () => {
   };
 
   const handleDialogClose = () => {
-    setEditUsername(user.username); // Reset to original username
+    setEditUsername(userDetails.username);
     setIsDialogOpen(false);
   };
 
-  // Helper function to get role color using theme-aware classes
   const getRoleColor = (role) => {
     switch (role.toLowerCase()) {
       case 'admin':
@@ -86,11 +92,6 @@ const Profile = () => {
       default:
         return 'bg-primary/10 text-primary hover:bg-primary/20';
     }
-  };
-
-  // Helper function to get user initials
-  const getUserInitials = (username) => {
-    return username.slice(0, 2).toUpperCase();
   };
 
   return (
@@ -108,12 +109,12 @@ const Profile = () => {
             <div className="flex items-center space-x-4">
               <Avatar className="h-16 w-16">
                 <AvatarFallback className="text-lg font-semibold bg-primary text-primary-foreground">
-                  {getUserInitials(user.username)}
+                  {getUserInitials(userDetails.username)}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <CardTitle className="text-2xl font-bold text-foreground">
-                  {user.username}
+                  {userDetails.username}
                 </CardTitle>
                 <CardDescription className="text-muted-foreground mt-1">
                   User account information
@@ -121,14 +122,14 @@ const Profile = () => {
               </div>
             </div>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             {/* Username Section */}
             <div className="flex items-start space-x-3 p-4 rounded-lg bg-muted/30">
               <User className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-foreground mb-1">Username</h3>
-                <p className="text-foreground/80 font-mono text-sm">{user.username}</p>
+                <p className="text-foreground/80 font-mono text-sm">{userDetails.username}</p>
               </div>
             </div>
 
@@ -137,8 +138,8 @@ const Profile = () => {
               <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-foreground mb-2">Role</h3>
-                <Badge className={getRoleColor(user.role)}>
-                  {user.role}
+                <Badge className={getRoleColor(userDetails.role)}>
+                  {userDetails.role}
                 </Badge>
               </div>
             </div>
@@ -148,7 +149,7 @@ const Profile = () => {
               <Hash className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-foreground mb-1">User ID</h3>
-                <p className="text-muted-foreground font-mono text-xs break-all">{user.id}</p>
+                <p className="text-muted-foreground font-mono text-xs break-all">{userDetails.id}</p>
               </div>
             </div>
 
@@ -185,7 +186,7 @@ const Profile = () => {
                         <Label htmlFor="role">Role (Read-only)</Label>
                         <Input
                           id="role"
-                          value={user.role}
+                          value={userDetails.role}
                           disabled
                           className="bg-muted"
                         />
@@ -201,7 +202,7 @@ const Profile = () => {
                       </Button>
                       <Button
                         onClick={handleEditProfile}
-                        disabled={isLoading || !editUsername.trim() || editUsername === user.username}
+                        disabled={isLoading || !editUsername.trim() || editUsername === userDetails.username}
                       >
                         {isLoading ? "Updating..." : "Save Changes"}
                       </Button>

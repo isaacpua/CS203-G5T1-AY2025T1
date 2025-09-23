@@ -12,11 +12,12 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { decodeJWT } from "@/utils/jwtDecoder";
 import { Loader2 } from "lucide-react"; import { AlertCircle, X } from "lucide-react";
 import { useState } from "react";
 import {useLocation, useNavigate} from "react-router-dom";
 
-const Login = () => {
+const Login = ({ setUser }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState("");
@@ -41,6 +42,10 @@ const Login = () => {
       const response = await axiosClient.post("/auth/login", credentials);
       if (response.status == 200) {
         localStorage.setItem("accessToken", response.data.accessToken);
+        const decodedJWT = decodeJWT(response.data.accessToken);
+        const { data } = await axiosClient.get(`/users/${decodedJWT.sub}`);
+        console.log(decodedJWT)
+        setUser(data.user);
         return navigate(from, { replace: true }); // go to original page that required login
 
         // CODE FOR TESTING TOKEN EXISTENCE
