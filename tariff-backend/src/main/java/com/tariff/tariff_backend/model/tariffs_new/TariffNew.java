@@ -2,8 +2,6 @@ package com.tariff.tariff_backend.model.tariffs_new;
 
 import java.math.BigDecimal;
 
-import com.tariff.tariff_backend.model.User;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -21,20 +19,33 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor // constructor with all fields
 @Entity
-@Table(name = "transaction_line", schema = "tariffs")
-public class TransactionLine {
+@Table(name = "tariff_new", schema = "tariffs")
+public class TariffNew {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer transactionID;
+    private Integer TariffID;
+
+    @Column (name = "descriptionwcountry", nullable = false)
+    private String descriptionwcountry;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "userid", nullable = false)
-    private User userID;
+    @JoinColumn (name = "partnercountry", nullable = false)
+    private Country partnerCountry;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "tariffid", nullable = false)
-    private TariffNew tariffID;
+    @JoinColumn (name = "reportercountry", nullable = false)
+    private Country reporterCountry;
 
-    @Column(name = "value", nullable = false)
-    private BigDecimal calculatedValue;
+    @Column (nullable = false)
+    private String unitname;
+
+    @Column (nullable = false)
+    private String category;
+
+    @Column (name = "advalorem")
+    private BigDecimal adValorem;
+    
+    @Column (name = "specificperunit")
+    private BigDecimal specificPerUnit;
+
 }
