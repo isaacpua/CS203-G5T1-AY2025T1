@@ -44,7 +44,7 @@ function isIntegerLike(str) {
 }
 
 export default function Dashboard() {
-  const [mode, setMode] = useState("desc"); // "id" | "hts8" | "desc"
+  const [mode, setMode] = useState("desc"); // "id" | "desc"
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [pageInput, setPageInput] = useState("1");
@@ -166,14 +166,13 @@ export default function Dashboard() {
         });
         const dQ = debouncedQuery.trim();
         if (dQ) {
-            if ((mode === "id" || mode === "hts8") && !isIntegerLike(dQ)) {
+      if (mode === "id" && !isIntegerLike(dQ)) {
                 setError("Please input an integer.");
                 setResults({ content: [], totalPages: 0, number: 0 });
                 setLoading(false);
                 return;
             }
             if (mode === "id") params.set("id", dQ);
-            if (mode === "hts8") params.set("hts8", dQ);
             if (mode === "desc") params.set("q", dQ);
         }
 
@@ -262,18 +261,17 @@ export default function Dashboard() {
                         <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                        <SelectItem value="id">ID</SelectItem>
-                        <SelectItem value="hts8">HTS8</SelectItem>
-                        <SelectItem value="desc">Description</SelectItem>
+            <SelectItem value="id">ID</SelectItem>
+            <SelectItem value="desc">Description</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
                 <div className="col-span-2">
-                    <Label>{mode === 'id' ? 'ID' : mode === 'hts8' ? 'HTS8 Code' : 'Brief Description'}</Label>
+          <Label>{mode === 'id' ? 'ID' : 'Brief Description'}</Label>
                     <div className="relative flex-grow">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
-                        placeholder={mode === 'desc' ? 'e.g., sunglasses, lenses...' : 'Enter number'}
+            placeholder={mode === 'desc' ? 'e.g., sunglasses, lenses...' : 'Enter number'}
                         className="pl-10"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
