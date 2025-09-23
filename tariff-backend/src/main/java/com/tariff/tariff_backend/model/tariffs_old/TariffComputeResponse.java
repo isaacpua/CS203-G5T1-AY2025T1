@@ -1,7 +1,8 @@
 package com.tariff.tariff_backend.model.tariffs_old;
 import java.math.BigDecimal;
 import java.util.List;
-import com.tariff.tariff_backend.service.RateParser.RateKind;
+
+import com.tariff.tariff_backend.service.OLDCALCULATORSTUFF.RateParser.RateKind;
 
 //what did the backend compute and how it breakdown the data
 

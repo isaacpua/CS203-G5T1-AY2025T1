@@ -16,16 +16,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tariff.tariff_backend.model.tariffs_old.TariffComputeRequest;
 import com.tariff.tariff_backend.model.tariffs_old.TariffComputeResponse;
 import com.tariff.tariff_backend.model.tariffs_old.TariffSearchRow;
-import com.tariff.tariff_backend.service.TariffService;
 
 @RestController
 @RequestMapping("/api/v1/tariffs")
 @CrossOrigin(origins = "http://localhost:5173")
 public class TariffController {
 
-    private final TariffService tariffService;
+    private final com.tariff.tariff_backend.service.OLDCALCULATORSTUFF.TariffService tariffService;
 
-    public TariffController(TariffService tariffService) {
+    public TariffController(com.tariff.tariff_backend.service.OLDCALCULATORSTUFF.TariffService tariffService) {
         this.tariffService = tariffService;
     }
 

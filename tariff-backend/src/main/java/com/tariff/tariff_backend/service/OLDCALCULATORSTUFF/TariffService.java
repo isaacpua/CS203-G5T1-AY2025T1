@@ -1,4 +1,4 @@
-package com.tariff.tariff_backend.service;
+package com.tariff.tariff_backend.service.OLDCALCULATORSTUFF;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -15,8 +15,9 @@ import com.tariff.tariff_backend.model.tariffs_old.TariffComputeRequest;
 import com.tariff.tariff_backend.model.tariffs_old.TariffComputeResponse;
 import com.tariff.tariff_backend.model.tariffs_old.TariffSearchRow;
 import com.tariff.tariff_backend.repository.TariffRepo;
-import com.tariff.tariff_backend.service.RateParser.ParsedRate;
-import com.tariff.tariff_backend.service.RateParser.RateKind;
+import com.tariff.tariff_backend.service.OLDCALCULATORSTUFF.RateParser.ParsedRate;
+import com.tariff.tariff_backend.service.OLDCALCULATORSTUFF.RateParser.RateComponent;
+import com.tariff.tariff_backend.service.OLDCALCULATORSTUFF.RateParser.RateKind;
 
 import lombok.RequiredArgsConstructor;
 
