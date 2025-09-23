@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { User, Shield, Hash, Edit } from "lucide-react";
 import axiosClient from "@/api/axiosClient";
 import { getUserInitials } from "@/utils/AvatarHelpers";
+import { toast } from "sonner";
 
 export default function Profile({ user, setUser }) {
   const navigate = useNavigate();
@@ -46,10 +47,11 @@ export default function Profile({ user, setUser }) {
         const { data } = await axiosClient.get(
           `/users/${userDetails.username}`
         );
-        if (!data.user) throw new Error();
+        if (!data.user) throw new Error("User data missing");
         setUserDetails(data.user);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching user data:", err);
+        toast.error("Unable to fetch user data.");
       }
     };
 
@@ -156,13 +158,11 @@ export default function Profile({ user, setUser }) {
   );
 }
 
-/* ----------------- EDIT PROFILE SUBCOMPONENT ----------------- */
 function EditProfileDialog({ userDetails, setUser }) {
   const [editUsername, setEditUsername] = useState(userDetails.username);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Reset username ONLY when dialog is opened
   useEffect(() => {
     if (isDialogOpen) {
       setEditUsername(userDetails.username);
@@ -171,11 +171,13 @@ function EditProfileDialog({ userDetails, setUser }) {
 
   const handleSave = async () => {
     if (!editUsername.trim()) {
-      alert("Username cannot be empty");
+      toast.error("Username cannot be empty");
       return;
     }
     if (editUsername === userDetails.username) {
-      alert("Username hasn't changed");
+      toast("Username hasn't changed", {
+        description: "You need to change the username to save.",
+      });
       return;
     }
 
@@ -186,13 +188,14 @@ function EditProfileDialog({ userDetails, setUser }) {
         `/users/${userDetails.id}/username`,
         usernameUpdateDTO
       );
+      toast.success("Username updated successfully");
       setUser(null);
       localStorage.removeItem("accessToken");
       location.reload();
       setIsDialogOpen(false);
     } catch (err) {
       console.error("Error updating username:", err);
-      alert("Failed to update username. Please try again.");
+      toast.error("Failed to update username. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -267,11 +270,11 @@ function ChangePasswordDialog({ userDetails }) {
 
   const handleChangePassword = async () => {
     if (!newPassword.trim()) {
-      alert("Password cannot be empty");
+      toast.error("Password cannot be empty");
       return;
     }
     if (newPassword !== confirmPassword) {
-      alert("Passwords do not match");
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -281,13 +284,13 @@ function ChangePasswordDialog({ userDetails }) {
         password: newPassword.trim(),
       });
 
-      alert("Password updated successfully. Please login again.");
+      toast.success("Password updated successfully. Please log in again.");
       localStorage.removeItem("accessToken");
       location.reload();
       setIsDialogOpen(false);
     } catch (err) {
       console.error("Error changing password:", err);
-      alert("Failed to change password. Please try again.");
+      toast.error("Failed to change password. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -304,7 +307,8 @@ function ChangePasswordDialog({ userDetails }) {
         <DialogHeader>
           <DialogTitle>Change Password</DialogTitle>
           <DialogDescription>
-            Enter a new password for your account. You will be required to relogin after this.
+            Enter a new password for your account. You will be required to
+            relogin after this.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
