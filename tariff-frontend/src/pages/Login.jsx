@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { decodeJWT } from "@/utils/jwtDecoder";
 import { Loader2 } from "lucide-react"; import { AlertCircle, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {useLocation, useNavigate} from "react-router-dom";
 
 const Login = ({ setUser }) => {
@@ -27,6 +27,14 @@ const Login = ({ setUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/calculator";
+
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    const user = localStorage.getItem("user");
+    if (token && user) {
+      navigate(from, { replace: true });
+    }
+  });
 
   const handleLogin = async () => {
     setIsLoading(true);
