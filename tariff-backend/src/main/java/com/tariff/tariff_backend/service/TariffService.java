@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.tariff.tariff_backend.model.tariffs_new.Country;
 import com.tariff.tariff_backend.model.tariffs_new.Tariff;
-import com.tariff.tariff_backend.model.TariffSearchRow;
+import com.tariff.tariff_backend.model.tariffs_new.TariffSearchRow;
 import com.tariff.tariff_backend.repository.TariffRepo;
 
 

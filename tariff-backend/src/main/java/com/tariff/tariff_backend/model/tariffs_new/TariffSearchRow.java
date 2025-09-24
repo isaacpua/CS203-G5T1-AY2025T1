@@ -1,8 +1,6 @@
-package com.tariff.tariff_backend.model;
+package com.tariff.tariff_backend.model.tariffs_new;
 
 import java.math.BigDecimal;
-
-import com.tariff.tariff_backend.model.tariffs_new.Country;
 
 public record TariffSearchRow(
     Integer tariffId,

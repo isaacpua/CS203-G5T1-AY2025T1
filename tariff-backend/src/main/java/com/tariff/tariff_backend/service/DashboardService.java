@@ -51,11 +51,11 @@ public class DashboardService {
             }
             Tariff existingTariff = optionalTariff.get();
 
-            if (patchDTO.getTariffid() != null) {
-                if (!patchDTO.getTariffid().equals(tariffId) && tariffRepo.existsById(patchDTO.getTariffid())) {
-                    throw new Exception("Unable to update tariff because the new Tariff ID " + patchDTO.getTariffid() + " already exists.");
+            if (patchDTO.getTariffId() != null) {
+                if (!patchDTO.getTariffId().equals(tariffId) && tariffRepo.existsById(patchDTO.getTariffId())) {
+                    throw new Exception("Unable to update tariff because the new Tariff ID " + patchDTO.getTariffId() + " already exists.");
                 }
-                existingTariff.setTariffId(patchDTO.getTariffid());
+                existingTariff.setTariffId(patchDTO.getTariffId());
             }
 
             if (patchDTO.getDescriptionwcountry() != null) {
@@ -63,11 +63,11 @@ public class DashboardService {
             }
             
             // Add the rest of the fields
-            if (patchDTO.getPartnercountry() != null) {
-                existingTariff.setPartnercountry(patchDTO.getPartnercountry());
+            if (patchDTO.getPartnerCountry() != null) {
+                existingTariff.setPartnerCountry(patchDTO.getPartnerCountry());
             }
-            if (patchDTO.getReportercountry() != null) {
-                existingTariff.setReportercountry(patchDTO.getReportercountry());
+            if (patchDTO.getReporterCountry() != null) {
+                existingTariff.setReporterCountry(patchDTO.getReporterCountry());
             }
             if (patchDTO.getUnitname() != null) {
                 existingTariff.setUnitname(patchDTO.getUnitname());
@@ -75,11 +75,11 @@ public class DashboardService {
             if (patchDTO.getCategory() != null) {
                 existingTariff.setCategory(patchDTO.getCategory());
             }
-            if (patchDTO.getAdvalorem() != null) {
-                existingTariff.setAdvalorem(patchDTO.getAdvalorem());
+            if (patchDTO.getAdValorem() != null) {
+                existingTariff.setAdValorem(patchDTO.getAdValorem());
             }
-            if (patchDTO.getSpecificperunit() != null) {
-                existingTariff.setSpecificperunit(patchDTO.getSpecificperunit());
+            if (patchDTO.getSpecificPerUnit() != null) {
+                existingTariff.setSpecificPerUnit(patchDTO.getSpecificPerUnit());
             }
 
 
