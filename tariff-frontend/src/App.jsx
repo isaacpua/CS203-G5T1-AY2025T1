@@ -32,7 +32,7 @@ function AppContent() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/calculator" element={
                   <section className="container mx-auto py-8 md:py-12 lg:py-24">
-                    <TabsWithTariff setUser={setUser}/>
+                    <TabsWithTariff/>
                   </section>
                 } />
                 <Route path="/user-management" element={<UserManagement />} />
