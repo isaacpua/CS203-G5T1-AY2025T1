@@ -3,9 +3,12 @@ package com.tariff.tariff_backend.service;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.tariff.tariff_backend.model.Tariff;
+import com.tariff.tariff_backend.model.dashboard.DashboardMetrics;
 import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
 import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
 import com.tariff.tariff_backend.repository.TariffRepo;
@@ -21,15 +24,15 @@ public class DashboardService {
 
     public DashboardResponse createTariff(Tariff newTariff) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully created the new tariff.");
-        Integer hts8 = newTariff.getHts8();
+        Integer tariffid = newTariff.getTariffid();
         try {
-            if (!tariffRepo.findByHts8(hts8).isEmpty()) {
-                throw new Exception("Unable to create new tariff because the HTS8 code " + hts8 + " already exists.");
+            if (tariffRepo.existsById(tariffid)) {
+                throw new Exception("Unable to create new tariff because the Tariff ID " + tariffid + " already exists.");
             }
 
             Tariff savedTariff = tariffRepo.save(newTariff);
 
-            if (savedTariff == null || tariffRepo.findByHts8(hts8).isEmpty()) {
+            if (savedTariff == null || !tariffRepo.existsById(tariffid)) {
                 throw new Exception("Unable to create the new tariff.");
             }
         } catch (Exception e) {
@@ -39,42 +42,46 @@ public class DashboardService {
         return response;
     }
 
-    public DashboardResponse updateTariff(Integer id, TariffPatchDTO patchDTO) {
+    public DashboardResponse updateTariff(Integer tariffid, TariffPatchDTO patchDTO) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully updated the tariff.");
-        Integer hts8 = patchDTO.getHts8();
-        String briefDescription = patchDTO.getBriefDescription();
-        String mfnTextRate = patchDTO.getMfnTextRate();
         try {
-            Optional<Tariff> optionalTariff = tariffRepo.findById(id);
+            Optional<Tariff> optionalTariff = tariffRepo.findById(tariffid);
             if (optionalTariff.isEmpty()) {
-                throw new Exception("Tariff with ID " + id + " not found");
+                throw new Exception("Tariff with ID " + tariffid + " not found");
             }
             Tariff existingTariff = optionalTariff.get();
 
-            if (hts8 != null) {
-                if (!tariffRepo.findByHts8(hts8).isEmpty()) {
-                    throw new Exception("Unable to update tariff because the HTS8 code " + hts8 + " already exists.");
+            if (patchDTO.getTariffid() != null) {
+                if (!patchDTO.getTariffid().equals(tariffid) && tariffRepo.existsById(patchDTO.getTariffid())) {
+                    throw new Exception("Unable to update tariff because the new Tariff ID " + patchDTO.getTariffid() + " already exists.");
                 }
-                existingTariff.setHts8(hts8);
+                existingTariff.setTariffid(patchDTO.getTariffid());
             }
 
-            if (briefDescription != null) {
-                existingTariff.setBriefDescription(briefDescription);
+            if (patchDTO.getDescriptionwcountry() != null) {
+                existingTariff.setDescriptionwcountry(patchDTO.getDescriptionwcountry());
             }
 
-            if (mfnTextRate != null) {
-                existingTariff.setMfnTextRate(mfnTextRate);
+            tariffRepo.save(existingTariff);
+
+        } catch (Exception e) {
+            response.setSuccess(false);
+            response.setMessage(e.getMessage());
+        }
+        return response;
+    }
+
+    public DashboardResponse deleteTariff(Integer tariffid) {
+        DashboardResponse response = new DashboardResponse(true, "Sucessfully deleted the tariff.");
+        try {
+            if (!tariffRepo.existsById(tariffid)) {
+                throw new Exception("Tariff with ID " + tariffid + " not found");
             }
 
-            Tariff updatedTariff = tariffRepo.save(existingTariff);
-            if (hts8 != null && !updatedTariff.getHts8().equals(hts8)) {
-                throw new Exception("Failed to update the HTS8 code.");
-            }
-            if (briefDescription != null && !updatedTariff.getBriefDescription().equals(briefDescription)) {
-                throw new Exception("Failed to update the brief_description.");
-            }
-            if (mfnTextRate != null && !updatedTariff.getMfnTextRate().equals(mfnTextRate)) {
-                throw new Exception("Failed to update the mfn_text_rate.");
+            tariffRepo.deleteById(tariffid);
+
+            if (tariffRepo.existsById(tariffid)) {
+                throw new Exception("Failed to delete tariff with ID " + tariffid);
             }
         } catch (Exception e) {
             response.setSuccess(false);
@@ -83,22 +90,21 @@ public class DashboardService {
         return response;
     }
 
-    public DashboardResponse deleteTariff(Integer id) {
-        DashboardResponse response = new DashboardResponse(true, "Sucessfully deleted the tariff.");
-        try {
-            if (tariffRepo.findById(id).isEmpty()) {
-                throw new Exception("Tariff with ID " + id + " not found");
-            }
+    public DashboardMetrics getTariffs(Integer tariffId, String descriptionQuery, Pageable pageable) {
+        Page<Tariff> pageResult;
 
-            tariffRepo.deleteById(id);
-
-            if (!tariffRepo.findById(id).isEmpty()) {
-                throw new Exception("Failed to delete tariff with ID " + id);
-            }
-        } catch (Exception e) {
-            response.setSuccess(false);
-            response.setMessage(e.getMessage());
+        if (tariffId != null) {
+            pageResult = tariffRepo.findByTariffid(tariffId, pageable);
+        } else if (descriptionQuery != null && !descriptionQuery.isBlank()) {
+            pageResult = tariffRepo.findByDescriptionwcountryContainingIgnoreCase(descriptionQuery, pageable);
+        } else {
+            pageResult = tariffRepo.findAll(pageable);
         }
-        return response;
+
+        return new DashboardMetrics(
+                pageResult.getContent(),
+                pageResult.getNumber(),
+                pageResult.getTotalPages(),
+                pageResult.getTotalElements());
     }
 }

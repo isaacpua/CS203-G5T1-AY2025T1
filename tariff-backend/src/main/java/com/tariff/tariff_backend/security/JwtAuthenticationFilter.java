@@ -1,10 +1,9 @@
 package com.tariff.tariff_backend.security;
 
-import com.tariff.tariff_backend.service.JwtService;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,18 +16,36 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
+import com.tariff.tariff_backend.service.JwtService;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+    private static final int CACHE_TTL_SECONDS = 30;
+    private final ConcurrentHashMap<String, CachedUserDetails> userDetailsCache = new ConcurrentHashMap<>();
 
     @Autowired
     private UserDetailsService userDetailsService;
 
     @Autowired
     private JwtService jwtService;
+
+    // Inner class for caching UserDetails with expiration
+    private static class CachedUserDetails {
+        final UserDetails userDetails;
+        final Instant expiresAt;
+
+        CachedUserDetails(UserDetails userDetails, Instant expiresAt) {
+            this.userDetails = userDetails;
+            this.expiresAt = expiresAt;
+        }
+    }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, 
@@ -53,7 +70,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Validate token
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+            // Try cache first
+            CachedUserDetails cached = userDetailsCache.get(username);
+            UserDetails userDetails;
+            if (cached != null && Instant.now().isBefore(cached.expiresAt)) {
+                userDetails = cached.userDetails;
+            } else {
+                userDetails = this.userDetailsService.loadUserByUsername(username);
+                if (userDetails != null) {
+                    userDetailsCache.put(username, new CachedUserDetails(userDetails, Instant.now().plusSeconds(CACHE_TTL_SECONDS)));
+                }
+            }
             
             if (this.jwtService.isTokenValid(token, userDetails)) {
                 // Token is valid, set authentication in context

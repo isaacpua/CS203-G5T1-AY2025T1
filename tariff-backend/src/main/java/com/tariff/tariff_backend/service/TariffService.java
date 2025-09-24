@@ -3,10 +3,8 @@ package com.tariff.tariff_backend.service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -18,66 +16,69 @@ import com.tariff.tariff_backend.repository.TariffRepo;
 import com.tariff.tariff_backend.service.RateParser.ParsedRate;
 import com.tariff.tariff_backend.service.RateParser.RateKind;
 
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor // auto generates constructors
 public class TariffService {
+    // CREATE
     private final TariffRepo tariffRepo;
 
-    public Page<TariffSearchRow> searchTariffs(Integer id, Integer hts8, String q, Pageable pageable) {
-        Page<Tariff> page;
-
-        if (id != null) { // Id lookup
-            Optional<Tariff> one = tariffRepo.findById(id);
-            if (one.isPresent()) {
-                List<Tariff> resultList = new ArrayList<>();
-                resultList.add(one.get());
-
-                page = new PageImpl<>(resultList, pageable, 1); // creating page manually
-                return page.map(this::toRow); // map is a helper to convert the page to rows based on my helper function
-            } else {
-                return Page.empty(pageable);
-            }
-        }
-
-        if (hts8 != null) {
-            page = tariffRepo.findByHts8(hts8, pageable);
-            return page.map(this::toRow);
-        }
-
-        if (q != null && !q.isBlank()) {
-            page = tariffRepo.findByBriefDescriptionContainingIgnoreCase(q.trim(), pageable);
-            return page.map(this::toRow);
-        }
-
-        // If no criteria, return all tariffs (default browse mode)
-        page = tariffRepo.findAll(pageable);
-        return page.map(this::toRow);
+    public Page<TariffSearchRow> searchTariffs(
+        Integer tariffid,
+        String descriptionwcountry,
+        Integer partnercountry,
+        Integer reportercountry,
+        String unitname, // Changed from unitid
+        String category,
+        Double advalorem,
+        Double specificperunit,
+        Pageable pageable
+    ) {
+        // Use JPA Specification for flexible filtering
+        return tariffRepo.findAll((root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (tariffid != null) predicates.add(cb.equal(root.get("tariffid"), tariffid));
+            if (descriptionwcountry != null && !descriptionwcountry.isBlank()) predicates.add(cb.like(cb.lower(root.get("descriptionwcountry")), "%" + descriptionwcountry.toLowerCase() + "%"));
+            if (partnercountry != null) predicates.add(cb.equal(root.get("partnercountry"), partnercountry));
+            if (reportercountry != null) predicates.add(cb.equal(root.get("reportercountry"), reportercountry));
+            // Updated to search by unitname
+            if (unitname != null && !unitname.isBlank()) predicates.add(cb.like(cb.lower(root.get("unitname")), "%" + unitname.toLowerCase() + "%"));
+            if (category != null && !category.isBlank()) predicates.add(cb.like(cb.lower(root.get("category")), "%" + category.toLowerCase() + "%"));
+            if (advalorem != null) predicates.add(cb.equal(root.get("advalorem"), advalorem));
+            if (specificperunit != null) predicates.add(cb.equal(root.get("specificperunit"), specificperunit));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        }, pageable).map(this::toRow);
     }
 
     private TariffSearchRow toRow(Tariff t) {
         String overallKind = null;
         boolean isFree = false;
         try {
-            var parsed = RateParser.parse(t.getMfnTextRate());
+            var parsed = RateParser.parse(t.getDescriptionwcountry());
             overallKind = parsed.overallKind().name();
             isFree = parsed.isFree();
         } catch (Exception ignore) {
         }
 
+        // Map new fields to TariffSearchRow (update constructor as needed)
         return new TariffSearchRow(
-                t.getId(),
-                t.getHts8(),
-                t.getBriefDescription(),
-                t.getMfnTextRate(),
-                overallKind,
-                isFree);
+            t.getTariffid(),
+            t.getDescriptionwcountry(),
+            overallKind,
+            isFree,
+            t.getPartnercountry(),
+            t.getReportercountry(),
+            t.getUnitname(),
+            t.getCategory(),
+            t.getAdvalorem(),
+            t.getSpecificperunit());
     }
 
-    public TariffComputeResponse computeTariff(Integer id, TariffComputeRequest req) {
-        Tariff t = tariffRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("Tariff not found: " + id));
-        ParsedRate parsed = RateParser.parse(t.getMfnTextRate());
+    public TariffComputeResponse computeTariff(Integer tariffid, TariffComputeRequest req) {
+        Tariff t = tariffRepo.findById(tariffid).orElseThrow(() -> new IllegalArgumentException("Tariff not found: " + tariffid));
+        ParsedRate parsed = RateParser.parse(t.getDescriptionwcountry());
 
         BigDecimal declared;
         BigDecimal qty;
@@ -247,5 +248,30 @@ public class TariffService {
 
         BigDecimal totalDuty = specSubtotal.add(adDuty);
         return new TariffComputeResponse(totalDuty, declared, lines);
+    }
+
+    // CREATE
+    public Tariff createTariff(Tariff tariff) {
+        return tariffRepo.save(tariff);
+    }
+
+    // UPDATE
+    public Tariff updateTariff(Integer tariffid, Tariff patch) {
+        Tariff existing = tariffRepo.findById(tariffid).orElseThrow(() -> new IllegalArgumentException("Tariff not found: " + tariffid));
+        // Update fields
+        existing.setTariffid(patch.getTariffid());
+        existing.setCategory(patch.getCategory());
+        existing.setDescriptionwcountry(patch.getDescriptionwcountry());
+        existing.setPartnercountry(patch.getPartnercountry());
+        existing.setReportercountry(patch.getReportercountry());
+        existing.setAdvalorem(patch.getAdvalorem());
+        existing.setSpecificperunit(patch.getSpecificperunit());
+        existing.setUnitname(patch.getUnitname());
+        return tariffRepo.save(existing);
+    }
+
+    // DELETE
+    public void deleteTariff(Integer tariffid) {
+        tariffRepo.deleteById(tariffid);
     }
 }
