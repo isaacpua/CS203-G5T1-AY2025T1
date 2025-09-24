@@ -9,9 +9,9 @@ import {Alert,AlertDescription,AlertTitle,} from "@/components/ui/alert";
 import { Loader2, Search, Calculator, Terminal } from "lucide-react";
 import { Relogin } from "@/components/Relogin";
 
-function TariffSearchAndCalc() {
+function TariffSearchAndCalc({ setUser }) {
   // -------- Search state --------
-  const [mode, setMode] = useState("id"); // "id" | "hts8" | "desc"
+  const [mode, setMode] = useState("id"); // "id" | "desc"
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
@@ -58,7 +58,7 @@ function TariffSearchAndCalc() {
       prevDQRef.current = debouncedQuery;
       return;
     }
-    if ((mode === "id" || mode === "hts8") && !isIntegerLike(dQ)) {
+    if (mode === "id" && !isIntegerLike(dQ)) {
       setSearchError("Please input an integer.");
       setResults({ content: [], totalPages: 0, number: 0, size });
       prevDQRef.current = debouncedQuery;
@@ -77,8 +77,7 @@ function TariffSearchAndCalc() {
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("size", String(size));
-        if (mode === "id") params.set("id", dQ);
-        if (mode === "hts8") params.set("hts8", dQ);
+  if (mode === "id") params.set("id", dQ);
         if (mode === "desc") params.set("q", dQ);
         const { data } = await axiosClient.get(`/tariffs/search?${params.toString()}`);
         setResults(data);
@@ -251,7 +250,7 @@ function TariffSearchAndCalc() {
   // ---- UI ----
   return (
     <>
-    {showRelogin && <Relogin />}
+    {showRelogin && <Relogin setUser={setUser}/>}
     <div className="grid gap-6 md:grid-cols-2">
       {/* Search Card */}
       <Card>
@@ -280,15 +279,12 @@ function TariffSearchAndCalc() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="id">ID</SelectItem>
-                  <SelectItem value="hts8">HTS8</SelectItem>
                   <SelectItem value="desc">Description</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="col-span-2">
-              <Label>
-                {mode === "id" ? "ID" : mode === "hts8" ? "HTS8 Code" : "Brief Description"}
-              </Label>
+              <Label>{mode === "id" ? "ID" : "Brief Description"}</Label>
               <Input
                 placeholder={mode === "desc" ? "e.g., sunglasses, lenses..." : "Enter number"}
                 value={query}

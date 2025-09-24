@@ -3,10 +3,10 @@ package com.tariff.tariff_backend.repository;
 import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 import com.tariff.tariff_backend.dto.CountryDTO;
 import com.tariff.tariff_backend.model.tariffs_new.Country;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-public interface TariffRepo extends JpaRepository<Tariff, Integer> {
+public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecificationExecutor<Tariff>{
 
   Optional<Tariff> findByTariffId(Integer tariffId);
 
@@ -95,6 +95,9 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer> {
       """, nativeQuery = true)
   List<Object[]> availableFromRawByTo(@Param("toId") Integer toId);
 
+  Page<Tariff> findByTariffId(Integer tariffid, Pageable pageable);
+
+  Page<Tariff> findByDescriptionwcountryContainingIgnoreCase(String q, Pageable pageable);
   // ---------- Convenience DTO mappers ----------
 
   default List<CountryDTO> availableFrom() {

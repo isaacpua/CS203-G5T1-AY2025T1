@@ -35,7 +35,7 @@ public class TariffBrowseController {
         return repo.availableTo(fromId);
     }
 
-    @GetMapping("/search")
+    @GetMapping("/search2")
     public Page<Tariff> search(
             @RequestParam(required = false) Integer fromId,
             @RequestParam(required = false) Integer toId,

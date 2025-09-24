@@ -19,7 +19,7 @@ const URL_PARTNERS_ALL = "/tariffs/countries/partners";
 const URL_REPORTERS_ALL = "/tariffs/countries/reporters";
 const URL_REPORTERS_FROM = (fromId) => `/tariffs/countries/reporters?fromId=${fromId}`;
 const URL_PARTNERS_BY_TO = (toId) => `/tariffs/countries/partners?toId=${toId}`;
-const URL_SEARCH = "/tariffs/search";
+const URL_SEARCH = "/tariffs/search2";
 const URL_CALC = "/tariffs/calc";
 
 const NONE = "none";
