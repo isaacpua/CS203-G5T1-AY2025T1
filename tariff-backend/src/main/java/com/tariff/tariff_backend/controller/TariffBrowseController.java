@@ -23,7 +23,10 @@ public class TariffBrowseController {
     }
 
     @GetMapping("/countries/partners")
-    public List<CountryDTO> fromCountries() {
+    public List<CountryDTO> fromCountries(@RequestParam(required = false) Integer toId) {
+        if (toId != null) {
+            return repo.availableFromByTo(toId);
+        }
         return repo.availableFrom();
     }
 

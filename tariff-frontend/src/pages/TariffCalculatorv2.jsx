@@ -14,23 +14,24 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Search, Calculator, Terminal } from "lucide-react";
 import { Relogin } from "@/components/Relogin";
 
-/** ---- ENDPOINTS (adjust if your paths differ) ---- */
-const URL_PARTNERS_ALL = "/tariffs/countries/partners";                                   // origins that exist
-const URL_REPORTERS_FROM = (fromPartnerId) => `/tariffs/countries/reporters?fromId=${fromPartnerId}`; // destinations from origin
+/** ---- ENDPOINTS ---- */
+const URL_PARTNERS_ALL = "/tariffs/countries/partners";
+const URL_REPORTERS_ALL = "/tariffs/countries/reporters";
+const URL_REPORTERS_FROM = (fromId) => `/tariffs/countries/reporters?fromId=${fromId}`;
+const URL_PARTNERS_BY_TO = (toId) => `/tariffs/countries/partners?toId=${toId}`;
 const URL_SEARCH = "/tariffs/search";
 const URL_CALC = "/tariffs/calc";
 
-// Sentinel used for "None" select option (can't be empty string with Radix)
 const NONE = "none";
 
 export default function TariffCalcV2() {
     const [showRelogin, setShowRelogin] = useState(false);
 
     // Countries
-    const [fromOptions, setFromOptions] = useState([]); // partners (origins)
-    const [toOptions, setToOptions] = useState([]);     // reporters (destinations from the origin)
-    const [fromId, setFromId] = useState(NONE);         // <-- partnercountry
-    const [toId, setToId] = useState(NONE);             // <-- reportercountry
+    const [fromOptions, setFromOptions] = useState([]);
+    const [toOptions, setToOptions] = useState([]);
+    const [fromId, setFromId] = useState(NONE);
+    const [toId, setToId] = useState(NONE);
     const [loadingCountries, setLoadingCountries] = useState(false);
 
     // Search
@@ -40,11 +41,11 @@ export default function TariffCalcV2() {
     const [searching, setSearching] = useState(false);
     const [searchError, setSearchError] = useState("");
     const [results, setResults] = useState({ content: [], totalPages: 0, number: 0, size: 10 });
-    const [searchTick, setSearchTick] = useState(0); // manual "Search" trigger
+    const [searchTick, setSearchTick] = useState(0);
 
     // Selection + compute
     const [selected, setSelected] = useState(null);
-    const [declaredValue, setDeclaredValue] = useState(""); // customsValue
+    const [declaredValue, setDeclaredValue] = useState("");
     const [quantity, setQuantity] = useState("");
     const [computing, setComputing] = useState(false);
     const [computeError, setComputeError] = useState("");
@@ -54,32 +55,45 @@ export default function TariffCalcV2() {
     const debouncedQ = useDebounce(q, 300);
     const prevDQRef = useRef(debouncedQ);
 
-    /** Load all possible origins (partners) */
+    /** Helpers to load country lists */
+    const loadAllFrom = async () => {
+        setLoadingCountries(true);
+        try {
+            const { data } = await axiosClient.get(URL_PARTNERS_ALL);
+            setFromOptions(data || []);
+        } catch (e) {
+            if (e.response?.status === 401) { setShowRelogin(true); return; }
+            console.error(e);
+        } finally { setLoadingCountries(false); }
+    };
+    const loadAllTo = async () => {
+        setLoadingCountries(true);
+        try {
+            const { data } = await axiosClient.get(URL_REPORTERS_ALL);
+            setToOptions(data || []);
+        } catch (e) {
+            if (e.response?.status === 401) { setShowRelogin(true); return; }
+            console.error(e);
+        } finally { setLoadingCountries(false); }
+    };
+
+    /** Load both lists initially so either side can be chosen first */
     useEffect(() => {
-        const loadPartners = async () => {
-            setLoadingCountries(true);
-            try {
-                const { data } = await axiosClient.get(URL_PARTNERS_ALL);
-                setFromOptions(data || []);
-            } catch (e) {
-                if (e.response?.status === 401) { setShowRelogin(true); return; }
-                console.error(e);
-            } finally {
-                setLoadingCountries(false);
-            }
-        };
-        loadPartners();
+        loadAllFrom();
+        loadAllTo();
     }, []);
 
-    /** When FROM (origin) changes, load destination options (reporters) */
+    /** When FROM changes, (a) narrow TO if set, else repop TO to full */
     useEffect(() => {
-        setToOptions([]);
-        setToId(NONE);
         setSelected(null);
         setResults({ content: [], totalPages: 0, number: 0, size });
         setComputeRes(null);
 
-        if (!fromId || fromId === NONE) return; // if "None", don't fetch reporters
+        if (!fromId || fromId === NONE) {
+            // no FROM selected → TO should show all possibilities
+            loadAllTo();
+            return;
+        }
 
         const loadReporters = async () => {
             setLoadingCountries(true);
@@ -89,16 +103,38 @@ export default function TariffCalcV2() {
             } catch (e) {
                 if (e.response?.status === 401) { setShowRelogin(true); return; }
                 console.error(e);
-            } finally {
-                setLoadingCountries(false);
-            }
+            } finally { setLoadingCountries(false); }
         };
         loadReporters();
     }, [fromId]);
 
-    /** Search effect (auto + button) */
+    /** When TO changes, (a) narrow FROM if set, else repop FROM to full */
     useEffect(() => {
-        // reset to page 0 when typing new text
+        setSelected(null);
+        setResults({ content: [], totalPages: 0, number: 0, size });
+        setComputeRes(null);
+
+        if (!toId || toId === NONE) {
+            // no TO selected → FROM should show all possibilities
+            loadAllFrom();
+            return;
+        }
+
+        const loadPartnersByTo = async () => {
+            setLoadingCountries(true);
+            try {
+                const { data } = await axiosClient.get(URL_PARTNERS_BY_TO(toId));
+                setFromOptions(data || []);
+            } catch (e) {
+                if (e.response?.status === 401) { setShowRelogin(true); return; }
+                console.error(e);
+            } finally { setLoadingCountries(false); }
+        };
+        loadPartnersByTo();
+    }, [toId]);
+
+    /** Search */
+    useEffect(() => {
         if (prevDQRef.current !== debouncedQ && page !== 0) {
             setPage(0);
             prevDQRef.current = debouncedQ;
@@ -113,11 +149,8 @@ export default function TariffCalcV2() {
                 const params = new URLSearchParams();
                 params.set("page", String(page));
                 params.set("size", String(size));
-
-                // Map: fromId -> partnercountry, toId -> reportercountry
                 if (fromId && fromId !== NONE) params.set("fromId", String(fromId));
                 if (toId && toId !== NONE) params.set("toId", String(toId));
-
                 const dQ = debouncedQ.trim();
                 if (dQ !== "") params.set("q", dQ);
 
@@ -125,18 +158,15 @@ export default function TariffCalcV2() {
                 setResults(data);
             } catch (e) {
                 if (e.response?.status === 401) { setShowRelogin(true); return; }
-                setSearchError("Search failed. Check /api/v1/tariffs/search and your params (fromId=partnercountry, toId=reportercountry).");
+                setSearchError("Search failed. Check /api/v1/tariffs/search and params.");
                 console.error(e);
-            } finally {
-                setSearching(false);
-            }
+            } finally { setSearching(false); }
         };
 
-        // Always allow searching (even if no filters)
         fetchPage();
     }, [fromId, toId, debouncedQ, page, size, searchTick]);
 
-    /** Reset compute inputs when selecting a new row */
+    /** Reset inputs when selecting a new row */
     useEffect(() => {
         if (!selected) return;
         setDeclaredValue("");
@@ -145,7 +175,7 @@ export default function TariffCalcV2() {
         setComputeError("");
     }, [selected?.id]);
 
-    /** Compute click */
+    /** Compute */
     const onCompute = async () => {
         if (!selected?.id) return;
         setComputing(true);
@@ -163,12 +193,10 @@ export default function TariffCalcV2() {
             if (e.response?.status === 401) { setShowRelogin(true); return; }
             setComputeError("Compute failed. Check /api/v1/tariffs/calc.");
             console.error(e);
-        } finally {
-            setComputing(false);
-        }
+        } finally { setComputing(false); }
     };
 
-    // Derived input needs based on category
+    // Inputs needed
     const cat = (selected?.category || "").toUpperCase();
     const needsDV = cat === "AD_VALOREM";
     const needsQty = cat === "SPECIFIC_PER_UNIT" || cat === "COMPOSITE";
@@ -192,69 +220,49 @@ export default function TariffCalcV2() {
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label>From Country (origin)</Label>
-                                <Select
-                                    value={String(fromId)}
-                                    onValueChange={(v) => { setFromId(v); setPage(0); }}
-                                >
+                                <Select value={String(fromId)} onValueChange={(v) => { setFromId(v); setPage(0); }}>
                                     <SelectTrigger>
                                         <SelectValue placeholder={loadingCountries ? "Loading…" : "Select country"} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value={NONE}>None</SelectItem> {/* IMPORTANT: not "" */}
-                                        {fromOptions
-                                            .filter((c) => c?.countryId != null)
-                                            .map((c) => (
-                                                <SelectItem key={c.countryId} value={String(c.countryId)}>
-                                                    {c.name} ({c.iso2})
-                                                </SelectItem>
-                                            ))}
+                                        <SelectItem value={NONE}>None</SelectItem>
+                                        {fromOptions.filter(c => c?.countryId != null).map(c => (
+                                            <SelectItem key={c.countryId} value={String(c.countryId)}>
+                                                {c.name} ({c.iso2})
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             <div className="space-y-2">
                                 <Label>To Country (destination)</Label>
-                                <Select
-                                    value={String(toId)}
-                                    onValueChange={(v) => { setToId(v); setPage(0); }}
-                                    disabled={(fromId === NONE && toOptions.length === 0)}
-                                >
+                                <Select value={String(toId)} onValueChange={(v) => { setToId(v); setPage(0); }}>
                                     <SelectTrigger>
-                                        <SelectValue placeholder={!fromId || fromId === NONE ? "Select From or choose None" : (loadingCountries ? "Loading…" : "Select country")} />
+                                        <SelectValue placeholder={loadingCountries ? "Loading…" : "Select country"} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value={NONE}>None</SelectItem>
-                                        {toOptions
-                                            .filter((c) => c?.countryId != null)
-                                            .map((c) => (
-                                                <SelectItem key={c.countryId} value={String(c.countryId)}>
-                                                    {c.name} ({c.iso2})
-                                                </SelectItem>
-                                            ))}
+                                        {toOptions.filter(c => c?.countryId != null).map(c => (
+                                            <SelectItem key={c.countryId} value={String(c.countryId)}>
+                                                {c.name} ({c.iso2})
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
 
-                        {/* Query + page size + Search button */}
+                        {/* Query + page size + Search */}
                         <div className="grid grid-cols-12 gap-4 items-end">
                             <div className="col-span-7">
                                 <Label>Search by description / ID</Label>
-                                <Input
-                                    placeholder="e.g., sunglasses"
-                                    value={q}
-                                    onChange={(e) => setQ(e.target.value)}
-                                />
+                                <Input placeholder="e.g., sunglasses" value={q} onChange={(e) => setQ(e.target.value)} />
                             </div>
                             <div className="col-span-2">
                                 <Label>Page size</Label>
-                                <Select
-                                    value={String(size)}
-                                    onValueChange={(v) => { setSize(Number(v)); setPage(0); }}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
+                                <Select value={String(size)} onValueChange={(v) => { setSize(Number(v)); setPage(0); }}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="10">10</SelectItem>
                                         <SelectItem value="20">20</SelectItem>
@@ -263,11 +271,7 @@ export default function TariffCalcV2() {
                                 </Select>
                             </div>
                             <div className="col-span-3 flex items-end justify-end">
-                                <Button
-                                    className="w-full"
-                                    onClick={() => setSearchTick((n) => n + 1)}
-                                    disabled={searching}
-                                >
+                                <Button className="w-full" onClick={() => setSearchTick(n => n + 1)} disabled={searching}>
                                     {searching ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Searching…</>) : "Search"}
                                 </Button>
                             </div>
@@ -279,7 +283,6 @@ export default function TariffCalcV2() {
                                 <div className="p-4 text-sm text-muted-foreground">No results.</div>
                             )}
                             {results.content.map((row) => {
-                                // normalize DTO vs entity field names
                                 const id = row.id ?? row.tariffId ?? row.tariffid;
                                 const normalized = {
                                     id,
@@ -309,17 +312,9 @@ export default function TariffCalcV2() {
 
                         {/* Pagination */}
                         <div className="flex justify-between items-center">
-                            <Button variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-                                Prev
-                            </Button>
+                            <Button variant="outline" disabled={page <= 0} onClick={() => setPage(p => Math.max(0, p - 1))}>Prev</Button>
                             <div className="text-sm">Page {results.number + 1} / {Math.max(results.totalPages, 1)}</div>
-                            <Button
-                                variant="outline"
-                                disabled={results.number + 1 >= results.totalPages}
-                                onClick={() => setPage((p) => p + 1)}
-                            >
-                                Next
-                            </Button>
+                            <Button variant="outline" disabled={results.number + 1 >= results.totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
                         </div>
 
                         {searchError && (
@@ -349,32 +344,19 @@ export default function TariffCalcV2() {
                                 <div className="text-sm">
                                     <div className="font-medium">ID: {selected.id}</div>
                                     <div className="text-muted-foreground">{selected.descriptionwcountry}</div>
-
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-4">
                                     {needsDV && (
                                         <div className="col-span-1">
                                             <Label>Declared Value ($)</Label>
-                                            <Input
-                                                value={declaredValue}
-                                                onChange={(e) => setDeclaredValue(e.target.value)}
-                                                placeholder="e.g. 1000"
-                                                inputMode="decimal"
-                                            />
+                                            <Input value={declaredValue} onChange={(e) => setDeclaredValue(e.target.value)} placeholder="e.g. 1000" inputMode="decimal" />
                                         </div>
                                     )}
                                     {needsQty && (
                                         <div className="col-span-1">
-                                            <Label>
-                                                Quantity{selected.unitname ? ` (${selected.unitname})` : ""}
-                                            </Label>
-                                            <Input
-                                                value={quantity}
-                                                onChange={(e) => setQuantity(e.target.value)}
-                                                placeholder="e.g. 200"
-                                                inputMode="decimal"
-                                            />
+                                            <Label>Quantity{selected.unitname ? ` (${selected.unitname})` : ""}</Label>
+                                            <Input value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="e.g. 200" inputMode="decimal" />
                                         </div>
                                     )}
                                 </div>
@@ -430,4 +412,3 @@ function toNumberOrNull(x) {
     const n = Number(x);
     return Number.isFinite(n) ? n : null;
 }
-

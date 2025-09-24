@@ -35,8 +35,7 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer> {
   // Partial search
   List<Tariff> findByDescriptionwcountryContainingIgnoreCase(String keyword);
 
-  // ---------- SEARCH (filters: FROM=partnercountry, TO=reportercountry, free
-  // text on description or id)
+  // ---------- SEARCH ----------
   @Query(value = """
       select *
       from tariffs.tariff_new t
@@ -65,7 +64,7 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer> {
       @Param("q") String q,
       Pageable pageable);
 
-  // ---------- DROPDOWNS (only countries that exist in tariffs)
+  // ---------- DROPDOWNS ----------
 
   // FROM countries = distinct partnercountry present in tariffs
   @Query(value = """
@@ -86,7 +85,18 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer> {
       """, nativeQuery = true)
   List<Object[]> availableToRaw(@Param("fromId") Integer fromId);
 
-  // Convenience default mappers to CountryDTO
+  // NEW: FROM countries filtered by chosen TO
+  @Query(value = """
+      select distinct c.countryid as id, c.iso2, c.name
+      from tariffs.tariff_new t
+      join tariffs.country c on c.countryid = t.partnercountry
+      where (:toId is null or t.reportercountry = :toId)
+      order by c.name
+      """, nativeQuery = true)
+  List<Object[]> availableFromRawByTo(@Param("toId") Integer toId);
+
+  // ---------- Convenience DTO mappers ----------
+
   default List<CountryDTO> availableFrom() {
     return availableFromRaw().stream()
         .map(a -> new CountryDTO(((Number) a[0]).intValue(), (String) a[1], (String) a[2]))
@@ -95,6 +105,12 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer> {
 
   default List<CountryDTO> availableTo(Integer fromId) {
     return availableToRaw(fromId).stream()
+        .map(a -> new CountryDTO(((Number) a[0]).intValue(), (String) a[1], (String) a[2]))
+        .toList();
+  }
+
+  default List<CountryDTO> availableFromByTo(Integer toId) {
+    return availableFromRawByTo(toId).stream()
         .map(a -> new CountryDTO(((Number) a[0]).intValue(), (String) a[1], (String) a[2]))
         .toList();
   }
