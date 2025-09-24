@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecificationExecutor<Tariff>{
+public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecificationExecutor<Tariff> {
 
   Optional<Tariff> findByTariffId(Integer tariffId);
 
@@ -37,26 +37,28 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecifica
 
   // ---------- SEARCH ----------
   @Query(value = """
-      select *
-      from tariffs.tariff_new t
-      where (:fromId is null or t.partnercountry = :fromId)
-        and (:toId   is null or t.reportercountry = :toId)
-        and (
-              :q is null
-           or lower(t.descriptionwcountry) like lower(concat('%', :q, '%'))
-           or cast(t.tariffid as text) like concat('%', :q, '%')
-        )
-      order by t.tariffid
+        SELECT t.*
+        FROM tariffs.tariff_new t
+        WHERE
+          (:fromId IS NULL OR t.partnercountry = :fromId)
+          AND (:toId   IS NULL OR t.reportercountry = :toId)
+          AND (
+               COALESCE(:q, '') = ''  -- no text filter if q is null/blank
+            OR t.descriptionwcountry ILIKE CONCAT('%', :q, '%')
+            OR CAST(t.tariffid AS TEXT) ILIKE CONCAT('%', :q, '%')
+          )
+        ORDER BY t.tariffid
       """, countQuery = """
-      select count(*)
-      from tariffs.tariff_new t
-      where (:fromId is null or t.partnercountry = :fromId)
-        and (:toId   is null or t.reportercountry = :toId)
-        and (
-              :q is null
-           or lower(t.descriptionwcountry) like lower(concat('%', :q, '%'))
-           or cast(t.tariffid as text) like concat('%', :q, '%')
-        )
+        SELECT COUNT(1)
+        FROM tariffs.tariff_new t
+        WHERE
+          (:fromId IS NULL OR t.partnercountry = :fromId)
+          AND (:toId   IS NULL OR t.reportercountry = :toId)
+          AND (
+               COALESCE(:q, '') = ''
+            OR t.descriptionwcountry ILIKE CONCAT('%', :q, '%')
+            OR CAST(t.tariffid AS TEXT) ILIKE CONCAT('%', :q, '%')
+          )
       """, nativeQuery = true)
   Page<Tariff> searchNative(
       @Param("fromId") Integer fromId,

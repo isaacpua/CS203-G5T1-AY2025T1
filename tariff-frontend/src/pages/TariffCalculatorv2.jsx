@@ -40,7 +40,7 @@ export default function TariffCalcV2() {
     const [size, setSize] = useState(10);
     const [searching, setSearching] = useState(false);
     const [searchError, setSearchError] = useState("");
-    const [results, setResults] = useState({ content: [], totalPages: 0, number: 0, size: 10 });
+    const [results, setResults] = useState({ content: [], totalPages: 0, number: 0, size: 10, last: null });
     const [searchTick, setSearchTick] = useState(0);
 
     // Selection + compute
@@ -83,12 +83,12 @@ export default function TariffCalcV2() {
         loadAllTo();
     }, []);
 
-    /** When FROM changes, (a) narrow TO if set, else repop TO to full, (b) reset page */
+    /** When FROM changes, narrow TO (or reset), and reset page */
     useEffect(() => {
         setSelected(null);
-        setResults({ content: [], totalPages: 0, number: 0, size });
+        setResults({ content: [], totalPages: 0, number: 0, size, last: null });
         setComputeRes(null);
-        setPage(0); // <-- reset pagination
+        setPage(0);
 
         if (!fromId || fromId === NONE) {
             loadAllTo();
@@ -108,12 +108,12 @@ export default function TariffCalcV2() {
         loadReporters();
     }, [fromId]);
 
-    /** When TO changes, (a) narrow FROM if set, else repop FROM to full, (b) reset page */
+    /** When TO changes, narrow FROM (or reset), and reset page */
     useEffect(() => {
         setSelected(null);
-        setResults({ content: [], totalPages: 0, number: 0, size });
+        setResults({ content: [], totalPages: 0, number: 0, size, last: null });
         setComputeRes(null);
-        setPage(0); // <-- reset pagination
+        setPage(0);
 
         if (!toId || toId === NONE) {
             loadAllFrom();
@@ -157,13 +157,28 @@ export default function TariffCalcV2() {
 
                 const { data } = await axiosClient.get(`${URL_SEARCH}?${params.toString()}`);
 
-                // ---- normalize paging to avoid NaN ----
+                // ---- normalize paging to avoid NaN and support Page or Slice ----
+                const totalPages =
+                    Number.isFinite(Number(data?.totalPages))
+                        ? Number(data.totalPages)
+                        : (Number.isFinite(Number(data?.totalElements))
+                            ? Math.max(1, Math.ceil(Number(data.totalElements) / Number(data?.size ?? size)))
+                            : 1);
+
                 const normalized = {
                     content: Array.isArray(data?.content) ? data.content : [],
-                    totalPages: Number(data?.totalPages ?? 0),
                     number: Number(data?.number ?? 0),
                     size: Number(data?.size ?? size),
+                    totalPages: Number(totalPages),
+                    last: data?.last ?? null, // for Slice support
                 };
+
+                // ⛳ CLAMP: if the server says we’re beyond the last page, jump back and refetch
+                if (normalized.totalPages > 0 && page >= normalized.totalPages) {
+                    setPage(normalized.totalPages - 1);
+                    return; // the effect will re-run with the corrected page
+                }
+
                 setResults(normalized);
             } catch (e) {
                 if (e.response?.status === 401) { setShowRelogin(true); return; }
@@ -211,8 +226,11 @@ export default function TariffCalcV2() {
     const needsQty = cat === "SPECIFIC_PER_UNIT" || cat === "COMPOSITE";
 
     // Safe pagination numbers for render
-    const pageIdx = Number(results?.number ?? 0);
-    const totalPages = Number(results?.totalPages ?? 0);
+    const pageIdx = Math.max(0, Number(results?.number ?? 0));
+    const totalPages = Math.max(1, Number(results?.totalPages ?? 1));
+    const canPrev = pageIdx > 0;
+    // Enable Next if either totalPages indicates more pages OR 'last' explicitly false
+    const canNext = (results?.last === false) || (pageIdx + 1 < totalPages);
 
     return (
         <>
@@ -327,17 +345,19 @@ export default function TariffCalcV2() {
                         <div className="flex justify-between items-center">
                             <Button
                                 variant="outline"
-                                disabled={pageIdx <= 0}
+                                disabled={!canPrev}
                                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                             >
                                 Prev
                             </Button>
+
                             <div className="text-sm">
-                                Page {pageIdx + 1} / {Math.max(totalPages, 1)}
+                                Page {pageIdx + 1} / {totalPages}
                             </div>
+
                             <Button
                                 variant="outline"
-                                disabled={pageIdx + 1 >= totalPages}
+                                disabled={!canNext}
                                 onClick={() => setPage((p) => p + 1)}
                             >
                                 Next

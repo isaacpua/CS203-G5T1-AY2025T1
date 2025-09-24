@@ -1,7 +1,9 @@
 // src/main/java/com/tariff/tariff_backend/controller/TariffBrowseController.java
 package com.tariff.tariff_backend.controller;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,13 +38,24 @@ public class TariffBrowseController {
     }
 
     @GetMapping("/search2")
-    public Page<Tariff> search(
+    public Map<String, Object> search(
             @RequestParam(required = false) Integer fromId,
             @RequestParam(required = false) Integer toId,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        String query = (q == null || q.isBlank()) ? null : q.trim();
-        return repo.searchNative(fromId, toId, query, PageRequest.of(page, size));
+
+        String query = (q == null || q.trim().isEmpty()) ? null : q.trim();
+        Page<Tariff> result = repo.searchNative(fromId, toId, query, PageRequest.of(page, size));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", result.getContent());
+        response.put("number", result.getNumber());
+        response.put("size", result.getSize());
+        response.put("totalPages", result.getTotalPages());
+        response.put("totalElements", result.getTotalElements());
+        response.put("last", result.isLast());
+
+        return response;
     }
 }
