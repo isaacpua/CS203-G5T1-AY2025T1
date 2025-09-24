@@ -2,8 +2,6 @@ package com.tariff.tariff_backend.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -18,9 +16,6 @@ import lombok.NoArgsConstructor;
 
 public class Tariff {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
-
     @Column(name = "tariffid")
     private Integer tariffid;
 
@@ -36,9 +31,6 @@ public class Tariff {
     @Column(name = "unitname")
     private String unitname;
 
-    @Column(name = "name")
-    private String name;
-
     @Column(name = "category")
     private String category;
 
@@ -47,10 +39,4 @@ public class Tariff {
 
     @Column(name = "specificperunit")
     private java.math.BigDecimal specificperunit;
-
-    @Column(name = "ad_valorem")
-    private java.math.BigDecimal ad_valorem;
-
-    @Column(name = "specific_per_unit")
-    private java.math.BigDecimal specific_per_unit;
 }

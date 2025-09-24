@@ -41,18 +41,18 @@ public class DashboardController {
         return ResponseEntity.ok(dResponse);
     }
 
-    @PatchMapping("/tariffs/{id}")
-    public ResponseEntity<?> updateTariff(@PathVariable Integer id, @RequestBody TariffPatchDTO patchDTO) {
-        DashboardResponse dResponse = dashboardService.updateTariff(id, patchDTO);
+    @PatchMapping("/tariffs/{tariffid}")
+    public ResponseEntity<?> updateTariff(@PathVariable Integer tariffid, @RequestBody TariffPatchDTO patchDTO) {
+        DashboardResponse dResponse = dashboardService.updateTariff(tariffid, patchDTO);
         if (!dResponse.getSuccess()) {
             return ResponseEntity.badRequest().body(dResponse);
         }
         return ResponseEntity.ok(dResponse);
     }
 
-    @DeleteMapping("/tariffs/{id}")
-    public ResponseEntity<?> deleteTariff(@PathVariable Integer id) {
-        DashboardResponse dResponse = dashboardService.deleteTariff(id);
+    @DeleteMapping("/tariffs/{tariffid}")
+    public ResponseEntity<?> deleteTariff(@PathVariable Integer tariffid) {
+        DashboardResponse dResponse = dashboardService.deleteTariff(tariffid);
         if (!dResponse.getSuccess()) {
             return ResponseEntity.badRequest().body(dResponse);
         }
@@ -63,14 +63,14 @@ public class DashboardController {
     public ResponseEntity<DashboardMetrics> getTariffs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
-            @RequestParam(required = false) Integer id,
+            @RequestParam(required = false) Integer tariffid,
             @RequestParam(name = "q", required = false) String descriptionQuery) {
 
         int safePage = Math.max(page, 0);
         int safeSize = size > 0 ? size : 50;
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("tariffid").ascending());
         String trimmedQuery = descriptionQuery != null ? descriptionQuery.trim() : null;
-        DashboardMetrics metrics = dashboardService.getTariffs(id, trimmedQuery, pageable);
+        DashboardMetrics metrics = dashboardService.getTariffs(tariffid, trimmedQuery, pageable);
         return ResponseEntity.ok(metrics);
     }
 }

@@ -26,13 +26,13 @@ public class DashboardService {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully created the new tariff.");
         Integer tariffid = newTariff.getTariffid();
         try {
-            if (!tariffRepo.findByTariffid(tariffid).isEmpty()) {
+            if (tariffRepo.existsById(tariffid)) {
                 throw new Exception("Unable to create new tariff because the Tariff ID " + tariffid + " already exists.");
             }
 
             Tariff savedTariff = tariffRepo.save(newTariff);
 
-            if (savedTariff == null || tariffRepo.findByTariffid(tariffid).isEmpty()) {
+            if (savedTariff == null || !tariffRepo.existsById(tariffid)) {
                 throw new Exception("Unable to create the new tariff.");
             }
         } catch (Exception e) {
@@ -42,43 +42,28 @@ public class DashboardService {
         return response;
     }
 
-    public DashboardResponse updateTariff(Integer id, TariffPatchDTO patchDTO) {
+    public DashboardResponse updateTariff(Integer tariffid, TariffPatchDTO patchDTO) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully updated the tariff.");
-            Integer tariffid = patchDTO.getTariffid();
-            String descriptionwcountry = patchDTO.getDescriptionwcountry();
-            String name = patchDTO.getName();
         try {
-            Optional<Tariff> optionalTariff = tariffRepo.findById(id);
+            Optional<Tariff> optionalTariff = tariffRepo.findById(tariffid);
             if (optionalTariff.isEmpty()) {
-                throw new Exception("Tariff with ID " + id + " not found");
+                throw new Exception("Tariff with ID " + tariffid + " not found");
             }
             Tariff existingTariff = optionalTariff.get();
 
-                if (tariffid != null) {
-                    if (!tariffRepo.findByTariffid(tariffid).isEmpty()) {
-                        throw new Exception("Unable to update tariff because the Tariff ID " + tariffid + " already exists.");
+            if (patchDTO.getTariffid() != null) {
+                if (!patchDTO.getTariffid().equals(tariffid) && tariffRepo.existsById(patchDTO.getTariffid())) {
+                    throw new Exception("Unable to update tariff because the new Tariff ID " + patchDTO.getTariffid() + " already exists.");
                 }
-                    existingTariff.setTariffid(tariffid);
+                existingTariff.setTariffid(patchDTO.getTariffid());
             }
 
-                if (descriptionwcountry != null) {
-                    existingTariff.setDescriptionwcountry(descriptionwcountry);
+            if (patchDTO.getDescriptionwcountry() != null) {
+                existingTariff.setDescriptionwcountry(patchDTO.getDescriptionwcountry());
             }
 
-                if (name != null) {
-                    existingTariff.setName(name);
-            }
+            tariffRepo.save(existingTariff);
 
-            Tariff updatedTariff = tariffRepo.save(existingTariff);
-                if (tariffid != null && !updatedTariff.getTariffid().equals(tariffid)) {
-                    throw new Exception("Failed to update the Tariff ID.");
-            }
-                if (descriptionwcountry != null && !updatedTariff.getDescriptionwcountry().equals(descriptionwcountry)) {
-                    throw new Exception("Failed to update the descriptionwcountry.");
-            }
-                if (name != null && !updatedTariff.getName().equals(name)) {
-                    throw new Exception("Failed to update the name.");
-            }
         } catch (Exception e) {
             response.setSuccess(false);
             response.setMessage(e.getMessage());
@@ -86,17 +71,17 @@ public class DashboardService {
         return response;
     }
 
-    public DashboardResponse deleteTariff(Integer id) {
+    public DashboardResponse deleteTariff(Integer tariffid) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully deleted the tariff.");
         try {
-            if (tariffRepo.findById(id).isEmpty()) {
-                throw new Exception("Tariff with ID " + id + " not found");
+            if (!tariffRepo.existsById(tariffid)) {
+                throw new Exception("Tariff with ID " + tariffid + " not found");
             }
 
-            tariffRepo.deleteById(id);
+            tariffRepo.deleteById(tariffid);
 
-            if (!tariffRepo.findById(id).isEmpty()) {
-                throw new Exception("Failed to delete tariff with ID " + id);
+            if (tariffRepo.existsById(tariffid)) {
+                throw new Exception("Failed to delete tariff with ID " + tariffid);
             }
         } catch (Exception e) {
             response.setSuccess(false);

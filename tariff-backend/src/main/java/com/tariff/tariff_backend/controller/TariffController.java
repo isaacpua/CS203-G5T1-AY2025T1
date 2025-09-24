@@ -40,24 +40,22 @@ public class TariffController {
         @RequestParam(required = false) Integer partnercountry,
         @RequestParam(required = false) Integer reportercountry,
         @RequestParam(required = false) String unitname,
-        @RequestParam(required = false) String name,
         @RequestParam(required = false) String category,
         @RequestParam(required = false) Double advalorem,
         @RequestParam(required = false) Double specificperunit,
-        @RequestParam(required = false) Integer id,
         @PageableDefault(size = 10, sort = "tariffid", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         Page<TariffSearchRow> results = tariffService.searchTariffs(
             tariffid, descriptionwcountry, partnercountry, reportercountry,
-            unitname, name, category, advalorem, specificperunit, id, pageable
+            unitname, category, advalorem, specificperunit, pageable
         );
 
         // If DB returns no rows, provide 3 mocked rows for development/demo so the UI shows data
         if (results == null || results.isEmpty()) {
             List<TariffSearchRow> demo = new ArrayList<>();
-            demo.add(new TariffSearchRow(1, 12345, "Sunglasses, plastic frame - USA", "Sunglasses", "AD_VALOREM", false, 840, 840, "Piece", "Apparel", new BigDecimal("0.10"), new BigDecimal("0.00"), new BigDecimal("0.10"), new BigDecimal("0.00")));
-            demo.add(new TariffSearchRow(2, 23456, "LED bulbs, 5W - China", "LED Bulb", "SPECIFIC_PER_UNIT", false, 156, 156, "Piece", "Electronics", new BigDecimal("0.00"), new BigDecimal("0.50"), new BigDecimal("0.00"), new BigDecimal("0.50")));
-            demo.add(new TariffSearchRow(3, 34567, "Cotton T-shirt - India", "T-Shirt", "FREE", true, 356, 356, "Piece", "Apparel", new BigDecimal("0.00"), new BigDecimal("0.00"), new BigDecimal("0.00"), new BigDecimal("0.00")));
+            demo.add(new TariffSearchRow(12345, "Sunglasses, plastic frame - USA", "AD_VALOREM", false, 840, 840, "Piece", "Apparel", new BigDecimal("0.10"), new BigDecimal("0.00")));
+            demo.add(new TariffSearchRow(23456, "LED bulbs, 5W - China", "SPECIFIC_PER_UNIT", false, 156, 156, "Piece", "Electronics", new BigDecimal("0.00"), new BigDecimal("0.50")));
+            demo.add(new TariffSearchRow(34567, "Cotton T-shirt - India", "FREE", true, 356, 356, "Piece", "Apparel", new BigDecimal("0.00"), new BigDecimal("0.00")));
             return new PageImpl<>(demo, pageable, demo.size());
         }
 
@@ -66,9 +64,9 @@ public class TariffController {
 
     @PostMapping("/compute")
     public TariffComputeResponse compute(
-        @RequestParam Integer id,
+        @RequestParam Integer tariffid,
         @RequestBody TariffComputeRequest req
     ) {
-        return tariffService.computeTariff(id ,req);
+        return tariffService.computeTariff(tariffid ,req);
     }
 }

@@ -23,7 +23,6 @@ function useDebounce(value, delayMs = 500) {
 function TariffGrid({ data, onEdit, onDelete }) {
   const columns = useMemo(() => [
     { id: "tariffid", name: "Tariff ID", resizable: true },
-    { id: "name", name: "Name", resizable: true },
     { id: "category", name: "Category", resizable: true },
     { id: "descriptionwcountry", name: "Description", resizable: true },
     { id: "partnercountry", name: "Partner Country", resizable: true },
@@ -92,15 +91,15 @@ export default function Dashboard() {
       const params = new URLSearchParams({ page: String(page), size: String(pageSize) });
       const dQ = debouncedQuery.trim();
       if (dQ) {
-        if (mode === "id") params.set("id", dQ);
+        if (mode === "id") params.set("tariffid", dQ);
         if (mode === "desc") params.set("q", dQ);
       }
       const { data } = await axiosClient.get(`/dashboard/tariffs?${params.toString()}`);
       
       const mappedContent = Array.isArray(data.content)
         ? data.content.map(row => ({
-            id: row.id,
-            tariffid: row.tariffid ?? "", name: row.name ?? "", category: row.category ?? "",
+            id: row.tariffid, // Use tariffid for the grid's unique key
+            tariffid: row.tariffid ?? "", category: row.category ?? "",
             descriptionwcountry: row.descriptionwcountry ?? "", partnercountry: row.partnercountry ?? "",
             reportercountry: row.reportercountry ?? "", advalorem: row.advalorem ?? "",
             specificperunit: row.specificperunit ?? "", unitname: row.unitname ?? ""
@@ -123,7 +122,7 @@ export default function Dashboard() {
   const handleDelete = (row) => { setSelectedRow(row); setShowDelete(true); };
 
   const handleCreate = () => {
-    setForm({ tariffid: "", name: "", category: "", descriptionwcountry: "", partnercountry: "", reportercountry: "", advalorem: "", specificperunit: "", unitname: "" });
+    setForm({ tariffid: "", category: "", descriptionwcountry: "", partnercountry: "", reportercountry: "", advalorem: "", specificperunit: "", unitname: "" });
     setShowCreate(true);
   };
 
@@ -187,7 +186,7 @@ export default function Dashboard() {
               </Select>
             </div>
             <div className="flex-[2]">
-              <Label>{mode === 'id' ? 'ID' : 'Brief Description'}</Label>
+              <Label>{mode === 'id' ? 'Tariff ID' : 'Brief Description'}</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input value={query} onChange={(e) => setQuery(e.target.value)} className="pl-10" />

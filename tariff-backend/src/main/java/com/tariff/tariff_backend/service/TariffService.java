@@ -31,11 +31,9 @@ public class TariffService {
         Integer partnercountry,
         Integer reportercountry,
         String unitname, // Changed from unitid
-        String name,
         String category,
         Double advalorem,
         Double specificperunit,
-        Integer id,
         Pageable pageable
     ) {
         // Use JPA Specification for flexible filtering
@@ -47,11 +45,9 @@ public class TariffService {
             if (reportercountry != null) predicates.add(cb.equal(root.get("reportercountry"), reportercountry));
             // Updated to search by unitname
             if (unitname != null && !unitname.isBlank()) predicates.add(cb.like(cb.lower(root.get("unitname")), "%" + unitname.toLowerCase() + "%"));
-            if (name != null && !name.isBlank()) predicates.add(cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
             if (category != null && !category.isBlank()) predicates.add(cb.like(cb.lower(root.get("category")), "%" + category.toLowerCase() + "%"));
             if (advalorem != null) predicates.add(cb.equal(root.get("advalorem"), advalorem));
             if (specificperunit != null) predicates.add(cb.equal(root.get("specificperunit"), specificperunit));
-            if (id != null) predicates.add(cb.equal(root.get("id"), id));
             return cb.and(predicates.toArray(new Predicate[0]));
         }, pageable).map(this::toRow);
     }
@@ -68,10 +64,8 @@ public class TariffService {
 
         // Map new fields to TariffSearchRow (update constructor as needed)
         return new TariffSearchRow(
-            t.getId(),
             t.getTariffid(),
             t.getDescriptionwcountry(),
-            t.getName(),
             overallKind,
             isFree,
             t.getPartnercountry(),
@@ -79,13 +73,11 @@ public class TariffService {
             t.getUnitname(),
             t.getCategory(),
             t.getAdvalorem(),
-            t.getSpecificperunit(),
-            t.getAd_valorem(),
-            t.getSpecific_per_unit());
+            t.getSpecificperunit());
     }
 
-    public TariffComputeResponse computeTariff(Integer id, TariffComputeRequest req) {
-        Tariff t = tariffRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("Tariff not found: " + id));
+    public TariffComputeResponse computeTariff(Integer tariffid, TariffComputeRequest req) {
+        Tariff t = tariffRepo.findById(tariffid).orElseThrow(() -> new IllegalArgumentException("Tariff not found: " + tariffid));
         ParsedRate parsed = RateParser.parse(t.getDescriptionwcountry());
 
         BigDecimal declared;
@@ -264,11 +256,10 @@ public class TariffService {
     }
 
     // UPDATE
-    public Tariff updateTariff(Integer id, Tariff patch) {
-        Tariff existing = tariffRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("Tariff not found: " + id));
+    public Tariff updateTariff(Integer tariffid, Tariff patch) {
+        Tariff existing = tariffRepo.findById(tariffid).orElseThrow(() -> new IllegalArgumentException("Tariff not found: " + tariffid));
         // Update fields
         existing.setTariffid(patch.getTariffid());
-        existing.setName(patch.getName());
         existing.setCategory(patch.getCategory());
         existing.setDescriptionwcountry(patch.getDescriptionwcountry());
         existing.setPartnercountry(patch.getPartnercountry());
@@ -276,13 +267,11 @@ public class TariffService {
         existing.setAdvalorem(patch.getAdvalorem());
         existing.setSpecificperunit(patch.getSpecificperunit());
         existing.setUnitname(patch.getUnitname());
-        existing.setAd_valorem(patch.getAd_valorem());
-        existing.setSpecific_per_unit(patch.getSpecific_per_unit());
         return tariffRepo.save(existing);
     }
 
     // DELETE
-    public void deleteTariff(Integer id) {
-        tariffRepo.deleteById(id);
+    public void deleteTariff(Integer tariffid) {
+        tariffRepo.deleteById(tariffid);
     }
 }
