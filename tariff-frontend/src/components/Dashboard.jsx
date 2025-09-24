@@ -42,10 +42,10 @@ const TariffIdCell = ({ row, column, grid }) => {
 const CategoryCell = ({ row, column, grid }) => {
   const value = grid.api.columnField(column, row);
   const categoryColors = {
-    COMPOSITE: "bg-blue-100 text-blue-800 border-blue-200",
-    SPECIFIC_PER_UNIT: "bg-green-100 text-green-800 border-green-200",
-    AD_VALOREM: "bg-purple-100 text-purple-800 border-purple-200",
-    DEFAULT: "bg-gray-100 text-gray-800 border-gray-200",
+    COMPOSITE: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800",
+    SPECIFIC_PER_UNIT: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800",
+    AD_VALOREM: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/50 dark:text-purple-300 dark:border-purple-800",
+    DEFAULT: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600",
   };
   const colorClass = categoryColors[value] || categoryColors.DEFAULT;
   return (
@@ -60,7 +60,7 @@ const CountryCell = ({ row, column, grid }) => {
   return (
     <div className="flex items-center px-3 py-2">
       <div className="flex items-center space-x-2">
-        <div className="w-4 h-3 bg-gray-300 rounded-sm flex-shrink-0" />
+        <div className="w-4 h-3 bg-gray-300 dark:bg-gray-700 rounded-sm flex-shrink-0" />
         <span className="text-sm font-medium">{value || "—"}</span>
       </div>
     </div>
@@ -93,7 +93,7 @@ const ActionCell = ({ row, grid, onEdit, onDelete, onView }) => (
         <DropdownMenuItem onClick={() => onView(row.data)}><Eye className="mr-2 h-4 w-4" />View Details</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onEdit(row.data)}><Edit2 className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => onDelete(row.data)} className="text-red-600 focus:text-red-600">
+        <DropdownMenuItem onClick={() => onDelete(row.data)} className="text-red-600 focus:text-red-600 dark:text-red-500 dark:focus:text-red-400">
           <Trash2 className="mr-2 h-4 w-4" />Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -129,18 +129,24 @@ const SortableHeader = ({ column, grid }) => {
   );
 };
 
+const StaticHeader = ({ column }) => (
+  <div className="flex items-center justify-center px-3 py-3 h-full w-full bg-muted/50 border-b border-border font-semibold text-foreground text-sm">
+    <span>{column.name}</span>
+  </div>
+);
+
 /* ---------------- grid wrapper ---------------- */
 function TariffGrid({ data, onEdit, onDelete, onView }) {
   const columns = useMemo(
     () => [
       { id: "tariffid", name: "Tariff ID", width: 120, resizable: true, cellRenderer: TariffIdCell, headerRenderer: SortableHeader },
       { id: "category", name: "Category", width: 180, resizable: true, cellRenderer: CategoryCell, headerRenderer: SortableHeader },
-      { id: "descriptionwcountry", name: "Description", flex: 1, resizable: true, cellRenderer: TextCell, headerRenderer: SortableHeader },
+      { id: "descriptionwcountry", name: "Description", flex: 1, minWidth: 250, resizable: true, cellRenderer: TextCell, headerRenderer: SortableHeader },
       { id: "partnercountry", name: "Partner Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
       { id: "reportercountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
       { id: "advalorem", name: "Ad Valorem", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
       { id: "specificperunit", name: "Specific/Unit", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
-      { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} onEdit={onEdit} onDelete={onDelete} onView={onView} /> },
+      { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} onEdit={onEdit} onDelete={onDelete} onView={onView} />, headerRenderer: StaticHeader },
     ],
     [onEdit, onDelete, onView]
   );
@@ -198,7 +204,7 @@ function TariffGrid({ data, onEdit, onDelete, onView }) {
 /* ---------------- validation ---------------- */
 const validateTariffForm = (form) => {
   const errors = {};
-  if (!form.tariffid || form.tariffid.trim() === "") errors.tariffid = "Tariff ID is required";
+  if (!form.tariffid || form.tariffid.toString().trim() === "") errors.tariffid = "Tariff ID is required";
   if (!form.category || form.category.trim() === "") errors.category = "Category is required";
   if (!form.descriptionwcountry || form.descriptionwcountry.trim() === "") errors.descriptionwcountry = "Description is required";
   if (form.advalorem && isNaN(parseFloat(form.advalorem))) errors.advalorem = "Ad Valorem must be a valid number";
@@ -206,7 +212,7 @@ const validateTariffForm = (form) => {
   return errors;
 };
 
-/* ---------------- modals (unchanged except styles) ---------------- */
+/* ---------------- modals ---------------- */
 const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoading, error }) => {
   const [form, setForm] = useState(initialData || {});
   const [errors, setErrors] = useState({});
@@ -225,6 +231,8 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
     setErrors({});
     onSubmit(form);
   };
+  
+  const hasChanges = JSON.stringify(form) !== JSON.stringify(initialData);
 
   const categories = ["COMPOSITE", "SPECIFIC_PER_UNIT", "AD_VALOREM", "FOOD_BEVERAGE", "MINERAL", "CHEMICAL", "PLASTIC", "TEXTILE", "WOOD", "PAPER"];
 
@@ -258,15 +266,17 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="partnercountry">Partner Country</Label>
-            <Input id="partnercountry" value={form.partnercountry || ""} onChange={(e) => setForm((f) => ({ ...f, partnercountry: e.target.value }))} />
+            <Label htmlFor="partnercountry">Partner Country <span className="text-red-500">*</span></Label>
+            <Input id="partnercountry" value={form.partnercountry || ""} onChange={(e) => setForm((f) => ({ ...f, partnercountry: e.target.value }))} className={errors.partnercountry ? "border-red-500" : ""} />
+            {errors.partnercountry && <p className="text-sm text-red-500">{errors.partnercountry}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="reportercountry">Reporter Country</Label>
-            <Input id="reportercountry" value={form.reportercountry || ""} onChange={(e) => setForm((f) => ({ ...f, reportercountry: e.target.value }))} />
+            <Label htmlFor="reportercountry">Reporter Country <span className="text-red-500">*</span></Label>
+            <Input id="reportercountry" value={form.reportercountry || ""} onChange={(e) => setForm((f) => ({ ...f, reportercountry: e.target.value }))} className={errors.reportercountry ? "border-red-500" : ""} />
+            {errors.reportercountry && <p className="text-sm text-red-500">{errors.reportercountry}</p>}
           </div>
-
+          
           <div className="space-y-2">
             <Label htmlFor="advalorem">Ad Valorem Rate</Label>
             <Input id="advalorem" type="number" step="0.01" value={form.advalorem || ""} onChange={(e) => setForm((f) => ({ ...f, advalorem: e.target.value }))} className={errors.advalorem ? "border-red-500" : ""} />
@@ -279,17 +289,18 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
             {errors.specificperunit && <p className="text-sm text-red-500">{errors.specificperunit}</p>}
           </div>
 
-          <div className="space-y-2">
+          <div className="col-span-2 space-y-2">
             <Label htmlFor="unitname">Unit Name</Label>
             <Input id="unitname" value={form.unitname || ""} onChange={(e) => setForm((f) => ({ ...f, unitname: e.target.value }))} />
           </div>
+
         </div>
 
         {error && <div className="p-3 bg-red-50 border border-red-200 rounded-md"><p className="text-sm text-red-600">{error}</p></div>}
 
         <DialogFooter className="flex gap-3">
           <Button variant="outline" onClick={onClose} disabled={isLoading}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={isLoading}>
+          <Button onClick={handleSubmit} disabled={isLoading || (isEditing && !hasChanges)}>
             {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditing ? "Updating..." : "Creating..."}</>) : (<><Check className="mr-2 h-4 w-4" />{isEditing ? "Update" : "Create"}</>)}
           </Button>
         </DialogFooter>
@@ -313,38 +324,38 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
         <div className="space-y-6 py-6">
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <Label className="text-sm font-medium text-gray-500">Category</Label>
-              <div className="mt-1"><Badge className="bg-blue-100 text-blue-800 border-blue-200">{data.category?.replace(/_/g, " ")}</Badge></div>
+              <Label className="text-sm font-medium text-muted-foreground">Category</Label>
+              <div className="mt-1"><Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800">{data.category?.replace(/_/g, " ")}</Badge></div>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-500">Unit Name</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Unit Name</Label>
               <p className="mt-1 text-sm">{data.unitname || "—"}</p>
             </div>
           </div>
 
           <div>
-            <Label className="text-sm font-medium text-gray-500">Description</Label>
-            <p className="mt-1 text-sm bg-gray-50 p-3 rounded-md">{data.descriptionwcountry}</p>
+            <Label className="text-sm font-medium text-muted-foreground">Description</Label>
+            <p className="mt-1 text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded-md">{data.descriptionwcountry}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <Label className="text-sm font-medium text-gray-500">Partner Country</Label>
-              <div className="mt-1 flex items-center space-x-2"><div className="w-4 h-3 bg-gray-200 rounded-sm" /><span className="text-sm">{data.partnercountry}</span></div>
+              <Label className="text-sm font-medium text-muted-foreground">Partner Country</Label>
+              <div className="mt-1 flex items-center space-x-2"><div className="w-4 h-3 bg-gray-200 dark:bg-gray-700 rounded-sm" /><span className="text-sm">{data.partnercountry}</span></div>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-500">Reporter Country</Label>
-              <div className="mt-1 flex items-center space-x-2"><div className="w-4 h-3 bg-gray-200 rounded-sm" /><span className="text-sm">{data.reportercountry}</span></div>
+              <Label className="text-sm font-medium text-muted-foreground">Reporter Country</Label>
+              <div className="mt-1 flex items-center space-x-2"><div className="w-4 h-3 bg-gray-200 dark:bg-gray-700 rounded-sm" /><span className="text-sm">{data.reportercountry}</span></div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <Label className="text-sm font-medium text-gray-500">Ad Valorem Rate</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Ad Valorem Rate</Label>
               <p className="mt-1 text-lg font-mono text-foreground">{data.advalorem ? `$${parseFloat(data.advalorem).toFixed(2)}` : "—"}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-500">Specific per Unit</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Specific per Unit</Label>
               <p className="mt-1 text-lg font-mono text-foreground">{data.specificperunit ? `$${parseFloat(data.specificperunit).toFixed(2)}` : "—"}</p>
             </div>
           </div>
@@ -485,8 +496,8 @@ export default function Dashboard() {
     <TooltipProvider>
       {showRelogin && <Relogin />}
       <Card className="border-0 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b">
-          <div className="flex justify-between items-start">
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-6">
+          <div className="flex justify-between items-center">
             <div className="space-y-1">
               <CardTitle className="text-2xl font-bold text-foreground">Tariff Management</CardTitle>
               <CardDescription className="text-muted-foreground">Manage and explore tariff data with advanced filtering and editing capabilities</CardDescription>
@@ -582,7 +593,7 @@ export default function Dashboard() {
           {results && results.totalPages > 1 && (
             <div className="flex justify-between items-center pt-6 border-t">
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Showing page {page + 1} of {results.totalPages}</span>
+                <span className="text-sm text-muted-foreground">Showing page {page + 1} of {results.totalPages}</span>
                 <Badge variant="outline" className="text-xs">{results.content.length} records</Badge>
               </div>
 
@@ -623,24 +634,24 @@ export default function Dashboard() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center"><Trash2 className="h-4 w-4 text-red-600" /></div>
+              <div className="w-8 h-8 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center"><Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" /></div>
               <span>Delete Tariff</span>
             </DialogTitle>
           </DialogHeader>
 
           <div className="py-4">
-            <p className="text-gray-600">Are you sure you want to delete this tariff entry? This action cannot be undone.</p>
+            <p className="text-muted-foreground">Are you sure you want to delete this tariff entry? This action cannot be undone.</p>
             {selectedRow && (
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center space-x-2">
                   <Badge variant="secondary" className="font-mono">#{selectedRow.tariffid}</Badge>
-                  <span className="text-sm text-gray-600">{selectedRow.descriptionwcountry}</span>
+                  <span className="text-sm text-muted-foreground">{selectedRow.descriptionwcountry}</span>
                 </div>
               </div>
             )}
           </div>
 
-          {actionError && <div className="p-3 bg-red-50 border border-red-200 rounded-md"><p className="text-sm text-red-600">{actionError}</p></div>}
+          {actionError && <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"><p className="text-sm text-red-600 dark:text-red-400">{actionError}</p></div>}
 
           <DialogFooter className="flex gap-3">
             <Button variant="outline" onClick={closeDialogs} disabled={actionLoading}>Cancel</Button>
@@ -652,4 +663,4 @@ export default function Dashboard() {
       </Dialog>
     </TooltipProvider>
   );
-}
+};
