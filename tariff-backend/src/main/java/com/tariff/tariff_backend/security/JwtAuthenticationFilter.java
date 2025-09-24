@@ -18,17 +18,32 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+    private static final int CACHE_TTL_SECONDS = 30;
+    private final ConcurrentHashMap<String, CachedUserDetails> userDetailsCache = new ConcurrentHashMap<>();
 
     @Autowired
     private UserDetailsService userDetailsService;
 
     @Autowired
     private JwtService jwtService;
+
+    // Inner class for caching UserDetails with expiration
+    private static class CachedUserDetails {
+        final UserDetails userDetails;
+        final Instant expiresAt;
+
+        CachedUserDetails(UserDetails userDetails, Instant expiresAt) {
+            this.userDetails = userDetails;
+            this.expiresAt = expiresAt;
+        }
+    }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, 
