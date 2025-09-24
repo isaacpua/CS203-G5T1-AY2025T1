@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Plus, Edit2, Trash2, Check, X, MoreVertical, Filter, Eye, Download, RefreshCw } from "lucide-react";
+import { Loader2, Search, Plus, Edit2, Trash2, X, MoreVertical, Eye, Download, RefreshCw, Check } from "lucide-react";
 import { Grid, useClientRowDataSource } from "@1771technologies/lytenyte-core";
 import "@1771technologies/lytenyte-core/grid.css";
 import { Relogin } from "@/components/Relogin";
@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-
 
 function useDebounce(value, delayMs = 500) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -25,14 +24,17 @@ function useDebounce(value, delayMs = 500) {
   return debouncedValue;
 }
 
-// Enhanced Cell Renderers for better UX
+/* ---------------- cells ---------------- */
+const TextCell = ({ row, column, grid }) => {
+  const v = grid.api.columnField(column, row);
+  return <div className="px-3 py-2 text-sm text-foreground">{v ?? "—"}</div>;
+};
+
 const TariffIdCell = ({ row, column, grid }) => {
   const value = grid.api.columnField(column, row);
   return (
     <div className="flex items-center px-3 py-2">
-      <Badge variant="secondary" className="font-mono text-xs">
-        #{value}
-      </Badge>
+      <Badge variant="secondary" className="font-mono text-xs">#{value}</Badge>
     </div>
   );
 };
@@ -40,18 +42,15 @@ const TariffIdCell = ({ row, column, grid }) => {
 const CategoryCell = ({ row, column, grid }) => {
   const value = grid.api.columnField(column, row);
   const categoryColors = {
-    'COMPOSITE': 'bg-blue-100 text-blue-800 border-blue-200',
-    'SPECIFIC_PER_UNIT': 'bg-green-100 text-green-800 border-green-200',
-    'AD_VALOREM': 'bg-purple-100 text-purple-800 border-purple-200',
-    'FOOD_BEVERAGE': 'bg-orange-100 text-orange-800 border-orange-200',
-    'DEFAULT': 'bg-gray-100 text-gray-800 border-gray-200'
+    COMPOSITE: "bg-blue-100 text-blue-800 border-blue-200",
+    SPECIFIC_PER_UNIT: "bg-green-100 text-green-800 border-green-200",
+    AD_VALOREM: "bg-purple-100 text-purple-800 border-purple-200",
+    DEFAULT: "bg-gray-100 text-gray-800 border-gray-200",
   };
   const colorClass = categoryColors[value] || categoryColors.DEFAULT;
   return (
     <div className="flex items-center px-3 py-2">
-      <Badge className={`${colorClass} border`}>
-        {value?.replace(/_/g, ' ')}
-      </Badge>
+      <Badge className={`${colorClass} border`}>{value?.replace(/_/g, " ")}</Badge>
     </div>
   );
 };
@@ -61,202 +60,108 @@ const CountryCell = ({ row, column, grid }) => {
   return (
     <div className="flex items-center px-3 py-2">
       <div className="flex items-center space-x-2">
-        <div className="w-4 h-3 bg-gray-200 rounded-sm flex-shrink-0"></div>
-        <span className="text-sm font-medium">{value}</span>
+        <div className="w-4 h-3 bg-gray-300 rounded-sm flex-shrink-0" />
+        <span className="text-sm font-medium">{value || "—"}</span>
       </div>
     </div>
   );
 };
 
-const MonetaryCell = ({ row, column, grid }) => {
+const MoneyCell = ({ row, column, grid }) => {
   const value = grid.api.columnField(column, row);
-  const numericValue = parseFloat(value);
-  const isPositive = numericValue > 0;
-  
+  const n = Number(value);
+  const show = Number.isFinite(n) && n !== 0;
   return (
     <div className="flex items-center justify-end px-3 py-2">
-      <span className={`font-mono text-sm ${isPositive ? 'text-green-600' : 'text-gray-500'}`}>
-        {numericValue > 0 ? `$${numericValue.toFixed(2)}` : '—'}
+      <span className={`font-mono text-sm ${show ? "text-foreground" : "text-muted-foreground"}`}>
+        {show ? `$${n.toFixed(2)}` : "—"}
       </span>
     </div>
   );
 };
 
-const ActionCell = ({ row, grid, onEdit, onDelete, onView }) => {
-  return (
-    <div className="flex items-center justify-center px-3 py-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-            <MoreVertical className="h-4 w-4" />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={() => onView(row.data)}>
-            <Eye className="mr-2 h-4 w-4" />
-            View Details
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onEdit(row.data)}>
-            <Edit2 className="mr-2 h-4 w-4" />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem 
-            onClick={() => onDelete(row.data)} 
-            className="text-red-600 focus:text-red-600"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-};
+const ActionCell = ({ row, grid, onEdit, onDelete, onView }) => (
+  <div className="flex items-center justify-center px-3 py-2">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <MoreVertical className="h-4 w-4" />
+          <span className="sr-only">Open menu</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem onClick={() => onView(row.data)}><Eye className="mr-2 h-4 w-4" />View Details</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onEdit(row.data)}><Edit2 className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onDelete(row.data)} className="text-red-600 focus:text-red-600">
+          <Trash2 className="mr-2 h-4 w-4" />Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>
+);
 
-// Enhanced Header Cell with sorting
 const SortableHeader = ({ column, grid }) => {
-  const sort = grid.state.sortModel
-    .useValue()
-    .find((c) => c.columnId === column.id);
-  
+  const sort = grid.state.sortModel.useValue().find((c) => c.columnId === column.id);
   const isDescending = sort?.isDescending ?? false;
-  
+
   const handleSort = () => {
     const current = grid.api.sortForColumn(column.id);
-    
     if (current == null) {
-      grid.state.sortModel.set([{
-        columnId: column.id,
-        sort: { kind: "string" }
-      }]);
+      grid.state.sortModel.set([{ columnId: column.id, sort: { kind: "string" } }]);
       return;
     }
-    
     if (!current.sort.isDescending) {
-      grid.state.sortModel.set([{ ...current.sort, isDescending: true }]);
+      grid.state.sortModel.set([{ ...current, sort: { ...current.sort, isDescending: true } }]);
     } else {
       grid.state.sortModel.set([]);
     }
   };
 
   return (
-    <div 
+    <div
       className="flex items-center justify-between px-3 py-3 h-full w-full bg-muted/50 hover:bg-muted/80 cursor-pointer transition-colors border-b border-border font-semibold text-foreground text-sm"
       onClick={handleSort}
     >
       <span>{column.name}</span>
-      {sort && (
-        <div className="ml-2">
-          {!isDescending ? '↑' : '↓'}
-        </div>
-      )}
+      {sort && <div className="ml-2">{!isDescending ? "↑" : "↓"}</div>}
     </div>
   );
 };
 
-// Child component to ensure grid is only initialized with data
-function TariffGrid({ data, onEdit, onDelete, onView, isLoading }) {
-  const columns = useMemo(() => [
-    { 
-      id: "tariffid", 
-      name: "Tariff ID", 
-      resizable: true, 
-      width: 120,
-      cellRenderer: TariffIdCell,
-      headerRenderer: SortableHeader
-    },
-    { 
-      id: "category", 
-      name: "Category", 
-      resizable: true, 
-      width: 180,
-      cellRenderer: CategoryCell,
-      headerRenderer: SortableHeader
-    },
-    { 
-      id: "descriptionwcountry", 
-      name: "Description", 
-      resizable: true, 
-      flex: 1,
-      headerRenderer: SortableHeader
-    },
-    { 
-      id: "partnercountry", 
-      name: "Partner Country", 
-      resizable: true, 
-      width: 160,
-      cellRenderer: CountryCell,
-      headerRenderer: SortableHeader
-    },
-    { 
-      id: "reportercountry", 
-      name: "Reporter Country", 
-      resizable: true, 
-      width: 160,
-      cellRenderer: CountryCell,
-      headerRenderer: SortableHeader
-    },
-    { 
-      id: "advalorem", 
-      name: "Ad Valorem", 
-      resizable: true, 
-      width: 120,
-      cellRenderer: MonetaryCell,
-      headerRenderer: SortableHeader
-    },
-    { 
-      id: "specificperunit", 
-      name: "Specific/Unit", 
-      resizable: true, 
-      width: 120,
-      cellRenderer: MonetaryCell,
-      headerRenderer: SortableHeader
-    },
-    {
-      id: "actions", 
-      name: "Actions",
-      width: 80,
-      resizable: false,
-      cellRenderer: (params) => <ActionCell {...params} onEdit={onEdit} onDelete={onDelete} onView={onView} />
-    }
-  ], [onEdit, onDelete, onView]);
+/* ---------------- grid wrapper ---------------- */
+function TariffGrid({ data, onEdit, onDelete, onView }) {
+  const columns = useMemo(
+    () => [
+      { id: "tariffid", name: "Tariff ID", width: 120, resizable: true, cellRenderer: TariffIdCell, headerRenderer: SortableHeader },
+      { id: "category", name: "Category", width: 180, resizable: true, cellRenderer: CategoryCell, headerRenderer: SortableHeader },
+      { id: "descriptionwcountry", name: "Description", flex: 1, resizable: true, cellRenderer: TextCell, headerRenderer: SortableHeader },
+      { id: "partnercountry", name: "Partner Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
+      { id: "reportercountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
+      { id: "advalorem", name: "Ad Valorem", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
+      { id: "specificperunit", name: "Specific/Unit", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
+      { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} onEdit={onEdit} onDelete={onDelete} onView={onView} /> },
+    ],
+    [onEdit, onDelete, onView]
+  );
 
+  // hook required by the grid library (mounted only when we have data)
   const ds = useClientRowDataSource({ data });
 
   const grid = Grid.useLyteNyte({
-    gridId: useId(), 
-    columns, 
+    gridId: useId(),
+    columns,
     rowDataSource: ds,
     rowHeight: 56,
     headerHeight: 52,
-    rowSelection: { 
-      mode: "multiple",
-      checkboxSelection: true
-    },
+    rowSelection: { mode: "multiple", checkboxSelection: true },
     columnMarkerEnabled: true,
     editCellMode: "cell",
     editClickActivator: "double-click",
-    columnBase: {
-      editable: false // We'll enable selectively
-    }
+    columnBase: { editable: false },
   });
 
   const view = grid.view.useValue();
-
-  if (isLoading) {
-    return (
-      <div className="border rounded-xl shadow-sm bg-card" style={{ width: "100%", height: "520px" }}>
-        <div className="flex items-center justify-center h-full">
-          <div className="flex items-center space-x-3">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <span className="text-muted-foreground">Loading tariff data...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="border rounded-xl shadow-sm bg-card overflow-hidden" style={{ width: "100%", height: "520px" }}>
@@ -265,33 +170,23 @@ function TariffGrid({ data, onEdit, onDelete, onView, isLoading }) {
           <Grid.Header>
             {view.header.layout.map((row, i) => (
               <Grid.HeaderRow headerRowIndex={i} key={i}>
-                {row.map((c) => {
-                  if (c.kind === "group") {
-                    return <Grid.HeaderGroupCell cell={c} key={c.idOccurrence} />;
-                  }
-                  return <Grid.HeaderCell cell={c} key={c.column.id} />;
-                })}
+                {row.map((c) => (c.kind === "group" ? <Grid.HeaderGroupCell cell={c} key={c.idOccurrence} /> : <Grid.HeaderCell cell={c} key={c.column.id} />))}
               </Grid.HeaderRow>
             ))}
           </Grid.Header>
           <Grid.RowsContainer>
             <Grid.RowsCenter>
-              {view.rows.center.map((row) => {
-                if (row.kind === "full-width") {
-                  return <Grid.RowFullWidth row={row} key={row.id} />;
-                }
-                return (
-                  <Grid.Row 
-                    key={row.id} 
-                    row={row} 
-                    className="hover:bg-muted/50 transition-colors duration-150"
-                  >
+              {view.rows.center.map((row) =>
+                row.kind === "full-width" ? (
+                  <Grid.RowFullWidth row={row} key={row.id} />
+                ) : (
+                  <Grid.Row key={row.id} row={row} className="hover:bg-muted/50 transition-colors duration-150 text-foreground">
                     {row.cells.map((cell) => (
                       <Grid.Cell cell={cell} key={cell.id} />
                     ))}
                   </Grid.Row>
-                );
-              })}
+                )
+              )}
             </Grid.RowsCenter>
           </Grid.RowsContainer>
         </Grid.Viewport>
@@ -300,42 +195,24 @@ function TariffGrid({ data, onEdit, onDelete, onView, isLoading }) {
   );
 }
 
-// Enhanced form validation
+/* ---------------- validation ---------------- */
 const validateTariffForm = (form) => {
   const errors = {};
-  
-  if (!form.tariffid || form.tariffid.trim() === '') {
-    errors.tariffid = 'Tariff ID is required';
-  }
-  
-  if (!form.category || form.category.trim() === '') {
-    errors.category = 'Category is required';
-  }
-  
-  if (!form.descriptionwcountry || form.descriptionwcountry.trim() === '') {
-    errors.descriptionwcountry = 'Description is required';
-  }
-  
-  if (form.advalorem && isNaN(parseFloat(form.advalorem))) {
-    errors.advalorem = 'Ad Valorem must be a valid number';
-  }
-  
-  if (form.specificperunit && isNaN(parseFloat(form.specificperunit))) {
-    errors.specificperunit = 'Specific per unit must be a valid number';
-  }
-  
+  if (!form.tariffid || form.tariffid.trim() === "") errors.tariffid = "Tariff ID is required";
+  if (!form.category || form.category.trim() === "") errors.category = "Category is required";
+  if (!form.descriptionwcountry || form.descriptionwcountry.trim() === "") errors.descriptionwcountry = "Description is required";
+  if (form.advalorem && isNaN(parseFloat(form.advalorem))) errors.advalorem = "Ad Valorem must be a valid number";
+  if (form.specificperunit && isNaN(parseFloat(form.specificperunit))) errors.specificperunit = "Specific per unit must be a valid number";
   return errors;
 };
 
-// Enhanced Create/Edit Modal
+/* ---------------- modals (unchanged except styles) ---------------- */
 const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoading, error }) => {
   const [form, setForm] = useState(initialData || {});
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    if (initialData) {
-      setForm(initialData);
-    }
+    if (initialData) setForm(initialData);
     setErrors({});
   }, [initialData, isOpen]);
 
@@ -349,153 +226,71 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
     onSubmit(form);
   };
 
-  const categories = [
-    'COMPOSITE', 'SPECIFIC_PER_UNIT', 'AD_VALOREM', 
-    'FOOD_BEVERAGE', 'MINERAL', 'CHEMICAL',
-    'PLASTIC', 'TEXTILE', 'WOOD', 'PAPER'
-  ];
+  const categories = ["COMPOSITE", "SPECIFIC_PER_UNIT", "AD_VALOREM", "FOOD_BEVERAGE", "MINERAL", "CHEMICAL", "PLASTIC", "TEXTILE", "WOOD", "PAPER"];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">
-            {isEditing ? 'Edit Tariff Entry' : 'Create New Tariff Entry'}
-          </DialogTitle>
+          <DialogTitle className="text-xl font-semibold">{isEditing ? "Edit Tariff Entry" : "Create New Tariff Entry"}</DialogTitle>
         </DialogHeader>
-        
+
         <div className="grid grid-cols-2 gap-6 py-6">
           <div className="space-y-2">
-            <Label htmlFor="tariffid" className="text-sm font-medium">
-              Tariff ID <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="tariffid"
-              value={form.tariffid || ''}
-              onChange={(e) => setForm(f => ({ ...f, tariffid: e.target.value }))}
-              className={errors.tariffid ? 'border-red-500' : ''}
-              placeholder="Enter tariff ID"
-            />
+            <Label htmlFor="tariffid">Tariff ID <span className="text-red-500">*</span></Label>
+            <Input id="tariffid" value={form.tariffid || ""} onChange={(e) => setForm((f) => ({ ...f, tariffid: e.target.value }))} className={errors.tariffid ? "border-red-500" : ""} />
             {errors.tariffid && <p className="text-sm text-red-500">{errors.tariffid}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="category" className="text-sm font-medium">
-              Category <span className="text-red-500">*</span>
-            </Label>
-            <Select 
-              value={form.category || ''} 
-              onValueChange={(value) => setForm(f => ({ ...f, category: value }))}
-            >
-              <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map(cat => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat.replace(/_/g, ' ')}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+            <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
+            <Select value={form.category || ""} onValueChange={(value) => setForm((f) => ({ ...f, category: value }))}>
+              <SelectTrigger className={errors.category ? "border-red-500" : ""}><SelectValue placeholder="Select category" /></SelectTrigger>
+              <SelectContent>{categories.map((cat) => <SelectItem key={cat} value={cat}>{cat.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
             </Select>
             {errors.category && <p className="text-sm text-red-500">{errors.category}</p>}
           </div>
 
           <div className="col-span-2 space-y-2">
-            <Label htmlFor="descriptionwcountry" className="text-sm font-medium">
-              Description <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="descriptionwcountry"
-              value={form.descriptionwcountry || ''}
-              onChange={(e) => setForm(f => ({ ...f, descriptionwcountry: e.target.value }))}
-              className={errors.descriptionwcountry ? 'border-red-500' : ''}
-              placeholder="Enter description with country details"
-            />
+            <Label htmlFor="descriptionwcountry">Description <span className="text-red-500">*</span></Label>
+            <Input id="descriptionwcountry" value={form.descriptionwcountry || ""} onChange={(e) => setForm((f) => ({ ...f, descriptionwcountry: e.target.value }))} className={errors.descriptionwcountry ? "border-red-500" : ""} />
             {errors.descriptionwcountry && <p className="text-sm text-red-500">{errors.descriptionwcountry}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="partnercountry" className="text-sm font-medium">Partner Country</Label>
-            <Input
-              id="partnercountry"
-              value={form.partnercountry || ''}
-              onChange={(e) => setForm(f => ({ ...f, partnercountry: e.target.value }))}
-              placeholder="Enter partner country"
-            />
+            <Label htmlFor="partnercountry">Partner Country</Label>
+            <Input id="partnercountry" value={form.partnercountry || ""} onChange={(e) => setForm((f) => ({ ...f, partnercountry: e.target.value }))} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="reportercountry" className="text-sm font-medium">Reporter Country</Label>
-            <Input
-              id="reportercountry"
-              value={form.reportercountry || ''}
-              onChange={(e) => setForm(f => ({ ...f, reportercountry: e.target.value }))}
-              placeholder="Enter reporter country"
-            />
+            <Label htmlFor="reportercountry">Reporter Country</Label>
+            <Input id="reportercountry" value={form.reportercountry || ""} onChange={(e) => setForm((f) => ({ ...f, reportercountry: e.target.value }))} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="advalorem" className="text-sm font-medium">Ad Valorem Rate</Label>
-            <Input
-              id="advalorem"
-              type="number"
-              step="0.01"
-              value={form.advalorem || ''}
-              onChange={(e) => setForm(f => ({ ...f, advalorem: e.target.value }))}
-              className={errors.advalorem ? 'border-red-500' : ''}
-              placeholder="0.00"
-            />
+            <Label htmlFor="advalorem">Ad Valorem Rate</Label>
+            <Input id="advalorem" type="number" step="0.01" value={form.advalorem || ""} onChange={(e) => setForm((f) => ({ ...f, advalorem: e.target.value }))} className={errors.advalorem ? "border-red-500" : ""} />
             {errors.advalorem && <p className="text-sm text-red-500">{errors.advalorem}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="specificperunit" className="text-sm font-medium">Specific per Unit</Label>
-            <Input
-              id="specificperunit"
-              type="number"
-              step="0.01"
-              value={form.specificperunit || ''}
-              onChange={(e) => setForm(f => ({ ...f, specificperunit: e.target.value }))}
-              className={errors.specificperunit ? 'border-red-500' : ''}
-              placeholder="0.00"
-            />
+            <Label htmlFor="specificperunit">Specific per Unit</Label>
+            <Input id="specificperunit" type="number" step="0.01" value={form.specificperunit || ""} onChange={(e) => setForm((f) => ({ ...f, specificperunit: e.target.value }))} className={errors.specificperunit ? "border-red-500" : ""} />
             {errors.specificperunit && <p className="text-sm text-red-500">{errors.specificperunit}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="unitname" className="text-sm font-medium">Unit Name</Label>
-            <Input
-              id="unitname"
-              value={form.unitname || ''}
-              onChange={(e) => setForm(f => ({ ...f, unitname: e.target.value }))}
-              placeholder="Enter unit name"
-            />
+            <Label htmlFor="unitname">Unit Name</Label>
+            <Input id="unitname" value={form.unitname || ""} onChange={(e) => setForm((f) => ({ ...f, unitname: e.target.value }))} />
           </div>
         </div>
 
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
+        {error && <div className="p-3 bg-red-50 border border-red-200 rounded-md"><p className="text-sm text-red-600">{error}</p></div>}
 
         <DialogFooter className="flex gap-3">
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>
-            Cancel
-          </Button>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isEditing ? 'Updating...' : 'Creating...'}
-              </>
-            ) : (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                {isEditing ? 'Update' : 'Create'}
-              </>
-            )}
+            {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditing ? "Updating..." : "Creating..."}</>) : (<><Check className="mr-2 h-4 w-4" />{isEditing ? "Update" : "Create"}</>)}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -503,36 +298,27 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
   );
 };
 
-// Enhanced View Details Modal
 const ViewDetailsModal = ({ isOpen, onClose, data }) => {
   if (!data) return null;
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <Badge variant="secondary" className="font-mono">
-              #{data.tariffid}
-            </Badge>
+            <Badge variant="secondary" className="font-mono">#{data.tariffid}</Badge>
             <span>Tariff Details</span>
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-6 py-6">
           <div className="grid grid-cols-2 gap-6">
             <div>
               <Label className="text-sm font-medium text-gray-500">Category</Label>
-              <div className="mt-1">
-                <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-                  {data.category?.replace(/_/g, ' ')}
-                </Badge>
-              </div>
+              <div className="mt-1"><Badge className="bg-blue-100 text-blue-800 border-blue-200">{data.category?.replace(/_/g, " ")}</Badge></div>
             </div>
-            
             <div>
               <Label className="text-sm font-medium text-gray-500">Unit Name</Label>
-              <p className="mt-1 text-sm">{data.unitname || '—'}</p>
+              <p className="mt-1 text-sm">{data.unitname || "—"}</p>
             </div>
           </div>
 
@@ -544,47 +330,33 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
           <div className="grid grid-cols-2 gap-6">
             <div>
               <Label className="text-sm font-medium text-gray-500">Partner Country</Label>
-              <div className="mt-1 flex items-center space-x-2">
-                <div className="w-4 h-3 bg-gray-200 rounded-sm"></div>
-                <span className="text-sm">{data.partnercountry}</span>
-              </div>
+              <div className="mt-1 flex items-center space-x-2"><div className="w-4 h-3 bg-gray-200 rounded-sm" /><span className="text-sm">{data.partnercountry}</span></div>
             </div>
-            
             <div>
               <Label className="text-sm font-medium text-gray-500">Reporter Country</Label>
-              <div className="mt-1 flex items-center space-x-2">
-                <div className="w-4 h-3 bg-gray-200 rounded-sm"></div>
-                <span className="text-sm">{data.reportercountry}</span>
-              </div>
+              <div className="mt-1 flex items-center space-x-2"><div className="w-4 h-3 bg-gray-200 rounded-sm" /><span className="text-sm">{data.reportercountry}</span></div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
               <Label className="text-sm font-medium text-gray-500">Ad Valorem Rate</Label>
-              <p className="mt-1 text-lg font-mono text-green-600">
-                {data.advalorem ? `$${parseFloat(data.advalorem).toFixed(2)}` : '—'}
-              </p>
+              <p className="mt-1 text-lg font-mono text-foreground">{data.advalorem ? `$${parseFloat(data.advalorem).toFixed(2)}` : "—"}</p>
             </div>
-            
             <div>
               <Label className="text-sm font-medium text-gray-500">Specific per Unit</Label>
-              <p className="mt-1 text-lg font-mono text-green-600">
-                {data.specificperunit ? `$${parseFloat(data.specificperunit).toFixed(2)}` : '—'}
-              </p>
+              <p className="mt-1 text-lg font-mono text-foreground">{data.specificperunit ? `$${parseFloat(data.specificperunit).toFixed(2)}` : "—"}</p>
             </div>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button onClick={onClose}>Close</Button>
-        </DialogFooter>
+        <DialogFooter><Button onClick={onClose}>Close</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
 
-// Main Dashboard component for fetching and state management
+/* ---------------- main ---------------- */
 export default function Dashboard() {
   const [mode, setMode] = useState("desc");
   const [query, setQuery] = useState("");
@@ -600,19 +372,18 @@ export default function Dashboard() {
   const [selectedRow, setSelectedRow] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
-  const debouncedQuery = useDebounce(query);
   const [showRelogin, setShowRelogin] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const debouncedQuery = useDebounce(query);
+
+  // Reset page when filters change
+  useEffect(() => { setPage(0); }, [debouncedQuery, mode]);
 
   const fetchTariffs = useCallback(async (showRefreshLoader = false) => {
-    if (showRefreshLoader) {
-      setIsRefreshing(true);
-    } else {
-      setLoading(true);
-    }
+    if (showRefreshLoader) setIsRefreshing(true); else setLoading(true);
     setError("");
-    
+
     try {
       const params = new URLSearchParams({ page: String(page), size: String(pageSize) });
       const dQ = debouncedQuery.trim();
@@ -621,31 +392,34 @@ export default function Dashboard() {
         if (mode === "desc") params.set("q", dQ);
       }
       const { data } = await axiosClient.get(`/dashboard/tariffs?${params.toString()}`);
-      
-      const mappedContent = Array.isArray(data.content)
-        ? data.content.map(row => ({
-            id: row.tariffid, // Use tariffid for the grid's unique key
-            tariffid: row.tariffid ?? "", 
-            category: row.category ?? "",
-            descriptionwcountry: row.descriptionwcountry ?? "", 
-            partnercountry: row.partnercountry ?? "",
-            reportercountry: row.reportercountry ?? "", 
-            advalorem: row.advalorem ?? "",
-            specificperunit: row.specificperunit ?? "", 
-            unitname: row.unitname ?? ""
-          }))
-        : [];
-      
-      setResults({ content: mappedContent, totalPages: data.totalPages ?? 0 });
-      
+
+      // Normalize fields so they always match our column IDs
+      const mappedContent = (Array.isArray(data.content) ? data.content : []).map((row) => {
+        const tariffid = row.tariffid ?? row.tariffId ?? row.id ?? "";
+        return {
+          id: tariffid,
+          tariffid,
+          category: row.category ?? "",
+          descriptionwcountry: row.descriptionwcountry ?? row.descriptionWCountry ?? row.description ?? "",
+          partnercountry: row.partnercountry ?? row.partnerCountry ?? "",
+          reportercountry: row.reportercountry ?? row.reporterCountry ?? "",
+          advalorem: row.advalorem ?? row.adValorem ?? "",
+          specificperunit: row.specificperunit ?? row.specificPerUnit ?? "",
+          unitname: row.unitname ?? row.unitName ?? "",
+        };
+      });
+
+      setResults({
+        content: mappedContent,
+        totalPages: data.totalPages ?? 0,
+        totalElements: data.totalElements ?? mappedContent.length,
+      });
+
       if (showRefreshLoader && mappedContent.length > 0) {
         toast.success(`Refreshed ${mappedContent.length} tariff records`);
       }
     } catch (err) {
-      if (err.response?.status === 401) {
-        setShowRelogin(true);
-        return;
-      }
+      if (err.response?.status === 401) { setShowRelogin(true); return; }
       setError("Failed to fetch tariffs. Please try again.");
       toast.error("Failed to fetch tariff data");
       console.error(err);
@@ -655,87 +429,55 @@ export default function Dashboard() {
     }
   }, [page, pageSize, debouncedQuery, mode]);
 
-  useEffect(() => {
-    fetchTariffs();
-  }, [fetchTariffs]);
+  useEffect(() => { fetchTariffs(); }, [fetchTariffs]);
 
-  const handleEdit = (row) => { 
-    setSelectedRow(row); 
-    setShowEdit(true); 
-  };
-  
-  const handleDelete = (row) => { 
-    setSelectedRow(row); 
-    setShowDelete(true); 
-  };
-  
-  const handleView = (row) => {
-    setSelectedRow(row);
-    setShowView(true);
-  };
-
-  const handleCreate = () => {
-    setSelectedRow(null);
-    setShowCreate(true);
-  };
-  
-  const handleRefresh = () => {
-    fetchTariffs(true);
-  };
+  const handleEdit = (row) => { setSelectedRow(row); setShowEdit(true); };
+  const handleDelete = (row) => { setSelectedRow(row); setShowDelete(true); };
+  const handleView = (row) => { setSelectedRow(row); setShowView(true); };
+  const handleCreate = () => { setSelectedRow(null); setShowCreate(true); };
+  const handleRefresh = () => { fetchTariffs(true); };
 
   const closeDialogs = () => {
-    setShowCreate(false);
-    setShowEdit(false);
-    setShowDelete(false);
-    setShowView(false);
-    setSelectedRow(null);
-    setActionError("");
+    setShowCreate(false); setShowEdit(false); setShowDelete(false); setShowView(false);
+    setSelectedRow(null); setActionError("");
   };
 
   const onSaveChanges = async (formData) => {
-    setActionLoading(true);
-    setActionError("");
+    setActionLoading(true); setActionError("");
     try {
-        if (showEdit) {
-            await axiosClient.patch(`/dashboard/tariffs/${selectedRow.id}`, formData);
-            toast.success("Tariff updated successfully");
-        } else {
-            await axiosClient.post("/dashboard/tariffs", formData);
-            toast.success("Tariff created successfully");
-        }
-        closeDialogs();
-        fetchTariffs();
+      if (showEdit) {
+        await axiosClient.patch(`/dashboard/tariffs/${selectedRow.id}`, formData);
+        toast.success("Tariff updated successfully");
+      } else {
+        await axiosClient.post("/dashboard/tariffs", formData);
+        toast.success("Tariff created successfully");
+      }
+      closeDialogs();
+      fetchTariffs();
     } catch (err) {
-        if (err.response?.status === 401) {
-          setShowRelogin(true);
-          return;
-        }
-        const errorMsg = err.response?.data?.message || "Failed to save changes.";
-        setActionError(errorMsg);
-        toast.error(errorMsg);
+      if (err.response?.status === 401) { setShowRelogin(true); return; }
+      const errorMsg = err.response?.data?.message || "Failed to save changes.";
+      setActionError(errorMsg);
+      toast.error(errorMsg);
     } finally {
-        setActionLoading(false);
+      setActionLoading(false);
     }
   };
 
   const onDeleteConfirm = async () => {
-    setActionLoading(true);
-    setActionError("");
+    setActionLoading(true); setActionError("");
     try {
-        await axiosClient.delete(`/dashboard/tariffs/${selectedRow.id}`);
-        toast.success("Tariff deleted successfully");
-        closeDialogs();
-        fetchTariffs();
+      await axiosClient.delete(`/dashboard/tariffs/${selectedRow.id}`);
+      toast.success("Tariff deleted successfully");
+      closeDialogs();
+      fetchTariffs();
     } catch (err) {
-        if (err.response?.status === 401) {
-          setShowRelogin(true);
-          return;
-        }
-        const errorMsg = err.response?.data?.message || "Failed to delete tariff.";
-        setActionError(errorMsg);
-        toast.error(errorMsg);
+      if (err.response?.status === 401) { setShowRelogin(true); return; }
+      const errorMsg = err.response?.data?.message || "Failed to delete tariff.";
+      setActionError(errorMsg);
+      toast.error(errorMsg);
     } finally {
-        setActionLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -746,109 +488,63 @@ export default function Dashboard() {
         <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
-              <CardTitle className="text-2xl font-bold text-foreground">
-                Tariff Management
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Manage and explore tariff data with advanced filtering and editing capabilities
-              </CardDescription>
+              <CardTitle className="text-2xl font-bold text-foreground">Tariff Management</CardTitle>
+              <CardDescription className="text-muted-foreground">Manage and explore tariff data with advanced filtering and editing capabilities</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                  >
-                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Refresh data</TooltipContent>
               </Tooltip>
-              
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4" />
-                  </Button>
+                  <Button variant="outline" size="sm"><Download className="h-4 w-4" /></Button>
                 </TooltipTrigger>
                 <TooltipContent>Export data</TooltipContent>
               </Tooltip>
-              
-              <Button onClick={handleCreate}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Tariff
-              </Button>
+              <Button onClick={handleCreate}><Plus className="mr-2 h-4 w-4" />Create Tariff</Button>
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="p-6">
-          {/* Enhanced Search Controls */}
+          {/* Search Controls */}
           <div className="flex items-end gap-4 mb-6 p-4 bg-muted/30 rounded-xl border">
             <div className="flex-1">
               <Label className="text-sm font-medium text-foreground">Search Method</Label>
               <Select value={mode} onValueChange={setMode}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="id">
-                    <div className="flex items-center">
-                      <Badge variant="outline" className="mr-2 text-xs">ID</Badge>
-                      Tariff ID
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="desc">
-                    <div className="flex items-center">
-                      <Search className="mr-2 h-3 w-3" />
-                      Description
-                    </div>
-                  </SelectItem>
+                  <SelectItem value="id"><div className="flex items-center"><Badge variant="outline" className="mr-2 text-xs">ID</Badge>Tariff ID</div></SelectItem>
+                  <SelectItem value="desc"><div className="flex items-center"><Search className="mr-2 h-3 w-3" />Description</div></SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex-[3]">
-              <Label className="text-sm font-medium text-foreground">
-                {mode === 'id' ? 'Enter Tariff ID' : 'Search Description'}
-              </Label>
+              <Label className="text-sm font-medium text-foreground">{mode === "id" ? "Enter Tariff ID" : "Search Description"}</Label>
               <div className="relative mt-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="pl-10 pr-4"
-                  placeholder={mode === 'id' ? 'e.g., 12345' : 'e.g., electronics, beverages...'}
-                />
+                <Input value={query} onChange={(e) => setQuery(e.target.value)} className="pl-10 pr-4" placeholder={mode === "id" ? "e.g., 12345" : "e.g., electronics, beverages..."} />
                 {query && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                    onClick={() => setQuery('')}
-                  >
+                  <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0" onClick={() => setQuery("")}>
                     <X className="h-3 w-3" />
                   </Button>
                 )}
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2">
-              <Badge variant="secondary" className="text-xs">
-                {results ? `${results.content.length} results` : 'Loading...'}
-              </Badge>
-              {debouncedQuery && (
-                <Badge variant="outline" className="text-xs">
-                  Filtered
-                </Badge>
-              )}
+              <Badge variant="secondary" className="text-xs">{results ? `${results.totalElements ?? results.content.length} results` : "Loading..."}</Badge>
+              {debouncedQuery && <Badge variant="outline" className="text-xs">Filtered</Badge>}
             </div>
           </div>
-          
-          {/* Enhanced Grid Rendering */}
+
+          {/* Content area */}
           {error ? (
             <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-destructive/10 border border-destructive/20 rounded-xl">
               <div className="text-center">
@@ -857,186 +553,99 @@ export default function Dashboard() {
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Error Loading Data</h3>
                 <p className="text-muted-foreground mb-4">{error}</p>
-                <Button onClick={() => fetchTariffs()} variant="outline">
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Try Again
-                </Button>
+                <Button onClick={() => fetchTariffs()} variant="outline"><RefreshCw className="mr-2 h-4 w-4" />Try Again</Button>
+              </div>
+            </div>
+          ) : loading ? (
+            <div className="border rounded-xl bg-card h-[520px] grid place-items-center">
+              <div className="flex items-center space-x-3">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="text-muted-foreground">Loading tariff data…</span>
               </div>
             </div>
           ) : results && results.content.length > 0 ? (
-            <TariffGrid 
-              data={results.content} 
-              onEdit={handleEdit} 
-              onDelete={handleDelete} 
-              onView={handleView}
-              isLoading={loading}
-            />
-          ) : !loading ? (
+            <TariffGrid data={results.content} onEdit={handleEdit} onDelete={handleDelete} onView={handleView} />
+          ) : (
             <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-muted/30 border rounded-xl">
               <div className="text-center">
                 <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Search className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-2">No Results Found</h3>
-                <p className="text-muted-foreground mb-4">
-                  {query ? `No tariffs match "${query}"` : 'No tariff data available'}
-                </p>
-                {query && (
-                  <Button onClick={() => setQuery('')} variant="outline">
-                    Clear Search
-                  </Button>
-                )}
+                <p className="text-muted-foreground mb-4">{query ? `No tariffs match "${query}"` : "No tariff data available"}</p>
+                {query && <Button onClick={() => setQuery("")} variant="outline">Clear Search</Button>}
               </div>
             </div>
-          ) : (
-            <TariffGrid 
-              data={[]} 
-              onEdit={handleEdit} 
-              onDelete={handleDelete} 
-              onView={handleView}
-              isLoading={true}
-            />
           )}
 
-          {/* Enhanced Pagination */}
+          {/* Pagination */}
           {results && results.totalPages > 1 && (
             <div className="flex justify-between items-center pt-6 border-t">
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">
-                  Showing page {page + 1} of {results.totalPages}
-                </span>
-                <Badge variant="outline" className="text-xs">
-                  {results.content.length} records
-                </Badge>
+                <span className="text-sm text-gray-600">Showing page {page + 1} of {results.totalPages}</span>
+                <Badge variant="outline" className="text-xs">{results.content.length} records</Badge>
               </div>
-              
+
               <div className="flex items-center space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  disabled={page <= 0} 
-                  onClick={() => setPage(p => p - 1)}
-                >
-                  Previous
-                </Button>
+                <Button variant="outline" size="sm" disabled={page <= 0} onClick={() => setPage((p) => p - 1)}>Previous</Button>
                 <div className="flex items-center space-x-1">
                   {Array.from({ length: Math.min(5, results.totalPages) }, (_, i) => {
                     const pageNum = i + Math.max(0, page - 2);
                     if (pageNum >= results.totalPages) return null;
                     return (
-                      <Button
-                        key={pageNum}
-                        variant={pageNum === page ? "default" : "outline"}
-                        size="sm"
-                        className="w-8 h-8 p-0"
-                        onClick={() => setPage(pageNum)}
-                      >
+                      <Button key={pageNum} variant={pageNum === page ? "default" : "outline"} size="sm" className="w-8 h-8 p-0" onClick={() => setPage(pageNum)}>
                         {pageNum + 1}
                       </Button>
                     );
                   })}
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  disabled={page + 1 >= results.totalPages} 
-                  onClick={() => setPage(p => p + 1)}
-                >
-                  Next
-                </Button>
+                <Button variant="outline" size="sm" disabled={page + 1 >= results.totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Enhanced Modals */}
+      {/* Modals */}
       <TariffModal
         isOpen={showCreate}
         onClose={closeDialogs}
         onSubmit={onSaveChanges}
-        initialData={{
-          tariffid: "", category: "", descriptionwcountry: "", 
-          partnercountry: "", reportercountry: "", advalorem: "", 
-          specificperunit: "", unitname: ""
-        }}
+        initialData={{ tariffid: "", category: "", descriptionwcountry: "", partnercountry: "", reportercountry: "", advalorem: "", specificperunit: "", unitname: "" }}
         isEditing={false}
         isLoading={actionLoading}
         error={actionError}
       />
-
-      <TariffModal
-        isOpen={showEdit}
-        onClose={closeDialogs}
-        onSubmit={onSaveChanges}
-        initialData={selectedRow}
-        isEditing={true}
-        isLoading={actionLoading}
-        error={actionError}
-      />
-
-      <ViewDetailsModal
-        isOpen={showView}
-        onClose={closeDialogs}
-        data={selectedRow}
-      />
+      <TariffModal isOpen={showEdit} onClose={closeDialogs} onSubmit={onSaveChanges} initialData={selectedRow} isEditing={true} isLoading={actionLoading} error={actionError} />
+      <ViewDetailsModal isOpen={showView} onClose={closeDialogs} data={selectedRow} />
 
       <Dialog open={showDelete} onOpenChange={closeDialogs}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="h-4 w-4 text-red-600" />
-              </div>
+              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center"><Trash2 className="h-4 w-4 text-red-600" /></div>
               <span>Delete Tariff</span>
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="py-4">
-            <p className="text-gray-600">
-              Are you sure you want to delete this tariff entry? This action cannot be undone.
-            </p>
-            
+            <p className="text-gray-600">Are you sure you want to delete this tariff entry? This action cannot be undone.</p>
             {selectedRow && (
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-2">
-                  <Badge variant="secondary" className="font-mono">
-                    #{selectedRow.tariffid}
-                  </Badge>
-                  <span className="text-sm text-gray-600">
-                    {selectedRow.descriptionwcountry}
-                  </span>
+                  <Badge variant="secondary" className="font-mono">#{selectedRow.tariffid}</Badge>
+                  <span className="text-sm text-gray-600">{selectedRow.descriptionwcountry}</span>
                 </div>
               </div>
             )}
           </div>
 
-          {actionError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{actionError}</p>
-            </div>
-          )}
+          {actionError && <div className="p-3 bg-red-50 border border-red-200 rounded-md"><p className="text-sm text-red-600">{actionError}</p></div>}
 
           <DialogFooter className="flex gap-3">
-            <Button variant="outline" onClick={closeDialogs} disabled={actionLoading}>
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={onDeleteConfirm} 
-              disabled={actionLoading}
-            >
-              {actionLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </>
-              )}
+            <Button variant="outline" onClick={closeDialogs} disabled={actionLoading}>Cancel</Button>
+            <Button variant="destructive" onClick={onDeleteConfirm} disabled={actionLoading}>
+              {actionLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Deleting...</>) : (<><Trash2 className="mr-2 h-4 w-4" />Delete</>)}
             </Button>
           </DialogFooter>
         </DialogContent>
