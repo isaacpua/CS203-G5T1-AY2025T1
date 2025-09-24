@@ -34,7 +34,7 @@ const Login = ({ setUser }) => {
     if (token && user) {
       navigate(from, { replace: true });
     }
-  });
+  }, [from, navigate]);
 
   const handleLogin = async () => {
     setIsLoading(true);
@@ -47,7 +47,7 @@ const Login = ({ setUser }) => {
 
       const trimmedUsername = username.trim();
       const trimmedPassword = password.trim();
-      if (trimmedUsername == "" || trimmedPassword == "") {
+      if (trimmedUsername === "" || trimmedPassword === "") {
         throw "BLANK";
       }
       const credentials = JSON.stringify({
@@ -74,7 +74,7 @@ const Login = ({ setUser }) => {
         // console.log(isValid.data);
       }
     } catch (err) {
-      if (err == "BLANK") {
+      if (err === "BLANK") {
         setError("Username or password cannot be blank!")
       } else if (err.code == "ERR_NETWORK") {
         setError("Our servers are currently down. Please try again later.");
@@ -95,7 +95,7 @@ const Login = ({ setUser }) => {
     try {
       const trimmedUsername = username.trim();
       const trimmedPassword = password.trim();
-      if (trimmedUsername == "" || trimmedPassword == "") {
+      if (trimmedUsername === "" || trimmedPassword === "") {
         throw "BLANK";
       }
       const credentials = JSON.stringify({
@@ -107,7 +107,7 @@ const Login = ({ setUser }) => {
       console.log(response.data);
       toggleMode(); // switch back to login mode
     } catch (err) {
-      if (err == "BLANK") {
+      if (err === "BLANK") {
         setError("Username or password cannot be blank!")
       } else if (err.code == "ERR_NETWORK") {
         setError("Our servers are currently down. Please try again later.");

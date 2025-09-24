@@ -14,6 +14,6 @@ import jakarta.validation.constraints.Size;
 @AllArgsConstructor
 public class UsernameUpdateDTO {
     @NotBlank(message = "Username cannot be blank")
-    @Size(min = 1, max = 50, message = "Username must be between 3 and 50 characters")
+    @Size(min = 1, max = 50, message = "Username must be between 1 and 50 characters")
     private String username;
 }
