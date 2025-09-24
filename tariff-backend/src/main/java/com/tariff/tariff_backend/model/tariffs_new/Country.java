@@ -21,11 +21,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor // constructor with all fields
 @Entity
-@Table(name = "Country", schema = "tariffs")
+@Table(name = "country", schema = "tariffs")
 public class Country {
     @Id 
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer countryID;
+    private Integer countryId;
 
     @Column(nullable = false, unique = true)
     private String iso2;
@@ -33,13 +33,13 @@ public class Country {
     @Column(nullable = false)
     private String name;
 
-    @JsonIgnore //get partnercountry
+    @JsonIgnore 
     @OneToMany(mappedBy = "partnerCountry", fetch = FetchType.LAZY)
-    private List<Tariff> partnerTariffs = new ArrayList<>();
+    private List<Tariff> partnerTariffs = new ArrayList<>(); //search by partnertariffs
 
-    @JsonIgnore //get reportercountry
+    @JsonIgnore 
     @OneToMany(mappedBy = "reporterCountry", fetch = FetchType.LAZY)
-    private List<Tariff> reporterTariffs = new ArrayList<>();
+    private List<Tariff> reporterTariffs = new ArrayList<>(); //search by reportertariffs
 
     public void addPartnerTariff(Tariff t) {
         partnerTariffs.add(t);

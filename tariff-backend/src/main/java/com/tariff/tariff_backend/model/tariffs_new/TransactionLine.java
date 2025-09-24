@@ -1,5 +1,9 @@
 package com.tariff.tariff_backend.model.tariffs_new;
 
+import java.math.BigDecimal;
+
+import com.tariff.tariff_backend.model.User;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,25 +17,25 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "TransactionLine", schema = "tariffs")
-@Data
+@Data //auto setter getter
 @NoArgsConstructor
-@AllArgsConstructor
+@AllArgsConstructor // constructor with all fields
+@Entity
+@Table(name = "transaction_line", schema = "tariffs")
 public class TransactionLine {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer transactionID;
+    @Column(name = "transactionid")
+    private Integer transactionId;
 
-    @Column(nullable = false)
-    private Integer userID;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "userid", nullable = false)
+    private User user;
 
-    // --- Relationships ---
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "tariffID")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "tariffid", nullable = false)
     private Tariff tariff;
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "calculatedID")
-    private CalculatedResult calculated;
+    @Column(name = "value", nullable = false)
+    private BigDecimal calculatedValue;
 }

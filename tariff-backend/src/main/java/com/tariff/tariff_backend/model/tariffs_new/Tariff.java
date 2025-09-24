@@ -1,7 +1,10 @@
 package com.tariff.tariff_backend.model.tariffs_new;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -12,28 +15,41 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
+@Data //auto setter getter
 @NoArgsConstructor
 @AllArgsConstructor // constructor with all fields
-@Entity (name = "TariffNew")
-@Table(name = "Tariffs", schema = "tariffs")
+@Entity
+@Table(name = "tariff_new", schema = "tariffs")
 public class Tariff {
-    @Id 
+
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer tariffID;
+    @Column(name = "tariffid")
+    private Integer tariffId;
 
-    @Column(nullable = false, columnDefinition = "text")
-    private String descriptionWCountry;
+    @Column (name = "descriptionwcountry", nullable = false)
+    private String descriptionwcountry;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "partnerCountry")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn (name = "partnercountry", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore 
     private Country partnerCountry;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "reporterCountry")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn (name = "reportercountry", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore 
     private Country reporterCountry;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "unitID")
-    private Uoq unit;
+    @Column (nullable = false)
+    private String unitname;
+
+    @Column (nullable = false)
+    private String category;
+
+    @Column (name = "advalorem")
+    private BigDecimal adValorem;
+    
+    @Column (name = "specificperunit")
+    private BigDecimal specificPerUnit;
+
 }
