@@ -1,8 +1,11 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useAuth } from "@/utils/AuthContext";
 import { logout } from "@/utils/logout";
 import { AlertTriangleIcon } from "lucide-react"
 
-export function Relogin({ setUser }) {
+export function Relogin() {
+    const { setUser } = useAuth();
+    
     function reloadPage() {
         logout(setUser);
     }

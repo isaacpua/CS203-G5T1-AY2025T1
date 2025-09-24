@@ -368,7 +368,7 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
 };
 
 /* ---------------- main ---------------- */
-export default function Dashboard({ setUser }) {
+export default function Dashboard() {
   const [mode, setMode] = useState("desc");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
@@ -494,7 +494,7 @@ export default function Dashboard({ setUser }) {
 
   return (
     <TooltipProvider>
-      {showRelogin && <Relogin setUser={setUser} />}
+      {showRelogin && <Relogin />}
       <Card className="border-0 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-6">
           <div className="flex justify-between items-center">
