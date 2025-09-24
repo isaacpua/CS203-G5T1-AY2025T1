@@ -61,6 +61,27 @@ public class DashboardService {
             if (patchDTO.getDescriptionwcountry() != null) {
                 existingTariff.setDescriptionwcountry(patchDTO.getDescriptionwcountry());
             }
+            
+            // Add the rest of the fields
+            if (patchDTO.getPartnercountry() != null) {
+                existingTariff.setPartnercountry(patchDTO.getPartnercountry());
+            }
+            if (patchDTO.getReportercountry() != null) {
+                existingTariff.setReportercountry(patchDTO.getReportercountry());
+            }
+            if (patchDTO.getUnitname() != null) {
+                existingTariff.setUnitname(patchDTO.getUnitname());
+            }
+            if (patchDTO.getCategory() != null) {
+                existingTariff.setCategory(patchDTO.getCategory());
+            }
+            if (patchDTO.getAdvalorem() != null) {
+                existingTariff.setAdvalorem(patchDTO.getAdvalorem());
+            }
+            if (patchDTO.getSpecificperunit() != null) {
+                existingTariff.setSpecificperunit(patchDTO.getSpecificperunit());
+            }
+
 
             tariffRepo.save(existingTariff);
 
