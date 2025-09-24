@@ -1,19 +1,22 @@
 package com.tariff.tariff_backend.model.dashboard;
+
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class TariffPatchDTO {
-    // Only expose the fields users can update
+    // Expose all fields that users can update from the dashboard
     private Integer tariffid;
     private String descriptionwcountry;
-
-    // Add getters for new fields
-    public Integer getTariffid() { return tariffid; }
-    public String getDescriptionwcountry() { return descriptionwcountry; }
-
-    // Optionally, add setters if needed
-    public void setTariffid(Integer tariffid) { this.tariffid = tariffid; }
-    public void setDescriptionwcountry(String descriptionwcountry) { this.descriptionwcountry = descriptionwcountry; }
+    private Integer partnercountry;
+    private Integer reportercountry;
+    private String unitname;
+    private String category;
+    private BigDecimal advalorem;
+    private BigDecimal specificperunit;
 }
