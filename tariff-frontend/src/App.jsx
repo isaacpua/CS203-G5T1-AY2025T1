@@ -9,6 +9,7 @@ import UserManagement from './pages/UserManagement';
 import Dashboard from './components/Dashboard';
 import Profile from './pages/Profile';
 import Header from './components/Header';
+import LandingPage from './pages/LandingPage';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -38,29 +39,22 @@ function App() {
           <main className="flex-1">
             <Routes>
               {/* PUBLIC ROUTES */}
-              <Route path="/">
-                <Route index element={
-                  <section className="flex flex-col items-center justify-center p-6 w-full">
-                    <Login setUser={setUser} />
-                  </section>
-                } />
-                <Route path="login" element={
-                    <section className="flex flex-col items-center justify-center p-6 w-full">
-                      <Login setUser={setUser} />
-                    </section>
-                  } />
-              </Route>
+              <Route path="/login" element={
+                <section className="flex flex-col items-center justify-center p-6 w-full">
+                  <Login setUser={setUser} />
+                </section>
+              } />
 
               {/* PROTECTED ROUTES */}
               <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/calculator" element={
-                    <section className="mx-auto flex max-w-[980px] flex-col items-center gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20">
-                      <TabsWithTariff />
-                    </section>
-                  }
-                />
+                  <section className="mx-auto flex max-w-[980px] flex-col items-center gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20">
+                    <TabsWithTariff />
+                  </section>
+                } />
                 <Route path="/user-management" element={<UserManagement />} />
-                <Route path="/profile" element={<Profile user={user} setUser={setUser}/>} />
+                <Route path="/profile" element={<Profile user={user} setUser={setUser} />} />
               </Route>
             </Routes>
           </main>
