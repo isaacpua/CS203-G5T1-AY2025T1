@@ -12,12 +12,14 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useAuth } from "@/utils/AuthContext";
 import { decodeJWT } from "@/utils/jwtDecoder";
 import { Loader2 } from "lucide-react"; import { AlertCircle, X } from "lucide-react";
 import { useState } from "react";
 import {useLocation, useNavigate} from "react-router-dom";
 
-const Login = ({ setUser }) => {
+const Login = () => {
+  const { setUser } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState("");
