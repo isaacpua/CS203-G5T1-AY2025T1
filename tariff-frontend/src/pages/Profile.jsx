@@ -25,8 +25,10 @@ import axiosClient from "@/api/axiosClient";
 import { getUserInitials } from "@/utils/AvatarHelpers";
 import { toast } from "sonner";
 import { logout } from "@/utils/logout";
+import { useAuth } from "@/utils/AuthContext";
 
-export default function Profile({ user, setUser }) {
+export default function Profile() {
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const [userDetails, setUserDetails] = useState({
     id: "NULL",

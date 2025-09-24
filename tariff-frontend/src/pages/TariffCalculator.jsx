@@ -9,7 +9,7 @@ import {Alert,AlertDescription,AlertTitle,} from "@/components/ui/alert";
 import { Loader2, Search, Calculator, Terminal } from "lucide-react";
 import { Relogin } from "@/components/Relogin";
 
-function TariffSearchAndCalc({ setUser }) {
+function TariffSearchAndCalc() {
   // -------- Search state --------
   const [mode, setMode] = useState("id"); // "id" | "desc"
   const [query, setQuery] = useState("");
@@ -250,7 +250,7 @@ function TariffSearchAndCalc({ setUser }) {
   // ---- UI ----
   return (
     <>
-    {showRelogin && <Relogin setUser={setUser}/>}
+    {showRelogin && <Relogin />}
     <div className="grid gap-6 md:grid-cols-2">
       {/* Search Card */}
       <Card>
