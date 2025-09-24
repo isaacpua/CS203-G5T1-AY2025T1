@@ -16,53 +16,53 @@ import com.tariff.tariff_backend.repository.TariffRepo;
 import com.tariff.tariff_backend.repository.TransactionLineRepo;
 import com.tariff.tariff_backend.repository.UserRepo;
 
-
 @Service
 
 public class CalculationService {
-    
+
     private final TariffRepo tariffRepo;
     private final TransactionLineRepo txRepo;
     private final UserRepo userRepo;
 
-    public CalculationService(TariffRepo tariffRepo, TransactionLineRepo txRepo, UserRepo userRepo){
+    public CalculationService(TariffRepo tariffRepo, TransactionLineRepo txRepo, UserRepo userRepo) {
         this.tariffRepo = tariffRepo;
         this.txRepo = txRepo;
         this.userRepo = userRepo;
     }
 
-    public CalculateDutyResponse calculateAndStore(CalculateDutyRequest request){
-        if (request.tariffId() == null){
+    public CalculateDutyResponse calculateAndStore(CalculateDutyRequest request) {
+        if (request.tariffId() == null) {
             throw new IllegalArgumentException("tariffID is needed");
         }
-        if (request.customsValue() == null && request.quantity() == null){
+        if (request.customsValue() == null && request.quantity() == null) {
             throw new IllegalArgumentException("Provide a Value and/or quantity");
         }
 
-        Tariff tariff = null; //getting tariffs
+        Tariff tariff = null; // getting tariffs
         try {
             tariff = tariffRepo.findById(request.tariffId()).get();
         } catch (NoSuchElementException e) {
             throw new IllegalArgumentException("Tariff not found: " + request.tariffId());
         }
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication(); //getting username because my frontend not sending
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication(); // getting username because my
+                                                                                      // frontend not sending
         String username = null;
-        if (auth != null){
+        if (auth != null) {
             username = auth.getName();
         }
-        if (username == null){
+        if (username == null) {
             throw new IllegalArgumentException("No authenticated user");
         }
 
-        User user = null; //getting user
+        User user = null; // getting user
         try {
             user = userRepo.findByUsername(username).get();
-        } catch (NoSuchElementException e){
+        } catch (NoSuchElementException e) {
             throw new IllegalArgumentException("User not found: " + username);
         }
 
-        BigDecimal advalorem = tariff.getAdValorem(); //our db is 0.05 for 5% so becomes 1.05
+        BigDecimal advalorem = tariff.getAdValorem(); // our db is 0.05 for 5% so becomes 1.05
         if (advalorem != null) {
             advalorem = advalorem.add(BigDecimal.ONE);
         }
@@ -72,27 +72,27 @@ public class CalculationService {
         BigDecimal quantity = request.quantity();
 
         BigDecimal price = null;
-        if (category.equals("ad_valorem")){
-            if (inputValue == null){
+        if (category.equals("ad_valorem")) {
+            if (inputValue == null) {
                 throw new IllegalArgumentException("Please input a value");
             }
             price = inputValue.multiply(advalorem);
         }
-        if (category.equals("specific_per_unit")){
-            if (quantity == null){
+        if (category.equals("specific_per_unit")) {
+            if (quantity == null) {
                 throw new IllegalArgumentException("Please input a quantity");
             }
             price = quantity.multiply(specificPerUnit);
         }
-        if (category.equals("composite")){
-            if (quantity == null){
+        if (category.equals("composite")) {
+            if (quantity == null) {
                 throw new IllegalArgumentException("Please input a quantity");
             }
             BigDecimal specPart = quantity.multiply(specificPerUnit);
             price = specPart.multiply(advalorem);
         }
 
-        if (price == null){
+        if (price == null) {
             throw new IllegalArgumentException("price not calculated");
         }
 
@@ -102,6 +102,6 @@ public class CalculationService {
         tx.setCalculatedValue(price);
         tx = txRepo.save(tx);
 
-        return new CalculateDutyResponse(tx.getTransactionId(),tariff.getTariffId(), price);
+        return new CalculateDutyResponse(tx.getTransactionId(), tariff.getTariffId(), price);
     }
 }

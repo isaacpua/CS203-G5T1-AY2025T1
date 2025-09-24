@@ -11,11 +11,9 @@ import com.tariff.tariff_backend.dto.CountryDTO;
 import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 import com.tariff.tariff_backend.repository.TariffRepo;
 
-
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/tariffs")
 public class TariffBrowseController {
-
 
     // Fill the FROM dropdown (distinct partner countries present in tariffs)
     private final TariffRepo repo;
@@ -34,7 +32,7 @@ public class TariffBrowseController {
         return repo.availableTo(fromId);
     }
 
-    @GetMapping("/tariffs/search")
+    @GetMapping("/search")
     public Page<Tariff> search(
             @RequestParam(required = false) Integer fromId,
             @RequestParam(required = false) Integer toId,

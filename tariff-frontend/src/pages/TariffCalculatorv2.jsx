@@ -15,8 +15,8 @@ import { Loader2, Search, Calculator, Terminal } from "lucide-react";
 import { Relogin } from "@/components/Relogin";
 
 /** ---- ENDPOINTS (adjust if your paths differ) ---- */
-const URL_PARTNERS_ALL = "/countries/partners";                                   // origins that exist
-const URL_REPORTERS_FROM = (fromPartnerId) => `/countries/reporters?fromId=${fromPartnerId}`; // destinations from origin
+const URL_PARTNERS_ALL = "/tariffs/countries/partners";                                   // origins that exist
+const URL_REPORTERS_FROM = (fromPartnerId) => `/tariffs/countries/reporters?fromId=${fromPartnerId}`; // destinations from origin
 const URL_SEARCH = "/tariffs/search";
 const URL_CALC = "/tariffs/calc";
 
