@@ -19,7 +19,7 @@ function Field({ id, label, children }) {
   );
 }
 
-export default function HistoricalTariffExplorer({ setUser }) {
+export default function HistoricalTariffExplorer() {
   const [form, setForm] = useState({
     reporter: "",
     partner: "",
@@ -111,7 +111,7 @@ export default function HistoricalTariffExplorer({ setUser }) {
 
   return (
     <>
-    {showRelogin && <Relogin setUser={setUser}/>}
+    {showRelogin && <Relogin />}
     <Card>
       <CardHeader>
         <CardTitle>Enter Data</CardTitle>

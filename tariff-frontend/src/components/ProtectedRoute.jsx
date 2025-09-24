@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
 import { Spinner } from "./ui/shadcn-io/spinner";
+import { useAuth } from "@/utils/AuthContext";
 
 export default function ProtectedRoute() {
+    const { setUser } = useAuth();
     const location = useLocation();
     const [authState, setAuthState] = useState("loading");
 
@@ -12,6 +14,7 @@ export default function ProtectedRoute() {
             try {
                 const token = localStorage.getItem("accessToken");
                 if (!token) {
+                    setUser(null);
                     console.log("No token found");
                     setAuthState("unauthenticated");
                     return;
@@ -26,6 +29,8 @@ export default function ProtectedRoute() {
                 console.log("Token is valid");
                 setAuthState("authenticated");
             } catch (error) {
+                localStorage.removeItem("accessToken");
+                setUser(null);
                 console.log("Token is invalid or error occurred", error);
                 setAuthState("unauthenticated");
             }

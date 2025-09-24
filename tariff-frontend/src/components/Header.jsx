@@ -9,8 +9,10 @@ import {
 import { getUserInitials } from "@/utils/AvatarHelpers"
 import { ModeToggle } from "./mode-toggle"
 import { logout } from "@/utils/logout"
+import { useAuth } from "@/utils/AuthContext"
 
-export default function Header({ user, setUser }) {
+export default function Header() {
+  const { user, setUser } = useAuth();
   const navigate = useNavigate()
 
   const handleProfileClick = () => {

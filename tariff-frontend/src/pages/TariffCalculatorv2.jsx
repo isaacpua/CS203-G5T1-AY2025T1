@@ -83,14 +83,14 @@ export default function TariffCalcV2() {
         loadAllTo();
     }, []);
 
-    /** When FROM changes, (a) narrow TO if set, else repop TO to full */
+    /** When FROM changes, (a) narrow TO if set, else repop TO to full, (b) reset page */
     useEffect(() => {
         setSelected(null);
         setResults({ content: [], totalPages: 0, number: 0, size });
         setComputeRes(null);
+        setPage(0); // <-- reset pagination
 
         if (!fromId || fromId === NONE) {
-            // no FROM selected → TO should show all possibilities
             loadAllTo();
             return;
         }
@@ -108,14 +108,14 @@ export default function TariffCalcV2() {
         loadReporters();
     }, [fromId]);
 
-    /** When TO changes, (a) narrow FROM if set, else repop FROM to full */
+    /** When TO changes, (a) narrow FROM if set, else repop FROM to full, (b) reset page */
     useEffect(() => {
         setSelected(null);
         setResults({ content: [], totalPages: 0, number: 0, size });
         setComputeRes(null);
+        setPage(0); // <-- reset pagination
 
         if (!toId || toId === NONE) {
-            // no TO selected → FROM should show all possibilities
             loadAllFrom();
             return;
         }
@@ -135,6 +135,7 @@ export default function TariffCalcV2() {
 
     /** Search */
     useEffect(() => {
+        // reset to page 0 when typing new text
         if (prevDQRef.current !== debouncedQ && page !== 0) {
             setPage(0);
             prevDQRef.current = debouncedQ;
@@ -155,7 +156,15 @@ export default function TariffCalcV2() {
                 if (dQ !== "") params.set("q", dQ);
 
                 const { data } = await axiosClient.get(`${URL_SEARCH}?${params.toString()}`);
-                setResults(data);
+
+                // ---- normalize paging to avoid NaN ----
+                const normalized = {
+                    content: Array.isArray(data?.content) ? data.content : [],
+                    totalPages: Number(data?.totalPages ?? 0),
+                    number: Number(data?.number ?? 0),
+                    size: Number(data?.size ?? size),
+                };
+                setResults(normalized);
             } catch (e) {
                 if (e.response?.status === 401) { setShowRelogin(true); return; }
                 setSearchError("Search failed. Check /api/v1/tariffs/search and params.");
@@ -200,6 +209,10 @@ export default function TariffCalcV2() {
     const cat = (selected?.category || "").toUpperCase();
     const needsDV = cat === "AD_VALOREM";
     const needsQty = cat === "SPECIFIC_PER_UNIT" || cat === "COMPOSITE";
+
+    // Safe pagination numbers for render
+    const pageIdx = Number(results?.number ?? 0);
+    const totalPages = Number(results?.totalPages ?? 0);
 
     return (
         <>
@@ -312,9 +325,23 @@ export default function TariffCalcV2() {
 
                         {/* Pagination */}
                         <div className="flex justify-between items-center">
-                            <Button variant="outline" disabled={page <= 0} onClick={() => setPage(p => Math.max(0, p - 1))}>Prev</Button>
-                            <div className="text-sm">Page {results.number + 1} / {Math.max(results.totalPages, 1)}</div>
-                            <Button variant="outline" disabled={results.number + 1 >= results.totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+                            <Button
+                                variant="outline"
+                                disabled={pageIdx <= 0}
+                                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                            >
+                                Prev
+                            </Button>
+                            <div className="text-sm">
+                                Page {pageIdx + 1} / {Math.max(totalPages, 1)}
+                            </div>
+                            <Button
+                                variant="outline"
+                                disabled={pageIdx + 1 >= totalPages}
+                                onClick={() => setPage((p) => p + 1)}
+                            >
+                                Next
+                            </Button>
                         </div>
 
                         {searchError && (
@@ -350,13 +377,25 @@ export default function TariffCalcV2() {
                                     {needsDV && (
                                         <div className="col-span-1">
                                             <Label>Declared Value ($)</Label>
-                                            <Input value={declaredValue} onChange={(e) => setDeclaredValue(e.target.value)} placeholder="e.g. 1000" inputMode="decimal" />
+                                            <Input
+                                                value={declaredValue}
+                                                onChange={(e) => setDeclaredValue(e.target.value)}
+                                                placeholder="e.g. 1000"
+                                                inputMode="decimal"
+                                            />
                                         </div>
                                     )}
                                     {needsQty && (
                                         <div className="col-span-1">
-                                            <Label>Quantity{selected.unitname ? ` (${selected.unitname})` : ""}</Label>
-                                            <Input value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="e.g. 200" inputMode="decimal" />
+                                            <Label>
+                                                Quantity{selected.unitname ? ` (${selected.unitname})` : ""}
+                                            </Label>
+                                            <Input
+                                                value={quantity}
+                                                onChange={(e) => setQuantity(e.target.value)}
+                                                placeholder="e.g. 200"
+                                                inputMode="decimal"
+                                            />
                                         </div>
                                     )}
                                 </div>
