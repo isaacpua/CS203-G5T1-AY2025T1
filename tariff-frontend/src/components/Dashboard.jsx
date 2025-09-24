@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Search } from "lucide-react";
 import { Grid, useClientRowDataSource } from "@1771technologies/lytenyte-core";
 import "@1771technologies/lytenyte-core/grid.css";
+import { Relogin } from "@/components/Relogin";
+
 
 function useDebounce(value, delayMs = 500) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -83,6 +85,8 @@ export default function Dashboard() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
   const debouncedQuery = useDebounce(query);
+  const [showRelogin, setShowRelogin] = useState(false);
+
 
   const fetchTariffs = useCallback(async () => {
     setLoading(true);
@@ -107,6 +111,11 @@ export default function Dashboard() {
         : [];
       setResults({ content: mappedContent, totalPages: data.totalPages ?? 0 });
     } catch (err) {
+      if (err.response?.status === 401) {
+        console.log("found 401 error wow")
+        setShowRelogin(true);
+        return;
+      }
       setError("Failed to fetch tariffs.");
       console.error(err);
     } finally {
@@ -145,6 +154,11 @@ export default function Dashboard() {
         closeDialogs();
         fetchTariffs();
     } catch (err) {
+        if (err.response?.status === 401) {
+          console.log("found 401 error wow")
+          setShowRelogin(true);
+          return;
+        }
         setActionError("Failed to save changes.");
     } finally {
         setActionLoading(false);
@@ -159,6 +173,11 @@ export default function Dashboard() {
         closeDialogs();
         fetchTariffs();
     } catch (err) {
+        if (err.response?.status === 401) {
+          console.log("found 401 error wow")
+          setShowRelogin(true);
+          return;
+        }
         setActionError("Failed to delete tariff.");
     } finally {
         setActionLoading(false);
@@ -166,6 +185,8 @@ export default function Dashboard() {
   };
 
   return (
+    <>
+    {showRelogin && <Relogin />}
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
@@ -258,5 +279,6 @@ export default function Dashboard() {
         
       </CardContent>
     </Card>
+    </>
   );
 }
