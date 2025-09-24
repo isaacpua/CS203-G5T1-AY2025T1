@@ -49,7 +49,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner"
 import { Relogin } from "@/components/Relogin";
 import { Forbidden } from "@/components/Forbidden";
 
-const UserManagement = () => {
+const UserManagement = ({ setUser }) => {
   const [users, setUsers] = useState([]);
   const [deleteAction, setDeleteAction] = useState(false);
   const [deleteUser, setDeleteUser] = useState(null);
@@ -470,7 +470,7 @@ const UserManagement = () => {
   return (
     <>
     {showForbidden && <Forbidden />}
-    {showRelogin && <Relogin />}
+    {showRelogin && <Relogin setUser={setUser}/>}
     <UserTable />
     </>
   );

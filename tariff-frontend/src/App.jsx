@@ -50,7 +50,7 @@ function App() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/calculator" element={
                   <section className="mx-auto flex max-w-[980px] flex-col items-center gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20">
-                    <TabsWithTariff />
+                    <TabsWithTariff setUser={setUser}/>
                   </section>
                 } />
                 <Route path="/user-management" element={<UserManagement />} />
@@ -64,7 +64,7 @@ function App() {
   );
 }
 
-function TabsWithTariff() {
+function TabsWithTariff({ setUser }) {
   const [tab, setTab] = useState("search");
 
   return (
@@ -98,7 +98,7 @@ function TabsWithTariff() {
       <div className="grid gap-6">
         {tab === "search" && <TariffCalculator />}
         {tab === "dashboard" && <Dashboard />}
-        {tab === "historical" && <HistoricalTariffExplorer />}
+        {tab === "historical" && <HistoricalTariffExplorer setUser={setUser}/>}
       </div>
     </div>
   );
