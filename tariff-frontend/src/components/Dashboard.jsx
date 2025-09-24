@@ -129,18 +129,24 @@ const SortableHeader = ({ column, grid }) => {
   );
 };
 
+const StaticHeader = ({ column }) => (
+  <div className="flex items-center justify-center px-3 py-3 h-full w-full bg-muted/50 border-b border-border font-semibold text-foreground text-sm">
+    <span>{column.name}</span>
+  </div>
+);
+
 /* ---------------- grid wrapper ---------------- */
 function TariffGrid({ data, onEdit, onDelete, onView }) {
   const columns = useMemo(
     () => [
       { id: "tariffid", name: "Tariff ID", width: 120, resizable: true, cellRenderer: TariffIdCell, headerRenderer: SortableHeader },
       { id: "category", name: "Category", width: 180, resizable: true, cellRenderer: CategoryCell, headerRenderer: SortableHeader },
-      { id: "descriptionwcountry", name: "Description", flex: 1, resizable: true, cellRenderer: TextCell, headerRenderer: SortableHeader },
+      { id: "descriptionwcountry", name: "Description", flex: 1, minWidth: 250, resizable: true, cellRenderer: TextCell, headerRenderer: SortableHeader },
       { id: "partnercountry", name: "Partner Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
       { id: "reportercountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
       { id: "advalorem", name: "Ad Valorem", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
       { id: "specificperunit", name: "Specific/Unit", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
-      { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} onEdit={onEdit} onDelete={onDelete} onView={onView} /> },
+      { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} onEdit={onEdit} onDelete={onDelete} onView={onView} />, headerRenderer: StaticHeader },
     ],
     [onEdit, onDelete, onView]
   );
@@ -494,8 +500,8 @@ export default function Dashboard({ setUser }) {
     <TooltipProvider>
       {showRelogin && <Relogin setUser={setUser} />}
       <Card className="border-0 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b">
-          <div className="flex justify-between items-start">
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-6">
+          <div className="flex justify-between items-center">
             <div className="space-y-1">
               <CardTitle className="text-2xl font-bold text-foreground">Tariff Management</CardTitle>
               <CardDescription className="text-muted-foreground">Manage and explore tariff data with advanced filtering and editing capabilities</CardDescription>

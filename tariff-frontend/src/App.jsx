@@ -49,7 +49,7 @@ function App() {
               <Route element={<ProtectedRoute setUser={setUser}/>}>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/calculator" element={
-                  <section className="mx-auto flex max-w-[980px] flex-col items-center gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20">
+                  <section className="container mx-auto py-8 md:py-12 lg:py-24">
                     <TabsWithTariff setUser={setUser}/>
                   </section>
                 } />
