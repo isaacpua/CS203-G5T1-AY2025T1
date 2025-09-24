@@ -277,26 +277,22 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
             {errors.reportercountry && <p className="text-sm text-red-500">{errors.reportercountry}</p>}
           </div>
           
-          {isEditing && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="advalorem">Ad Valorem Rate</Label>
-                <Input id="advalorem" type="number" step="0.01" value={form.advalorem || ""} onChange={(e) => setForm((f) => ({ ...f, advalorem: e.target.value }))} className={errors.advalorem ? "border-red-500" : ""} />
-                {errors.advalorem && <p className="text-sm text-red-500">{errors.advalorem}</p>}
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="advalorem">Ad Valorem Rate</Label>
+            <Input id="advalorem" type="number" step="0.01" value={form.advalorem || ""} onChange={(e) => setForm((f) => ({ ...f, advalorem: e.target.value }))} className={errors.advalorem ? "border-red-500" : ""} />
+            {errors.advalorem && <p className="text-sm text-red-500">{errors.advalorem}</p>}
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="specificperunit">Specific per Unit</Label>
-                <Input id="specificperunit" type="number" step="0.01" value={form.specificperunit || ""} onChange={(e) => setForm((f) => ({ ...f, specificperunit: e.target.value }))} className={errors.specificperunit ? "border-red-500" : ""} />
-                {errors.specificperunit && <p className="text-sm text-red-500">{errors.specificperunit}</p>}
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="specificperunit">Specific per Unit</Label>
+            <Input id="specificperunit" type="number" step="0.01" value={form.specificperunit || ""} onChange={(e) => setForm((f) => ({ ...f, specificperunit: e.target.value }))} className={errors.specificperunit ? "border-red-500" : ""} />
+            {errors.specificperunit && <p className="text-sm text-red-500">{errors.specificperunit}</p>}
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="unitname">Unit Name</Label>
-                <Input id="unitname" value={form.unitname || ""} onChange={(e) => setForm((f) => ({ ...f, unitname: e.target.value }))} />
-              </div>
-            </>
-          )}
+          <div className="col-span-2 space-y-2">
+            <Label htmlFor="unitname">Unit Name</Label>
+            <Input id="unitname" value={form.unitname || ""} onChange={(e) => setForm((f) => ({ ...f, unitname: e.target.value }))} />
+          </div>
 
         </div>
 
@@ -626,7 +622,7 @@ export default function Dashboard({ setUser }) {
         isOpen={showCreate}
         onClose={closeDialogs}
         onSubmit={onSaveChanges}
-        initialData={{ tariffid: "", category: "", descriptionwcountry: "", partnercountry: "", reportercountry: "" }}
+        initialData={{ tariffid: "", category: "", descriptionwcountry: "", partnercountry: "", reportercountry: "", advalorem: "", specificperunit: "", unitname: "" }}
         isEditing={false}
         isLoading={actionLoading}
         error={actionError}
