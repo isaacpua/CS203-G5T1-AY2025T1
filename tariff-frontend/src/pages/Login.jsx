@@ -12,11 +12,12 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { decodeJWT } from "@/utils/jwtDecoder";
 import { Loader2 } from "lucide-react"; import { AlertCircle, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {useLocation, useNavigate} from "react-router-dom";
 
-const Login = () => {
+const Login = ({ setUser }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState("");
@@ -27,20 +28,40 @@ const Login = () => {
   const location = useLocation();
   const from = location.state?.from?.pathname || "/calculator";
 
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    const user = localStorage.getItem("user");
+    if (token && user) {
+      navigate(from, { replace: true });
+    }
+  }, [from, navigate]);
+
   const handleLogin = async () => {
     setIsLoading(true);
     setError(null);
-    const credentials = JSON.stringify({
-      username: username,
-      password: password,
-    });
+
     try {
       // Edge case: Due to the new axiosClient auto sending the JWT, if you were logged into a deleted user, you are sending an invalid JWT
       // so delete the current accessToken
       localStorage.removeItem("accessToken");
+
+      const trimmedUsername = username.trim();
+      const trimmedPassword = password.trim();
+      if (trimmedUsername === "" || trimmedPassword === "") {
+        throw "BLANK";
+      }
+      const credentials = JSON.stringify({
+        username: trimmedUsername,
+        password: trimmedPassword,
+      });
+
       const response = await axiosClient.post("/auth/login", credentials);
       if (response.status == 200) {
         localStorage.setItem("accessToken", response.data.accessToken);
+        const decodedJWT = decodeJWT(response.data.accessToken);
+        const { data } = await axiosClient.get(`/users/${decodedJWT.sub}`);
+        console.log(decodedJWT)
+        setUser(data.user);
         return navigate(from, { replace: true }); // go to original page that required login
 
         // CODE FOR TESTING TOKEN EXISTENCE
@@ -53,7 +74,9 @@ const Login = () => {
         // console.log(isValid.data);
       }
     } catch (err) {
-      if (err.code == "ERR_NETWORK") {
+      if (err === "BLANK") {
+        setError("Username or password cannot be blank!")
+      } else if (err.code == "ERR_NETWORK") {
         setError("Our servers are currently down. Please try again later.");
       } else if (err.response?.data?.message) {
         setError(err.response.data.message);
@@ -68,16 +91,25 @@ const Login = () => {
   const handleRegister = async () => {
     setIsLoading(true);
     setError(null);
-    const credentials = JSON.stringify({
-      username: username,
-      password: password,
-    });
+
     try {
+      const trimmedUsername = username.trim();
+      const trimmedPassword = password.trim();
+      if (trimmedUsername === "" || trimmedPassword === "") {
+        throw "BLANK";
+      }
+      const credentials = JSON.stringify({
+        username: trimmedUsername,
+        password: trimmedPassword,
+      });
+
       const response = await axiosClient.post("/auth/register", credentials);
       console.log(response.data);
       toggleMode(); // switch back to login mode
     } catch (err) {
-      if (err.code == "ERR_NETWORK") {
+      if (err === "BLANK") {
+        setError("Username or password cannot be blank!")
+      } else if (err.code == "ERR_NETWORK") {
         setError("Our servers are currently down. Please try again later.");
       } else if (err.response?.data?.message) {
         setError(err.response.data.message);
