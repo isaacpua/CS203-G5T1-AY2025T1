@@ -46,14 +46,14 @@ function App() {
               } />
 
               {/* PROTECTED ROUTES */}
-              <Route element={<ProtectedRoute />}>
+              <Route element={<ProtectedRoute setUser={setUser}/>}>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/calculator" element={
                   <section className="mx-auto flex max-w-[980px] flex-col items-center gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20">
                     <TabsWithTariff setUser={setUser}/>
                   </section>
                 } />
-                <Route path="/user-management" element={<UserManagement />} />
+                <Route path="/user-management" element={<UserManagement setUser={setUser}/>} />
                 <Route path="/profile" element={<Profile user={user} setUser={setUser} />} />
               </Route>
             </Routes>
@@ -96,8 +96,8 @@ function TabsWithTariff({ setUser }) {
       </div>
 
       <div className="grid gap-6">
-        {tab === "search" && <TariffCalculator />}
-        {tab === "dashboard" && <Dashboard />}
+        {tab === "search" && <TariffCalculator setUser={setUser}/>}
+        {tab === "dashboard" && <Dashboard setUser={setUser}/>}
         {tab === "historical" && <HistoricalTariffExplorer setUser={setUser}/>}
       </div>
     </div>
