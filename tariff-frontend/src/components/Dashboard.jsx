@@ -204,7 +204,7 @@ function TariffGrid({ data, onEdit, onDelete, onView }) {
 /* ---------------- validation ---------------- */
 const validateTariffForm = (form) => {
   const errors = {};
-  if (!form.tariffid || String(form.tariffid).trim() === "") errors.tariffid = "Tariff ID is required";
+  if (!form.tariffid || form.tariffid.toString().trim() === "") errors.tariffid = "Tariff ID is required";
   if (!form.category || form.category.trim() === "") errors.category = "Category is required";
   if (!form.descriptionwcountry || form.descriptionwcountry.trim() === "") errors.descriptionwcountry = "Description is required";
   if (form.advalorem && isNaN(parseFloat(form.advalorem))) errors.advalorem = "Ad Valorem must be a valid number";
