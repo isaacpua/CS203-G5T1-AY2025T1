@@ -1,9 +1,10 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { logout } from "@/utils/logout";
 import { AlertTriangleIcon } from "lucide-react"
 
-export function Relogin() {
+export function Relogin({ setUser }) {
     function reloadPage() {
-        window.location.reload();
+        logout(setUser);
     }
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
