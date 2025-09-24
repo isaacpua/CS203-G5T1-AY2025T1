@@ -34,6 +34,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(req -> req
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/tariffs/search").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/tariffs").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))

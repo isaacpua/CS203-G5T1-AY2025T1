@@ -1,243 +1,170 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId, useCallback, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import axiosClient from "../api/axiosClient";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Search } from "lucide-react";
 import { Grid, useClientRowDataSource } from "@1771technologies/lytenyte-core";
 import "@1771technologies/lytenyte-core/grid.css";
-import { useId } from "react";
 
-// A debounced hook to prevent API calls on every keystroke
 function useDebounce(value, delayMs = 500) {
   const [debouncedValue, setDebouncedValue] = useState(value);
-
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delayMs);
-    return () => {
-      clearTimeout(handler);
-    };
+    const handler = setTimeout(() => setDebouncedValue(value), delayMs);
+    return () => clearTimeout(handler);
   }, [value, delayMs]);
-
   return debouncedValue;
 }
 
-function isIntegerLike(str) {
-    return /^\d+$/.test(str.trim());
+// Child component to ensure grid is only initialized with data
+function TariffGrid({ data, onEdit, onDelete }) {
+  const columns = useMemo(() => [
+    { id: "tariffid", name: "Tariff ID", resizable: true },
+    { id: "name", name: "Name", resizable: true },
+    { id: "category", name: "Category", resizable: true },
+    { id: "descriptionwcountry", name: "Description", resizable: true },
+    { id: "partnercountry", name: "Partner Country", resizable: true },
+    { id: "reportercountry", name: "Reporter Country", resizable: true },
+    { id: "unitname", name: "Unit Name", resizable: true },
+    {
+      id: "actions", name: "Actions",
+      render: (row) => (
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => onEdit(row)}>Edit</Button>
+          <Button size="sm" variant="destructive" onClick={() => onDelete(row)}>Delete</Button>
+        </div>
+      ),
+    }
+  ], [onEdit, onDelete]);
+
+  const ds = useClientRowDataSource({ data });
+
+  const grid = Grid.useLyteNyte({
+    gridId: useId(), columns, rowDataSource: ds, theme: "dark",
+    rowHeight: 44, headerHeight: 48,
+    style: { background: "var(--background)", color: "var(--foreground)", borderRadius: "0.75rem" },
+  });
+  const view = grid.view.useValue();
+
+  return (
+    <div className="border rounded-xl shadow-lg bg-card" style={{ width: "100%", height: "480px", overflow: "auto" }}>
+      <Grid.Root grid={grid}>
+        <Grid.Viewport>
+          <Grid.Header>
+            {view.header.layout.map((row, i) => (<Grid.HeaderRow headerRowIndex={i} key={i}>{row.map((c) => <Grid.HeaderCell cell={c} key={c.column.id} />)}</Grid.HeaderRow>))}
+          </Grid.Header>
+          <Grid.RowsContainer>
+            <Grid.RowsCenter>
+              {view.rows.center.map((row) => (<Grid.Row key={row.id} row={row}>{row.cells.map((cell) => <Grid.Cell cell={cell} key={cell.id} />)}</Grid.Row>))}
+            </Grid.RowsCenter>
+          </Grid.RowsContainer>
+        </Grid.Viewport>
+      </Grid.Root>
+    </div>
+  );
 }
 
+// Main Dashboard component for fetching and state management
 export default function Dashboard() {
-  const [mode, setMode] = useState("desc"); // "id" | "desc"
+  const [mode, setMode] = useState("desc");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
-  const [pageInput, setPageInput] = useState("1");
   const [pageSize, setPageSize] = useState(50);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [results, setResults] = useState({
-    content: [],
-    totalPages: 0,
-    number: 0,
-    totalElements: 0,
-  });
-  // CRUD modal state
+  const [results, setResults] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
-  const [form, setForm] = useState({
-    tariffid: "",
-    name: "",
-    category: "",
-    descriptionwcountry: "",
-    partnercountry: "",
-    reportercountry: "",
-    advalorem: "",
-    specificperunit: "",
-    unitid: ""
-  });
+  const [form, setForm] = useState({});
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
-
   const debouncedQuery = useDebounce(query);
 
-  // LyteNyte Grid setup (hooks must be top-level)
-  const columns = [
-    { id: "tariffid", name: "Tariff ID", resizable: true, reorderable: true, filterable: true },
-    { id: "name", name: "Name", resizable: true, reorderable: true, filterable: true },
-    { id: "category", name: "Category", resizable: true, reorderable: true, filterable: true },
-    { id: "descriptionwcountry", name: "Description", resizable: true, reorderable: true, filterable: true },
-    { id: "partnercountry", name: "Partner Country", resizable: true, reorderable: true, filterable: true },
-    { id: "reportercountry", name: "Reporter Country", resizable: true, reorderable: true, filterable: true },
-    { id: "advalorem", name: "Ad Valorem", resizable: true, reorderable: true, filterable: true },
-    { id: "specificperunit", name: "Specific/Unit", resizable: true, reorderable: true, filterable: true },
-    { id: "unitid", name: "Unit ID", resizable: true, reorderable: true, filterable: true },
-    {
-      id: "actions",
-      name: "Actions",
-      render: (row) => (
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => { setSelectedRow(row); setForm(row); setShowEdit(true); }}>Edit</Button>
-          <Button size="sm" variant="destructive" onClick={() => { setSelectedRow(row); setShowDelete(true); }}>Delete</Button>
-        </div>
-      ),
-      resizable: false,
-      reorderable: false,
-      filterable: false
-    }
-  ];
-  const ds = useClientRowDataSource({
-    data: results.content,
-  });
-  const grid = Grid.useLyteNyte({
-    gridId: useId(),
-    columns,
-    rowDataSource: ds,
-    enableColumnResizing: true,
-    enableColumnReordering: true,
-    enableFiltering: true,
-    enableGrouping: true,
-    enableSorting: true,
-    enableColumnPinning: true,
-    enableColumnVisibility: true,
-    enableColumnAutosizing: true,
-    enableRowPinning: true,
-    enableRowGrouping: true,
-    enableRowSorting: true,
-    enableRowPagination: true,
-    enableRowDragging: true,
-    enableCellEditing: true,
-    enableExport: true,
-    theme: "dark",
-    fontFamily: "'Inter', 'Segoe UI', 'Arial', sans-serif",
-    rowHeight: 44,
-    headerHeight: 48,
-    style: {
-      background: "var(--background)",
-      color: "var(--foreground)",
-      borderRadius: "0.75rem",
-      fontSize: "1rem"
-    }
-  });
-  const view = grid.view.useValue();
-
-  // Grid state atoms (safe checks)
-  const selectedRows = grid.state.rowSelectedIds?.useValue?.() ?? [];
-  const columnOrder = grid.state.columnOrder?.useValue?.() ?? columns.map(c => c.id);
-  const filters = grid.state.filters?.useValue?.() ?? {};
-  const pinnedColumns = grid.state.columnPinnedIds?.useValue?.() ?? [];
-  const groupedColumns = grid.state.columnGroupIds?.useValue?.() ?? [];
-  const sorting = grid.state.sorting?.useValue?.() ?? [];
-  const pagination = grid.state.pagination?.useValue?.() ?? { page: 0, pageSize: 50 };
-
-  // Example: Watch for selection changes
-  useEffect(() => {
-    const remove = grid.state.rowSelectedIds.watch(() => {
-      // You could trigger analytics, chart updates, etc.
-      // console.log("Selected rows changed:", grid.state.rowSelectedIds.get());
-    });
-    return remove;
-  }, [grid.state.rowSelectedIds]);
-
-  useEffect(() => {
-    const fetchTariffs = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const params = new URLSearchParams({
-          page: String(page),
-          size: String(pageSize),
-        });
-        const dQ = (debouncedQuery ?? "").trim();
-        if (dQ) {
-      if (mode === "id" && !isIntegerLike(dQ)) {
-                setError("Please input an integer.");
-                setResults({ content: [], totalPages: 0, number: 0, totalElements: 0 });
-                setLoading(false);
-                return;
-            }
-            if (mode === "id") params.set("id", dQ);
-            if (mode === "desc") params.set("q", dQ);
-        }
-
-        const { data } = await axiosClient.get(
-          `/dashboard/tariffs?${params.toString()}`
-        );
-        const mappedContent = Array.isArray(data.content)
-          ? data.content.map((row) => ({
-              tariffid: row.tariffid,
-              name: row.name,
-              category: row.category,
-              descriptionwcountry: row.descriptionwcountry,
-              partnercountry: row.partnercountry,
-              reportercountry: row.reportercountry,
-              advalorem: row.advalorem ?? row.ad_valorem,
-              specificperunit: row.specificperunit ?? row.specific_per_unit,
-              unitid: row.unitid,
-              id: row.id,
-            }))
-          : [];
-
-        setResults({
-          content: mappedContent,
-          totalPages: data.totalPages ?? 0,
-          number: data.number ?? 0,
-          totalElements: data.totalElements ?? mappedContent.length,
-        });
-
-        const pageNumber = typeof data.number === "number" ? data.number : 0;
-        setPageInput(String(pageNumber + 1));
-      } catch (err) {
-        setError("Failed to fetch tariffs. Please try again.");
-        setResults({ content: [], totalPages: 0, number: 0, totalElements: 0 });
-        console.error(err);
-      } finally {
-        setLoading(false);
+  const fetchTariffs = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({ page: String(page), size: String(pageSize) });
+      const dQ = debouncedQuery.trim();
+      if (dQ) {
+        if (mode === "id") params.set("id", dQ);
+        if (mode === "desc") params.set("q", dQ);
       }
-    };
+      const { data } = await axiosClient.get(`/dashboard/tariffs?${params.toString()}`);
+      
+      const mappedContent = Array.isArray(data.content)
+        ? data.content.map(row => ({
+            id: row.id,
+            tariffid: row.tariffid ?? "", name: row.name ?? "", category: row.category ?? "",
+            descriptionwcountry: row.descriptionwcountry ?? "", partnercountry: row.partnercountry ?? "",
+            reportercountry: row.reportercountry ?? "", advalorem: row.advalorem ?? "",
+            specificperunit: row.specificperunit ?? "", unitname: row.unitname ?? ""
+          }))
+        : [];
+      setResults({ content: mappedContent, totalPages: data.totalPages ?? 0 });
+    } catch (err) {
+      setError("Failed to fetch tariffs.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, debouncedQuery, mode]);
 
-    fetchTariffs();
-  }, [debouncedQuery, page, pageSize, mode]);
-
-  // Reset page to 0 when query or mode changes
   useEffect(() => {
-    setPage(0);
-  }, [debouncedQuery, mode]);
-  
-  const handlePageInputChange = (e) => {
-    setPageInput(e.target.value);
+    fetchTariffs();
+  }, [fetchTariffs]);
+
+  const handleEdit = (row) => { setForm(row); setSelectedRow(row); setShowEdit(true); };
+  const handleDelete = (row) => { setSelectedRow(row); setShowDelete(true); };
+
+  const handleCreate = () => {
+    setForm({ tariffid: "", name: "", category: "", descriptionwcountry: "", partnercountry: "", reportercountry: "", advalorem: "", specificperunit: "", unitname: "" });
+    setShowCreate(true);
   };
 
-  const handlePageJump = () => {
-    const pageNum = Number(pageInput);
-    if (
-      !isNaN(pageNum) &&
-      pageNum > 0 &&
-      pageNum <= results.totalPages
-    ) {
-      setPage(pageNum - 1);
-    } else {
-      setPageInput(String(page + 1)); // Reset to current page if invalid
+  const closeDialogs = () => {
+    setShowCreate(false);
+    setShowEdit(false);
+    setShowDelete(false);
+    setActionError("");
+  };
+
+  const onSaveChanges = async () => {
+    setActionLoading(true);
+    setActionError("");
+    try {
+        if (showEdit) {
+            await axiosClient.patch(`/dashboard/tariffs/${selectedRow.id}`, form);
+        } else {
+            await axiosClient.post("/dashboard/tariffs", form);
+        }
+        closeDialogs();
+        fetchTariffs();
+    } catch (err) {
+        setActionError("Failed to save changes.");
+    } finally {
+        setActionLoading(false);
     }
   };
 
+  const onDeleteConfirm = async () => {
+    setActionLoading(true);
+    setActionError("");
+    try {
+        await axiosClient.delete(`/dashboard/tariffs/${selectedRow.id}`);
+        closeDialogs();
+        fetchTariffs();
+    } catch (err) {
+        setActionError("Failed to delete tariff.");
+    } finally {
+        setActionLoading(false);
+    }
+  };
 
   return (
     <Card>
@@ -245,241 +172,91 @@ export default function Dashboard() {
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>Tariff Dashboard</CardTitle>
-            <CardDescription>
-              Displaying entries from the database. Use the search bar to filter.
-            </CardDescription>
+            <CardDescription>Displaying entries from the database.</CardDescription>
           </div>
-          <Button onClick={() => { setForm({ tariffid: "", name: "", category: "", descriptionwcountry: "", partnercountry: "", reportercountry: "", advalorem: "", specificperunit: "", unitid: "" }); setShowCreate(true); }}>+ Create Tariff</Button>
+          <Button onClick={handleCreate}>+ Create Tariff</Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Search controls */}
         <div className="flex gap-4">
-            <div className="grid grid-cols-3 gap-4 w-full">
-                <div className="col-span-1">
-                    <Label>Search by</Label>
-                    <Select
-                        value={mode}
-                        onValueChange={(v) => {
-                        setMode(v);
-                        setQuery("");
-                        }}
-                    >
-                        <SelectTrigger>
-                        <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-            <SelectItem value="id">ID</SelectItem>
-            <SelectItem value="desc">Description</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="col-span-2">
-          <Label>{mode === 'id' ? 'ID' : 'Brief Description'}</Label>
-                    <div className="relative flex-grow">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input
-            placeholder={mode === 'desc' ? 'e.g., sunglasses, lenses...' : 'Enter number'}
-                        className="pl-10"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        />
-                    </div>
-                </div>
+            <div className="flex-1">
+              <Label>Search by</Label>
+              <Select value={mode} onValueChange={setMode}><SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="id">ID</SelectItem><SelectItem value="desc">Description</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <div className="flex-[2]">
+              <Label>{mode === 'id' ? 'ID' : 'Brief Description'}</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input value={query} onChange={(e) => setQuery(e.target.value)} className="pl-10" />
+              </div>
             </div>
         </div>
-
-        {/* Essential grid actions only */}
-        <div className="my-4 flex gap-2">
-          {grid.export?.csv && (
-            <Button size="sm" variant="outline" onClick={() => grid.export.csv()}>Export CSV</Button>
-          )}
-          {grid.export?.excel && (
-            <Button size="sm" variant="outline" onClick={() => grid.export.excel()}>Export Excel</Button>
-          )}
-          <Button size="sm" variant="outline" onClick={() => grid.state.rowSelectedIds?.set?.([])}>Clear Selection</Button>
-        </div>
-
-        {loading && (
-          <div className="flex justify-center items-center p-8">
+        
+        {/* Conditional Rendering of Grid */}
+        {loading ? (
+          <div className="flex justify-center items-center p-8 h-[480px]">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
+        ) : error ? (
+          <div className="text-center text-destructive p-4 h-[480px]">{error}</div>
+        ) : results && results.content.length > 0 ? (
+          <TariffGrid data={results.content} onEdit={handleEdit} onDelete={handleDelete} />
+        ) : (
+          <div className="text-center p-12 border rounded-lg h-[480px] flex items-center justify-center">No results found.</div>
         )}
-        {error && (
-          <div className="text-center text-destructive p-4">{error}</div>
-        )}
-
-        <div
-          className="border rounded-xl shadow-lg bg-card"
-          style={{ width: "100%", height: "480px", overflow: "auto" }}
-        >
-          <Grid.Root grid={grid}>
-            <Grid.Viewport>
-              <Grid.Header>
-                {view.header.layout.map((row, i) => (
-                  <Grid.HeaderRow headerRowIndex={i} key={i}>
-                    {row.map((c) => {
-                      if (c.kind === "group") {
-                        return (
-                          <Grid.HeaderGroupCell cell={c} key={c.idOccurrence} />
-                        );
-                      }
-                      return <Grid.HeaderCell cell={c} key={c.column.id} />;
-                    })}
-                  </Grid.HeaderRow>
-                ))}
-              </Grid.Header>
-              <Grid.RowsContainer>
-                <Grid.RowsCenter>
-                  {view.rows.center.map((row) => {
-                    if (row.kind === "full-width") {
-                      return <Grid.RowFullWidth row={row} key={row.id} />;
-                    }
-                    return (
-                      <Grid.Row key={row.id} row={row} accepted={["row"]}>
-                        {row.cells.map((cell) => (
-                          <Grid.Cell cell={cell} key={cell.id} />
-                        ))}
-                      </Grid.Row>
-                    );
-                  })}
-                </Grid.RowsCenter>
-              </Grid.RowsContainer>
-            </Grid.Viewport>
-          </Grid.Root>
-          {results.content.length === 0 && !loading && (
-            <div className="text-center p-12">No results found.</div>
-          )}
-        </div>
-      {/* Create Modal */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Tariff</DialogTitle>
-          </DialogHeader>
-          {/* Form fields */}
-          {Object.keys(form).map((key) => (
-            <div key={key} className="mb-2">
-              <Label>{key}</Label>
-              <Input value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
-            </div>
-          ))}
-          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
-          <DialogFooter>
-            <Button disabled={actionLoading} onClick={async () => {
-              setActionLoading(true);
-              setActionError("");
-              try {
-                await axiosClient.post("/tariffs", form);
-                setShowCreate(false);
-                setForm({ tariffid: "", name: "", category: "", descriptionwcountry: "", partnercountry: "", reportercountry: "", advalorem: "", specificperunit: "", unitid: "" });
-                // Refresh grid
-                setPage(0);
-              } catch (err) {
-                setActionError("Failed to create tariff.");
-              } finally {
-                setActionLoading(false);
-              }
-            }}>Create</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Modal */}
-      <Dialog open={showEdit} onOpenChange={setShowEdit}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Tariff</DialogTitle>
-          </DialogHeader>
-          {Object.keys(form).map((key) => (
-            <div key={key} className="mb-2">
-              <Label>{key}</Label>
-              <Input value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
-            </div>
-          ))}
-          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
-          <DialogFooter>
-            <Button disabled={actionLoading} onClick={async () => {
-              setActionLoading(true);
-              setActionError("");
-              try {
-                await axiosClient.put(`/tariffs/${form.id}`, form);
-                setShowEdit(false);
-                setSelectedRow(null);
-                // Refresh grid
-                setPage(0);
-              } catch (err) {
-                setActionError("Failed to update tariff.");
-              } finally {
-                setActionLoading(false);
-              }
-            }}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Modal */}
-      <Dialog open={showDelete} onOpenChange={setShowDelete}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Tariff</DialogTitle>
-          </DialogHeader>
-          <p>Are you sure you want to delete tariff <b>{selectedRow?.tariffid}</b>?</p>
-          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
-          <DialogFooter>
-            <Button variant="destructive" disabled={actionLoading} onClick={async () => {
-              setActionLoading(true);
-              setActionError("");
-              try {
-                await axiosClient.delete(`/tariffs/${selectedRow.id}`);
-                setShowDelete(false);
-                setSelectedRow(null);
-                // Refresh grid
-                setPage(0);
-              } catch (err) {
-                setActionError("Failed to delete tariff.");
-              } finally {
-                setActionLoading(false);
-              }
-            }}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
         {/* Pagination */}
-        {results.totalPages > 1 && (
+        {results && results.totalPages > 1 && (
           <div className="flex justify-between items-center pt-4">
-            <Button
-              variant="outline"
-              disabled={page <= 0 || loading}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              Previous
-            </Button>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                Page
-                <Input
-                  type="number"
-                  className="h-8 w-16 text-center"
-                  value={pageInput}
-                  onChange={handlePageInputChange}
-                  onKeyDown={(e) => e.key === 'Enter' && handlePageJump()}
-                  onBlur={handlePageJump}
-                  min="1"
-                  max={results.totalPages}
-                />
-                of {results.totalPages}
-            </div>
-            <Button
-              variant="outline"
-              disabled={results.number + 1 >= results.totalPages || loading}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
+            <Button variant="outline" disabled={page <= 0} onClick={() => setPage(p => p - 1)}>Previous</Button>
+            <span>Page {page + 1} of {results.totalPages}</span>
+            <Button variant="outline" disabled={page + 1 >= results.totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
           </div>
         )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {/* CRUD Modals */}
+        <Dialog open={showCreate || showEdit} onOpenChange={closeDialogs}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{showEdit ? "Edit Tariff" : "Create Tariff"}</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    {Object.keys(form).filter(key => key !== 'id').map((key) => (
+                        <div key={key} className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor={key} className="text-right capitalize">{key}</Label>
+                            <Input id={key} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} className="col-span-3" />
+                        </div>
+                    ))}
+                </div>
+                {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+                <DialogFooter>
+                    <Button variant="outline" onClick={closeDialogs}>Cancel</Button>
+                    <Button onClick={onSaveChanges} disabled={actionLoading}>
+                        {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save changes"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={showDelete} onOpenChange={closeDialogs}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Delete Tariff</DialogTitle>
+                    <CardDescription>Are you sure you want to delete tariff ID: {selectedRow?.tariffid}?</CardDescription>
+                </DialogHeader>
+                {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+                <DialogFooter>
+                    <Button variant="outline" onClick={closeDialogs}>Cancel</Button>
+                    <Button variant="destructive" onClick={onDeleteConfirm} disabled={actionLoading}>
+                        {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        
       </CardContent>
     </Card>
   );

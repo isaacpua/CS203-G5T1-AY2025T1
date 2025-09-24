@@ -11,7 +11,7 @@ public record TariffSearchRow(
     boolean isFree,
     Integer partnercountry,
     Integer reportercountry,
-    Integer unitid,
+    String unitname,
     String category,
     BigDecimal advalorem,
     BigDecimal specificperunit,

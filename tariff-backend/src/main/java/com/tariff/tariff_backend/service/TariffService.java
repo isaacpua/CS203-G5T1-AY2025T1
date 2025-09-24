@@ -1,4 +1,3 @@
-// ...existing code...
 package com.tariff.tariff_backend.service;
 
 import java.math.BigDecimal;
@@ -31,7 +30,7 @@ public class TariffService {
         String descriptionwcountry,
         Integer partnercountry,
         Integer reportercountry,
-        Integer unitid,
+        String unitname, // Changed from unitid
         String name,
         String category,
         Double advalorem,
@@ -46,7 +45,8 @@ public class TariffService {
             if (descriptionwcountry != null && !descriptionwcountry.isBlank()) predicates.add(cb.like(cb.lower(root.get("descriptionwcountry")), "%" + descriptionwcountry.toLowerCase() + "%"));
             if (partnercountry != null) predicates.add(cb.equal(root.get("partnercountry"), partnercountry));
             if (reportercountry != null) predicates.add(cb.equal(root.get("reportercountry"), reportercountry));
-            if (unitid != null) predicates.add(cb.equal(root.get("unitid"), unitid));
+            // Updated to search by unitname
+            if (unitname != null && !unitname.isBlank()) predicates.add(cb.like(cb.lower(root.get("unitname")), "%" + unitname.toLowerCase() + "%"));
             if (name != null && !name.isBlank()) predicates.add(cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
             if (category != null && !category.isBlank()) predicates.add(cb.like(cb.lower(root.get("category")), "%" + category.toLowerCase() + "%"));
             if (advalorem != null) predicates.add(cb.equal(root.get("advalorem"), advalorem));
@@ -76,7 +76,7 @@ public class TariffService {
             isFree,
             t.getPartnercountry(),
             t.getReportercountry(),
-            t.getUnitid(),
+            t.getUnitname(),
             t.getCategory(),
             t.getAdvalorem(),
             t.getSpecificperunit(),
@@ -275,7 +275,7 @@ public class TariffService {
         existing.setReportercountry(patch.getReportercountry());
         existing.setAdvalorem(patch.getAdvalorem());
         existing.setSpecificperunit(patch.getSpecificperunit());
-        existing.setUnitid(patch.getUnitid());
+        existing.setUnitname(patch.getUnitname());
         existing.setAd_valorem(patch.getAd_valorem());
         existing.setSpecific_per_unit(patch.getSpecific_per_unit());
         return tariffRepo.save(existing);

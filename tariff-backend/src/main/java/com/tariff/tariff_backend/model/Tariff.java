@@ -33,8 +33,8 @@ public class Tariff {
     @Column(name = "reportercountry")
     private Integer reportercountry;
 
-    @Column(name = "unitid")
-    private Integer unitid;
+    @Column(name = "unitname")
+    private String unitname;
 
     @Column(name = "name")
     private String name;
