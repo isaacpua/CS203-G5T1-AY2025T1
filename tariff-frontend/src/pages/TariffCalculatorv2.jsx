@@ -288,7 +288,7 @@ export default function TariffCalcV2() {
                         <div className="grid grid-cols-12 gap-4 items-end">
                             <div className="col-span-7">
                                 <Label>Search by description / ID</Label>
-                                <Input placeholder="e.g., sunglasses" value={q} onChange={(e) => setQ(e.target.value)} />
+                                <Input placeholder="e.g., Electronics" value={q} onChange={(e) => setQ(e.target.value)} />
                             </div>
                             <div className="col-span-2">
                                 <Label>Page size</Label>
