@@ -1,5 +1,6 @@
 package com.tariff.tariff_backend.service;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,10 +8,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.tariff.tariff_backend.model.tariffs_new.Country;
 import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 import com.tariff.tariff_backend.model.dashboard.DashboardMetrics;
 import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
 import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
+import com.tariff.tariff_backend.repository.CountryRepo;
 import com.tariff.tariff_backend.repository.TariffRepo;
 
 import lombok.RequiredArgsConstructor;
@@ -21,15 +24,26 @@ public class DashboardService {
 
     @Autowired
     private final TariffRepo tariffRepo;
+    @Autowired
+    private final CountryRepo countryRepo;
 
     public DashboardResponse createTariff(TariffPatchDTO newTariffDTO) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully created the new tariff.");
         try {
             System.out.println("Building new Tariff WOWWWWWWWW");
-             Tariff newTariff = Tariff.builder()
+            System.out.println(newTariffDTO);
+            List<Country> partnerCountries = countryRepo.findByName(newTariffDTO.getPartnerCountry());
+            if (partnerCountries.size() == 0) {
+                throw new Exception("Country " + newTariffDTO.getPartnerCountry() + " not found in database");
+            }
+            List<Country> reporterCountries = countryRepo.findByName(newTariffDTO.getReporterCountry());
+            if (reporterCountries.size() == 0) {
+                throw new Exception("Country " + newTariffDTO.getReporterCountry() + " not found in database");
+            }
+            Tariff newTariff = Tariff.builder()
                 .descriptionwcountry(newTariffDTO.getDescriptionwcountry())
-                .partnerCountry(newTariffDTO.getPartnerCountry())
-                .reporterCountry(newTariffDTO.getReporterCountry())
+                .partnerCountry(partnerCountries.get(0))
+                .reporterCountry(reporterCountries.get(0))
                 .unitname(newTariffDTO.getUnitname())
                 .category(newTariffDTO.getCategory())
                 .adValorem(newTariffDTO.getAdValorem())
@@ -64,10 +78,18 @@ public class DashboardService {
             
             // Add the rest of the fields
             if (patchDTO.getPartnerCountry() != null) {
-                existingTariff.setPartnerCountry(patchDTO.getPartnerCountry());
+                List<Country> partnerCountries = countryRepo.findByName(patchDTO.getPartnerCountry());
+                if (partnerCountries.size() == 0) {
+                    throw new Exception("Country " + patchDTO.getPartnerCountry() + " not found in database");
+                }
+                existingTariff.setPartnerCountry(partnerCountries.get(0));
             }
             if (patchDTO.getReporterCountry() != null) {
-                existingTariff.setReporterCountry(patchDTO.getReporterCountry());
+                List<Country> reporterCountries = countryRepo.findByName(patchDTO.getReporterCountry());
+                if (reporterCountries.size() == 0) {
+                    throw new Exception("Country " + patchDTO.getReporterCountry() + " not found in database");
+                }
+                existingTariff.setReporterCountry(reporterCountries.get(0));
             }
             if (patchDTO.getUnitname() != null) {
                 existingTariff.setUnitname(patchDTO.getUnitname());
@@ -122,8 +144,20 @@ public class DashboardService {
             pageResult = tariffRepo.findAll(pageable);
         }
 
+        List<TariffPatchDTO> tariffDtoList = pageResult.getContent().stream()
+            .map(tariff -> new TariffPatchDTO(
+                tariff.getTariffId(),
+                tariff.getDescriptionwcountry(),
+                tariff.getPartnerCountry().getName(),
+                tariff.getReporterCountry().getName(),
+                tariff.getUnitname(),
+                tariff.getCategory(),
+                tariff.getAdValorem(),
+                tariff.getSpecificPerUnit()
+            )).toList();
+
         return new DashboardMetrics(
-                pageResult.getContent(),
+                tariffDtoList,
                 pageResult.getNumber(),
                 pageResult.getTotalPages(),
                 pageResult.getTotalElements());

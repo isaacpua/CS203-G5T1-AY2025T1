@@ -145,10 +145,10 @@ function TariffGrid({ userRole, data, onEdit, onDelete, onView }) {
       { id: "tariffid", name: "Tariff ID", width: 120, resizable: true, cellRenderer: TariffIdCell, headerRenderer: SortableHeader },
       { id: "category", name: "Category", width: 180, resizable: true, cellRenderer: CategoryCell, headerRenderer: SortableHeader },
       { id: "descriptionwcountry", name: "Description", flex: 1, minWidth: 250, resizable: true, cellRenderer: TextCell, headerRenderer: SortableHeader },
-      { id: "partnercountry", name: "Partner Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
-      { id: "reportercountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
-      { id: "advalorem", name: "Ad Valorem", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
-      { id: "specificperunit", name: "Specific/Unit", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
+      { id: "partnerCountry", name: "Partner Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
+      { id: "reporterCountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
+      { id: "adValorem", name: "Ad Valorem", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
+      { id: "specificPerUnit", name: "Specific/Unit", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
       { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} userRole={userRole} onEdit={onEdit} onDelete={onDelete} onView={onView} />, headerRenderer: StaticHeader },
     ],
     [onEdit, onDelete, onView]
@@ -209,8 +209,8 @@ const validateTariffForm = (form) => {
   const errors = {};
   if (!form.category || form.category.trim() === "") errors.category = "Category is required";
   if (!form.descriptionwcountry || form.descriptionwcountry.trim() === "") errors.descriptionwcountry = "Description is required";
-  if (form.advalorem && isNaN(parseFloat(form.advalorem))) errors.advalorem = "Ad Valorem must be a valid number";
-  if (form.specificperunit && isNaN(parseFloat(form.specificperunit))) errors.specificperunit = "Specific per unit must be a valid number";
+  if (form.adValorem && isNaN(parseFloat(form.adValorem))) errors.adValorem = "Ad Valorem must be a valid number";
+  if (form.specificPerUnit && isNaN(parseFloat(form.specificPerUnit))) errors.specificPerUnit = "Specific per unit must be a valid number";
   return errors;
 };
 
@@ -262,27 +262,27 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="partnercountry">Partner Country <span className="text-red-500">*</span></Label>
-            <Input id="partnercountry" value={form.partnercountry || ""} onChange={(e) => setForm((f) => ({ ...f, partnercountry: e.target.value }))} className={errors.partnercountry ? "border-red-500" : ""} />
-            {errors.partnercountry && <p className="text-sm text-red-500">{errors.partnercountry}</p>}
+            <Label htmlFor="partnerCountry">Partner Country <span className="text-red-500">*</span></Label>
+            <Input id="partnerCountry" value={form.partnerCountry || ""} onChange={(e) => setForm((f) => ({ ...f, partnerCountry: e.target.value }))} className={errors.partnerCountry ? "border-red-500" : ""} />
+            {errors.partnerCountry && <p className="text-sm text-red-500">{errors.partnerCountry}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="reportercountry">Reporter Country <span className="text-red-500">*</span></Label>
-            <Input id="reportercountry" value={form.reportercountry || ""} onChange={(e) => setForm((f) => ({ ...f, reportercountry: e.target.value }))} className={errors.reportercountry ? "border-red-500" : ""} />
-            {errors.reportercountry && <p className="text-sm text-red-500">{errors.reportercountry}</p>}
+            <Label htmlFor="reporterCountry">Reporter Country <span className="text-red-500">*</span></Label>
+            <Input id="reporterCountry" value={form.reporterCountry || ""} onChange={(e) => setForm((f) => ({ ...f, reporterCountry: e.target.value }))} className={errors.reporterCountry ? "border-red-500" : ""} />
+            {errors.reporterCountry && <p className="text-sm text-red-500">{errors.reporterCountry}</p>}
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="advalorem">Ad Valorem Rate</Label>
-            <Input id="advalorem" type="number" step="0.01" min="0" value={form.advalorem || ""} onChange={(e) => setForm((f) => ({ ...f, advalorem: e.target.value }))} className={errors.advalorem ? "border-red-500" : ""} />
-            {errors.advalorem && <p className="text-sm text-red-500">{errors.advalorem}</p>}
+            <Label htmlFor="adValorem">Ad Valorem Rate</Label>
+            <Input id="adValorem" type="number" step="0.01" min="0" value={form.adValorem || ""} onChange={(e) => setForm((f) => ({ ...f, adValorem: e.target.value }))} className={errors.adValorem ? "border-red-500" : ""} />
+            {errors.adValorem && <p className="text-sm text-red-500">{errors.adValorem}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="specificperunit">Specific per Unit</Label>
-            <Input id="specificperunit" type="number" step="0.01" min="0" value={form.specificperunit || ""} onChange={(e) => setForm((f) => ({ ...f, specificperunit: e.target.value }))} className={errors.specificperunit ? "border-red-500" : ""} />
-            {errors.specificperunit && <p className="text-sm text-red-500">{errors.specificperunit}</p>}
+            <Label htmlFor="specificPerUnit">Specific per Unit</Label>
+            <Input id="specificPerUnit" type="number" step="0.01" min="0" value={form.specificPerUnit || ""} onChange={(e) => setForm((f) => ({ ...f, specificPerUnit: e.target.value }))} className={errors.specificPerUnit ? "border-red-500" : ""} />
+            {errors.specificPerUnit && <p className="text-sm text-red-500">{errors.specificPerUnit}</p>}
           </div>
 
           <div className="col-span-2 space-y-2">
@@ -337,22 +337,22 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
           <div className="grid grid-cols-2 gap-6">
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Partner Country</Label>
-              <div className="mt-1 flex items-center space-x-2"><div className="w-4 h-3 bg-gray-200 dark:bg-gray-700 rounded-sm" /><span className="text-sm">{data.partnercountry}</span></div>
+              <div className="mt-1 flex items-center space-x-2"><div className="w-4 h-3 bg-gray-200 dark:bg-gray-700 rounded-sm" /><span className="text-sm">{data.partnerCountry}</span></div>
             </div>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Reporter Country</Label>
-              <div className="mt-1 flex items-center space-x-2"><div className="w-4 h-3 bg-gray-200 dark:bg-gray-700 rounded-sm" /><span className="text-sm">{data.reportercountry}</span></div>
+              <div className="mt-1 flex items-center space-x-2"><div className="w-4 h-3 bg-gray-200 dark:bg-gray-700 rounded-sm" /><span className="text-sm">{data.reporterCountry}</span></div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Ad Valorem Rate</Label>
-              <p className="mt-1 text-lg font-mono text-foreground">{data.advalorem ? `$${parseFloat(data.advalorem).toFixed(2)}` : "—"}</p>
+              <p className="mt-1 text-lg font-mono text-foreground">{data.adValorem ? `$${parseFloat(data.adValorem).toFixed(2)}` : "—"}</p>
             </div>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Specific per Unit</Label>
-              <p className="mt-1 text-lg font-mono text-foreground">{data.specificperunit ? `$${parseFloat(data.specificperunit).toFixed(2)}` : "—"}</p>
+              <p className="mt-1 text-lg font-mono text-foreground">{data.specificPerUnit ? `$${parseFloat(data.specificPerUnit).toFixed(2)}` : "—"}</p>
             </div>
           </div>
         </div>
@@ -410,10 +410,10 @@ export default function Dashboard() {
           tariffid,
           category: row.category ?? "",
           descriptionwcountry: row.descriptionwcountry ?? row.descriptionWCountry ?? row.description ?? "",
-          partnercountry: row.partnercountry ?? row.partnerCountry ?? "",
-          reportercountry: row.reportercountry ?? row.reporterCountry ?? "",
-          advalorem: row.advalorem ?? row.adValorem ?? "",
-          specificperunit: row.specificperunit ?? row.specificPerUnit ?? "",
+          partnerCountry: row.partnerCountry ?? row.partnerCountry ?? "",
+          reporterCountry: row.reporterCountry ?? row.reporterCountry ?? "",
+          adValorem: row.adValorem ?? row.adValorem ?? "",
+          specificPerUnit: row.specificPerUnit ?? row.specificPerUnit ?? "",
           unitname: row.unitname ?? row.unitName ?? "",
         };
       });
@@ -624,7 +624,7 @@ export default function Dashboard() {
         isOpen={showCreate}
         onClose={closeDialogs}
         onSubmit={onSaveChanges}
-        initialData={{ tariffid: "", category: "", descriptionwcountry: "", partnercountry: "", reportercountry: "", advalorem: "", specificperunit: "", unitname: "" }}
+        initialData={{ category: "", descriptionwcountry: "", partnerCountry: "", reporterCountry: "", adValorem: "", specificPerUnit: "", unitname: "" }}
         isEditing={false}
         isLoading={actionLoading}
         error={actionError}

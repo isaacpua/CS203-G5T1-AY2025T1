@@ -2,7 +2,6 @@ package com.tariff.tariff_backend.model.dashboard;
 
 import java.util.List;
 
-import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DashboardMetrics {
-    private List<Tariff> content;
+    private List<TariffPatchDTO> content;
     private int number;
     private int totalPages;
     private long totalElements;
