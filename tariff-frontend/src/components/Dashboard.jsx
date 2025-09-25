@@ -80,7 +80,7 @@ const MoneyCell = ({ row, column, grid }) => {
   );
 };
 
-const ActionCell = ({ row, grid, onEdit, onDelete, onView }) => (
+const ActionCell = ({ userRole, row, onEdit, onDelete, onView }) => (
   <div className="flex items-center justify-center px-3 py-2">
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -91,11 +91,14 @@ const ActionCell = ({ row, grid, onEdit, onDelete, onView }) => (
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
         <DropdownMenuItem onClick={() => onView(row.data)}><Eye className="mr-2 h-4 w-4" />View Details</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onEdit(row.data)}><Edit2 className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => onDelete(row.data)} className="text-red-600 focus:text-red-600 dark:text-red-500 dark:focus:text-red-400">
-          <Trash2 className="mr-2 h-4 w-4" />Delete
-        </DropdownMenuItem>
+        {userRole === "admin" && (<DropdownMenuItem onClick={() => onEdit(row.data)}><Edit2 className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>)}
+        {userRole === "admin" && ( <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => onDelete(row.data)} className="text-red-600 focus:text-red-600 dark:text-red-500 dark:focus:text-red-400">
+            <Trash2 className="mr-2 h-4 w-4" />Delete
+          </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   </div>
@@ -136,7 +139,7 @@ const StaticHeader = ({ column }) => (
 );
 
 /* ---------------- grid wrapper ---------------- */
-function TariffGrid({ data, onEdit, onDelete, onView }) {
+function TariffGrid({ userRole, data, onEdit, onDelete, onView }) {
   const columns = useMemo(
     () => [
       { id: "tariffid", name: "Tariff ID", width: 120, resizable: true, cellRenderer: TariffIdCell, headerRenderer: SortableHeader },
@@ -146,7 +149,7 @@ function TariffGrid({ data, onEdit, onDelete, onView }) {
       { id: "reportercountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
       { id: "advalorem", name: "Ad Valorem", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
       { id: "specificperunit", name: "Specific/Unit", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
-      { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} onEdit={onEdit} onDelete={onDelete} onView={onView} />, headerRenderer: StaticHeader },
+      { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} userRole={userRole} onEdit={onEdit} onDelete={onDelete} onView={onView} />, headerRenderer: StaticHeader },
     ],
     [onEdit, onDelete, onView]
   );
@@ -279,13 +282,13 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
           
           <div className="space-y-2">
             <Label htmlFor="advalorem">Ad Valorem Rate</Label>
-            <Input id="advalorem" type="number" step="0.01" value={form.advalorem || ""} onChange={(e) => setForm((f) => ({ ...f, advalorem: e.target.value }))} className={errors.advalorem ? "border-red-500" : ""} />
+            <Input id="advalorem" type="number" step="0.01" min="0" value={form.advalorem || ""} onChange={(e) => setForm((f) => ({ ...f, advalorem: e.target.value }))} className={errors.advalorem ? "border-red-500" : ""} />
             {errors.advalorem && <p className="text-sm text-red-500">{errors.advalorem}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="specificperunit">Specific per Unit</Label>
-            <Input id="specificperunit" type="number" step="0.01" value={form.specificperunit || ""} onChange={(e) => setForm((f) => ({ ...f, specificperunit: e.target.value }))} className={errors.specificperunit ? "border-red-500" : ""} />
+            <Input id="specificperunit" type="number" step="0.01" min="0" value={form.specificperunit || ""} onChange={(e) => setForm((f) => ({ ...f, specificperunit: e.target.value }))} className={errors.specificperunit ? "border-red-500" : ""} />
             {errors.specificperunit && <p className="text-sm text-red-500">{errors.specificperunit}</p>}
           </div>
 
@@ -387,6 +390,8 @@ export default function Dashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const debouncedQuery = useDebounce(query);
+
+  const userRole = JSON.parse(localStorage.getItem("user")).role;
 
   // Reset page when filters change
   useEffect(() => { setPage(0); }, [debouncedQuery, mode]);
@@ -517,7 +522,7 @@ export default function Dashboard() {
                 </TooltipTrigger>
                 <TooltipContent>Export data</TooltipContent>
               </Tooltip>
-              <Button onClick={handleCreate}><Plus className="mr-2 h-4 w-4" />Create Tariff</Button>
+              {userRole === "admin" && (<Button onClick={handleCreate}><Plus className="mr-2 h-4 w-4" />Create Tariff</Button>)}
             </div>
           </div>
         </CardHeader>
@@ -575,7 +580,7 @@ export default function Dashboard() {
               </div>
             </div>
           ) : results && results.content.length > 0 ? (
-            <TariffGrid data={results.content} onEdit={handleEdit} onDelete={handleDelete} onView={handleView} />
+            <TariffGrid userRole={userRole} data={results.content} onEdit={handleEdit} onDelete={handleDelete} onView={handleView} />
           ) : (
             <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-muted/30 border rounded-xl">
               <div className="text-center">
