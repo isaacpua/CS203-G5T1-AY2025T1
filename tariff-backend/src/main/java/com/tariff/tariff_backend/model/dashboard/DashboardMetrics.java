@@ -2,7 +2,7 @@ package com.tariff.tariff_backend.model.dashboard;
 
 import java.util.List;
 
-import com.tariff.tariff_backend.model.Tariff;
+import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

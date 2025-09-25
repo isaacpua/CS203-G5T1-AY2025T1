@@ -76,14 +76,14 @@ public class DashboardController {
     public ResponseEntity<DashboardMetrics> getTariffs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
-            @RequestParam(required = false) Integer tariffid,
+            @RequestParam(required = false) Integer tariffId,
             @RequestParam(name = "q", required = false) String descriptionQuery) {
 
         int safePage = Math.max(page, 0);
         int safeSize = size > 0 ? size : 50;
-        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("tariffid").ascending());
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("tariffId").ascending());
         String trimmedQuery = descriptionQuery != null ? descriptionQuery.trim() : null;
-        DashboardMetrics metrics = dashboardService.getTariffs(tariffid, trimmedQuery, pageable);
+        DashboardMetrics metrics = dashboardService.getTariffs(tariffId, trimmedQuery, pageable);
         return ResponseEntity.ok(metrics);
     }
 }

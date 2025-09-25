@@ -1,14 +1,12 @@
-package com.tariff.tariff_backend.model;
+package com.tariff.tariff_backend.model.tariffs_new;
 
 import java.math.BigDecimal;
 
 public record TariffSearchRow(
-    Integer tariffid,
+    Integer tariffId,
     String descriptionwcountry,
-    String overallKind,
-    boolean isFree,
-    Integer partnercountry,
-    Integer reportercountry,
+    Country partnerCountry,
+    Country reporterCountry,
     String unitname,
     String category,
     BigDecimal advalorem,
