@@ -76,7 +76,7 @@ public class DashboardController {
     public ResponseEntity<DashboardMetrics> getTariffs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
-            @RequestParam(required = false) Integer tariffId,
+            @RequestParam(name = "tariffid", required = false) Integer tariffId,
             @RequestParam(name = "q", required = false) String descriptionQuery) {
 
         int safePage = Math.max(page, 0);
