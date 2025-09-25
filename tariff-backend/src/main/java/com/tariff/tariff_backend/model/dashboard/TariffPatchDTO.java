@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TariffPatchDTO {
     // Expose all fields that users can update from the dashboard
-    private Integer tariffid;
     private String descriptionwcountry;
     private Integer partnercountry;
     private Integer reportercountry;

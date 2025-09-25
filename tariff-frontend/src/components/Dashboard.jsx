@@ -207,7 +207,6 @@ function TariffGrid({ userRole, data, onEdit, onDelete, onView }) {
 /* ---------------- validation ---------------- */
 const validateTariffForm = (form) => {
   const errors = {};
-  if (!form.tariffid || form.tariffid.toString().trim() === "") errors.tariffid = "Tariff ID is required";
   if (!form.category || form.category.trim() === "") errors.category = "Category is required";
   if (!form.descriptionwcountry || form.descriptionwcountry.trim() === "") errors.descriptionwcountry = "Description is required";
   if (form.advalorem && isNaN(parseFloat(form.advalorem))) errors.advalorem = "Ad Valorem must be a valid number";
@@ -247,12 +246,6 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-6 py-6">
-          <div className="space-y-2">
-            <Label htmlFor="tariffid">Tariff ID <span className="text-red-500">*</span></Label>
-            <Input id="tariffid" value={form.tariffid || ""} onChange={(e) => setForm((f) => ({ ...f, tariffid: e.target.value }))} className={errors.tariffid ? "border-red-500" : ""} />
-            {errors.tariffid && <p className="text-sm text-red-500">{errors.tariffid}</p>}
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
             <Select value={form.category || ""} onValueChange={(value) => setForm((f) => ({ ...f, category: value }))}>
@@ -460,11 +453,15 @@ export default function Dashboard() {
 
   const onSaveChanges = async (formData) => {
     setActionLoading(true); setActionError("");
+    console.log("Form data to submit:", formData);
+    delete formData.tariffid
     try {
       if (showEdit) {
+        console.log("Updating tariff with ID:", selectedRow.id, "and data:", formData);
         await axiosClient.patch(`/dashboard/tariffs/${selectedRow.id}`, formData);
         toast.success("Tariff updated successfully");
       } else {
+        console.log("Creating tariff with data:", formData);
         await axiosClient.post("/dashboard/tariffs", formData);
         toast.success("Tariff created successfully");
       }

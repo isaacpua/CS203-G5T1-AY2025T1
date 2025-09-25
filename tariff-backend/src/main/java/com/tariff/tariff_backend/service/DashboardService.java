@@ -22,15 +22,22 @@ public class DashboardService {
     @Autowired
     private final TariffRepo tariffRepo;
 
-    public DashboardResponse createTariff(Tariff newTariff) {
+    public DashboardResponse createTariff(TariffPatchDTO newTariffDTO) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully created the new tariff.");
-        Integer tariffid = newTariff.getTariffid();
         try {
-            if (tariffRepo.existsById(tariffid)) {
-                throw new Exception("Unable to create new tariff because the Tariff ID " + tariffid + " already exists.");
-            }
+            System.out.println("Building new Tariff WOWWWWWWWW");
+             Tariff newTariff = Tariff.builder()
+                .descriptionwcountry(newTariffDTO.getDescriptionwcountry())
+                .partnercountry(newTariffDTO.getPartnercountry())
+                .reportercountry(newTariffDTO.getReportercountry())
+                .unitname(newTariffDTO.getUnitname())
+                .category(newTariffDTO.getCategory())
+                .advalorem(newTariffDTO.getAdvalorem())
+                .specificperunit(newTariffDTO.getSpecificperunit())
+                .build();
 
             Tariff savedTariff = tariffRepo.save(newTariff);
+            Integer tariffid = savedTariff.getTariffid();
 
             if (savedTariff == null || !tariffRepo.existsById(tariffid)) {
                 throw new Exception("Unable to create the new tariff.");
@@ -50,13 +57,6 @@ public class DashboardService {
                 throw new Exception("Tariff with ID " + tariffid + " not found");
             }
             Tariff existingTariff = optionalTariff.get();
-
-            if (patchDTO.getTariffid() != null) {
-                if (!patchDTO.getTariffid().equals(tariffid) && tariffRepo.existsById(patchDTO.getTariffid())) {
-                    throw new Exception("Unable to update tariff because the new Tariff ID " + patchDTO.getTariffid() + " already exists.");
-                }
-                existingTariff.setTariffid(patchDTO.getTariffid());
-            }
 
             if (patchDTO.getDescriptionwcountry() != null) {
                 existingTariff.setDescriptionwcountry(patchDTO.getDescriptionwcountry());
