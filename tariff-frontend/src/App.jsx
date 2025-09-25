@@ -1,5 +1,5 @@
 import TariffCalculatorv2 from './pages/TariffCalculatorv2';
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useState } from 'react';
@@ -38,6 +38,7 @@ function AppContent() {
                 <Route path="/user-management" element={<UserManagement />} />
                 <Route path="/profile" element={<Profile />} />
               </Route>
+              <Route path="*" element={<Navigate replace to="/" />} />
             </Routes>
           </main>
         </div>
