@@ -1,26 +1,23 @@
 package com.tariff.tariff_backend.controller;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.tariff.tariff_backend.model.TariffComputeRequest;
-import com.tariff.tariff_backend.model.TariffComputeResponse;
-import com.tariff.tariff_backend.model.TariffSearchRow;
+import com.tariff.tariff_backend.model.tariffs_new.Country;
+import com.tariff.tariff_backend.model.tariffs_new.TariffSearchRow;
 import com.tariff.tariff_backend.service.TariffService;
+
+
 
 @RestController
 @RequestMapping("/api/v1/tariffs")
@@ -35,38 +32,22 @@ public class TariffController {
 
     @GetMapping("/search")
     public Page<TariffSearchRow> search(
-        @RequestParam(required = false) Integer tariffid,
+        @RequestParam(required = false) Integer tariffId,
         @RequestParam(required = false) String descriptionwcountry,
-        @RequestParam(required = false) Integer partnercountry,
-        @RequestParam(required = false) Integer reportercountry,
+        @RequestParam(required = false) Country partnerCountry,
+        @RequestParam(required = false) Country reporterCountry,
         @RequestParam(required = false) String unitname,
         @RequestParam(required = false) String category,
-        @RequestParam(required = false) Double advalorem,
-        @RequestParam(required = false) Double specificperunit,
-        @PageableDefault(size = 10, sort = "tariffid", direction = Sort.Direction.ASC) Pageable pageable
+        @RequestParam(required = false) BigDecimal advalorem,
+        @RequestParam(required = false) BigDecimal specificperunit,
+        @PageableDefault(size = 10, sort = "tariffId", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         Page<TariffSearchRow> results = tariffService.searchTariffs(
-            tariffid, descriptionwcountry, partnercountry, reportercountry,
+            tariffId, descriptionwcountry, partnerCountry, reporterCountry,
             unitname, category, advalorem, specificperunit, pageable
         );
 
-        // If DB returns no rows, provide 3 mocked rows for development/demo so the UI shows data
-        if (results == null || results.isEmpty()) {
-            List<TariffSearchRow> demo = new ArrayList<>();
-            demo.add(new TariffSearchRow(12345, "Sunglasses, plastic frame - USA", "AD_VALOREM", false, 840, 840, "Piece", "Apparel", new BigDecimal("0.10"), new BigDecimal("0.00")));
-            demo.add(new TariffSearchRow(23456, "LED bulbs, 5W - China", "SPECIFIC_PER_UNIT", false, 156, 156, "Piece", "Electronics", new BigDecimal("0.00"), new BigDecimal("0.50")));
-            demo.add(new TariffSearchRow(34567, "Cotton T-shirt - India", "FREE", true, 356, 356, "Piece", "Apparel", new BigDecimal("0.00"), new BigDecimal("0.00")));
-            return new PageImpl<>(demo, pageable, demo.size());
-        }
 
         return results;
-    }
-
-    @PostMapping("/compute")
-    public TariffComputeResponse compute(
-        @RequestParam Integer tariffid,
-        @RequestBody TariffComputeRequest req
-    ) {
-        return tariffService.computeTariff(tariffid ,req);
     }
 }

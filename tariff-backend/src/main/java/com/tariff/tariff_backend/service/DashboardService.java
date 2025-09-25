@@ -7,7 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import com.tariff.tariff_backend.model.Tariff;
+import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 import com.tariff.tariff_backend.model.dashboard.DashboardMetrics;
 import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
 import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
@@ -22,17 +22,17 @@ public class DashboardService {
     @Autowired
     private final TariffRepo tariffRepo;
 
-    public DashboardResponse createTariff(Tariff newTariff) {
+    public DashboardResponse createTariff(Tariff request) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully created the new tariff.");
-        Integer tariffid = newTariff.getTariffid();
+        Integer tariffId = request.getTariffId();
         try {
-            if (tariffRepo.existsById(tariffid)) {
-                throw new Exception("Unable to create new tariff because the Tariff ID " + tariffid + " already exists.");
+            if (tariffRepo.existsById(tariffId)) {
+                throw new Exception("Unable to create new tariff because the Tariff ID " + tariffId + " already exists.");
             }
 
-            Tariff savedTariff = tariffRepo.save(newTariff);
+            Tariff savedTariff = tariffRepo.save(request);
 
-            if (savedTariff == null || !tariffRepo.existsById(tariffid)) {
+            if (savedTariff == null || !tariffRepo.existsById(tariffId)) {
                 throw new Exception("Unable to create the new tariff.");
             }
         } catch (Exception e) {
@@ -42,20 +42,20 @@ public class DashboardService {
         return response;
     }
 
-    public DashboardResponse updateTariff(Integer tariffid, TariffPatchDTO patchDTO) {
+    public DashboardResponse updateTariff(Integer tariffId, TariffPatchDTO patchDTO) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully updated the tariff.");
         try {
-            Optional<Tariff> optionalTariff = tariffRepo.findById(tariffid);
+            Optional<Tariff> optionalTariff = tariffRepo.findById(tariffId);
             if (optionalTariff.isEmpty()) {
-                throw new Exception("Tariff with ID " + tariffid + " not found");
+                throw new Exception("Tariff with ID " + tariffId + " not found");
             }
             Tariff existingTariff = optionalTariff.get();
 
-            if (patchDTO.getTariffid() != null) {
-                if (!patchDTO.getTariffid().equals(tariffid) && tariffRepo.existsById(patchDTO.getTariffid())) {
-                    throw new Exception("Unable to update tariff because the new Tariff ID " + patchDTO.getTariffid() + " already exists.");
+            if (patchDTO.getTariffId() != null) {
+                if (!patchDTO.getTariffId().equals(tariffId) && tariffRepo.existsById(patchDTO.getTariffId())) {
+                    throw new Exception("Unable to update tariff because the new Tariff ID " + patchDTO.getTariffId() + " already exists.");
                 }
-                existingTariff.setTariffid(patchDTO.getTariffid());
+                existingTariff.setTariffId(patchDTO.getTariffId());
             }
 
             if (patchDTO.getDescriptionwcountry() != null) {
@@ -63,11 +63,11 @@ public class DashboardService {
             }
             
             // Add the rest of the fields
-            if (patchDTO.getPartnercountry() != null) {
-                existingTariff.setPartnercountry(patchDTO.getPartnercountry());
+            if (patchDTO.getPartnerCountry() != null) {
+                existingTariff.setPartnerCountry(patchDTO.getPartnerCountry());
             }
-            if (patchDTO.getReportercountry() != null) {
-                existingTariff.setReportercountry(patchDTO.getReportercountry());
+            if (patchDTO.getReporterCountry() != null) {
+                existingTariff.setReporterCountry(patchDTO.getReporterCountry());
             }
             if (patchDTO.getUnitname() != null) {
                 existingTariff.setUnitname(patchDTO.getUnitname());
@@ -75,11 +75,11 @@ public class DashboardService {
             if (patchDTO.getCategory() != null) {
                 existingTariff.setCategory(patchDTO.getCategory());
             }
-            if (patchDTO.getAdvalorem() != null) {
-                existingTariff.setAdvalorem(patchDTO.getAdvalorem());
+            if (patchDTO.getAdValorem() != null) {
+                existingTariff.setAdValorem(patchDTO.getAdValorem());
             }
-            if (patchDTO.getSpecificperunit() != null) {
-                existingTariff.setSpecificperunit(patchDTO.getSpecificperunit());
+            if (patchDTO.getSpecificPerUnit() != null) {
+                existingTariff.setSpecificPerUnit(patchDTO.getSpecificPerUnit());
             }
 
 
@@ -92,17 +92,17 @@ public class DashboardService {
         return response;
     }
 
-    public DashboardResponse deleteTariff(Integer tariffid) {
+    public DashboardResponse deleteTariff(Integer tariffId) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully deleted the tariff.");
         try {
-            if (!tariffRepo.existsById(tariffid)) {
-                throw new Exception("Tariff with ID " + tariffid + " not found");
+            if (!tariffRepo.existsById(tariffId)) {
+                throw new Exception("Tariff with ID " + tariffId + " not found");
             }
 
-            tariffRepo.deleteById(tariffid);
+            tariffRepo.deleteById(tariffId);
 
-            if (tariffRepo.existsById(tariffid)) {
-                throw new Exception("Failed to delete tariff with ID " + tariffid);
+            if (tariffRepo.existsById(tariffId)) {
+                throw new Exception("Failed to delete tariff with ID " + tariffId);
             }
         } catch (Exception e) {
             response.setSuccess(false);
@@ -115,7 +115,7 @@ public class DashboardService {
         Page<Tariff> pageResult;
 
         if (tariffId != null) {
-            pageResult = tariffRepo.findByTariffid(tariffId, pageable);
+            pageResult = tariffRepo.findByTariffId(tariffId, pageable);
         } else if (descriptionQuery != null && !descriptionQuery.isBlank()) {
             pageResult = tariffRepo.findByDescriptionwcountryContainingIgnoreCase(descriptionQuery, pageable);
         } else {
