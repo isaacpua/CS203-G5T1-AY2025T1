@@ -205,7 +205,8 @@ function TariffGrid({ userRole, data, onEdit, onDelete, onView }) {
     rowHeight: 56,
     headerHeight: 52,
     rowSelection: { mode: "multiple" },
-    columnMarkerEnabled: true,
+    columnMarkerEnabled: false,
+    columnSizeToFit: true,
     editCellMode: "cell",
     editClickActivator: "double-click",
     columnBase: { editable: false },
@@ -644,36 +645,38 @@ export default function Dashboard() {
           </div>
         </CardHeader>
 
-        <CardContent className="p-4 md:p-6">
-          {/* Search Controls */}
-          <div className="flex flex-col md:flex-row md:items-end gap-4 mb-6 p-4 bg-muted/30 rounded-xl border">
-            <div className="w-full md:flex-1">
-              <Label className="text-sm font-medium text-foreground">Search Method</Label>
-              <Select value={mode} onValueChange={setMode}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="id"><div className="flex items-center"><Badge variant="outline" className="mr-2 text-xs">ID</Badge>Tariff ID</div></SelectItem>
-                  <SelectItem value="desc"><div className="flex items-center"><Search className="mr-2 h-3 w-3" />Description</div></SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="w-full md:flex-[3]">
-              <Label className="text-sm font-medium text-foreground">{mode === "id" ? "Enter Tariff ID" : "Search Description"}</Label>
-              <div className="relative mt-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input value={query} onChange={(e) => setQuery(e.target.value)} className="pl-10 pr-4" placeholder={mode === "id" ? "e.g., 12345" : "e.g., electronics, beverages..."} />
-                {query && (
-                  <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0" onClick={() => setQuery("")}>
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
+        <CardContent className="px-0 pt-4 md:pt-6 pb-6 md:pb-8">
+          <div className="px-4 md:px-6">
+            {/* Search Controls */}
+            <div className="flex flex-col md:flex-row md:items-end gap-4 mb-6 p-4 bg-muted/30 rounded-xl border">
+              <div className="w-full md:flex-1">
+                <Label className="text-sm font-medium text-foreground">Search Method</Label>
+                <Select value={mode} onValueChange={setMode}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="id"><div className="flex items-center"><Badge variant="outline" className="mr-2 text-xs">ID</Badge>Tariff ID</div></SelectItem>
+                    <SelectItem value="desc"><div className="flex items-center"><Search className="mr-2 h-3 w-3" />Description</div></SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
 
-            <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-2">
-              <Badge variant="secondary" className="text-xs">{results ? `${results.totalElements ?? results.content.length} results` : "Loading..."}</Badge>
-              {debouncedQuery && <Badge variant="outline" className="text-xs">Filtered</Badge>}
+              <div className="w-full md:flex-[3]">
+                <Label className="text-sm font-medium text-foreground">{mode === "id" ? "Enter Tariff ID" : "Search Description"}</Label>
+                <div className="relative mt-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input value={query} onChange={(e) => setQuery(e.target.value)} className="pl-10 pr-4" placeholder={mode === "id" ? "e.g., 12345" : "e.g., electronics, beverages..."} />
+                  {query && (
+                    <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0" onClick={() => setQuery("")}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-2">
+                <Badge variant="secondary" className="text-xs">{results ? `${results.totalElements ?? results.content.length} results` : "Loading..."}</Badge>
+                {debouncedQuery && <Badge variant="outline" className="text-xs">Filtered</Badge>}
+              </div>
             </div>
           </div>
 
@@ -713,7 +716,7 @@ export default function Dashboard() {
 
           {/* Pagination */}
           {results && results.totalPages > 1 && (
-            <div className="flex justify-between items-center pt-6 border-t">
+            <div className="flex justify-between items-center pt-6 border-t px-4 md:px-6">
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-muted-foreground">Showing page {page + 1} of {results.totalPages}</span>
                 <Badge variant="outline" className="text-xs">{results.content.length} records</Badge>
