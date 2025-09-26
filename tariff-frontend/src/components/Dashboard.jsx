@@ -164,7 +164,7 @@ const SortableHeader = ({ column, grid }) => {
 
   return (
     <div
-      className="flex items-center justify-between px-3 py-3 h-full w-full bg-muted/50 hover:bg-muted/80 cursor-pointer transition-colors border-b border-border font-semibold text-foreground text-sm"
+      className="flex items-center justify-between px-3 py-3 h-full w-full bg-muted hover:bg-muted/80 cursor-pointer transition-colors border-b border-border font-semibold text-foreground text-sm"
       onClick={handleSort}
     >
       <span>{column.name}</span>
@@ -174,7 +174,7 @@ const SortableHeader = ({ column, grid }) => {
 };
 
 const StaticHeader = ({ column }) => (
-  <div className="flex items-center justify-center px-3 py-3 h-full w-full bg-muted/50 border-b border-border font-semibold text-foreground text-sm">
+  <div className="flex items-center justify-center px-3 py-3 h-full w-full bg-muted border-b border-border font-semibold text-foreground text-sm">
     <span>{column.name}</span>
   </div>
 );
@@ -204,7 +204,7 @@ function TariffGrid({ userRole, data, onEdit, onDelete, onView }) {
     rowDataSource: ds,
     rowHeight: 56,
     headerHeight: 52,
-    rowSelection: { mode: "multiple", checkboxSelection: true },
+    rowSelection: { mode: "multiple" },
     columnMarkerEnabled: true,
     editCellMode: "cell",
     editClickActivator: "double-click",
