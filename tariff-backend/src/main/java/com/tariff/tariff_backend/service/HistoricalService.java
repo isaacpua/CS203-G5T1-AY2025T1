@@ -1,13 +1,22 @@
 package com.tariff.tariff_backend.service;
 
-import com.tariff.tariff_backend.model.history.*;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.springframework.stereotype.Service;
+
+import com.tariff.tariff_backend.model.history.HistoricalPoint;
+import com.tariff.tariff_backend.model.history.HistoricalResponse;
+import com.tariff.tariff_backend.model.history.HistoryPreset;
+import com.tariff.tariff_backend.model.history.Unit;
 
 @Service
 public class HistoricalService {
@@ -55,7 +64,7 @@ public class HistoricalService {
 
     public List<HistoryPreset> presets() {
         return Arrays.asList(
-            new HistoryPreset("SG→CN Electronics", "Singapore", "China", "8471"),
+            new HistoryPreset("TW→SG Semiconductors", "Taiwan", "Singapore", "8471"),
             new HistoryPreset("US→EU Steel", "United States", "European Union", "7208")
         );
     }
