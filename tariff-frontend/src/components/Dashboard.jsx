@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import Papa from 'papaparse';
 
 function useDebounce(value, delayMs = 500) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -92,12 +93,12 @@ const ActionCell = ({ userRole, row, onEdit, onDelete, onView }) => (
       <DropdownMenuContent align="end" className="w-40">
         <DropdownMenuItem onClick={() => onView(row.data)}><Eye className="mr-2 h-4 w-4" />View Details</DropdownMenuItem>
         {userRole === "admin" && (<DropdownMenuItem onClick={() => onEdit(row.data)}><Edit2 className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>)}
-        {userRole === "admin" && ( <>
+        {userRole === "admin" && (<>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => onDelete(row.data)} className="text-red-600 focus:text-red-600 dark:text-red-500 dark:focus:text-red-400">
             <Trash2 className="mr-2 h-4 w-4" />Delete
           </DropdownMenuItem>
-          </>
+        </>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -233,7 +234,7 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
     setErrors({});
     onSubmit(form);
   };
-  
+
   const hasChanges = JSON.stringify(form) !== JSON.stringify(initialData);
 
   const categories = ["COMPOSITE", "SPECIFIC_PER_UNIT", "AD_VALOREM", "FOOD_BEVERAGE", "MINERAL", "CHEMICAL", "PLASTIC", "TEXTILE", "WOOD", "PAPER"];
@@ -272,7 +273,7 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
             <Input id="reporterCountry" value={form.reporterCountry || ""} onChange={(e) => setForm((f) => ({ ...f, reporterCountry: e.target.value }))} className={errors.reporterCountry ? "border-red-500" : ""} />
             {errors.reporterCountry && <p className="text-sm text-red-500">{errors.reporterCountry}</p>}
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="adValorem">Ad Valorem Rate</Label>
             <Input id="adValorem" type="number" step="0.01" min="0" value={form.adValorem || ""} onChange={(e) => setForm((f) => ({ ...f, adValorem: e.target.value }))} className={errors.adValorem ? "border-red-500" : ""} />
@@ -381,6 +382,7 @@ export default function Dashboard() {
   const [actionError, setActionError] = useState("");
   const [showRelogin, setShowRelogin] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const debouncedQuery = useDebounce(query);
 
@@ -445,6 +447,59 @@ export default function Dashboard() {
   const handleView = (row) => { setSelectedRow(row); setShowView(true); };
   const handleCreate = () => { setSelectedRow(null); setShowCreate(true); };
   const handleRefresh = () => { fetchTariffs(true); };
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      const { data } = await axiosClient.get("/dashboard/tariffs?size=-1");
+
+      // Define the fields you want to export and their display names
+      const fields = [
+        { key: 'tariffId', label: 'Tariff ID' },
+        { key: 'descriptionwcountry', label: 'Description' },
+        { key: 'partnerCountry', label: 'Partner Country' },
+        { key: 'reporterCountry', label: 'Reporter Country' },
+        { key: 'unitname', label: 'Unit Name' },
+        { key: 'category', label: 'Category' },
+        { key: 'adValorem', label: 'Ad Valorem' },
+        { key: 'specificPerUnit', label: 'Specific Per Unit' }
+      ];
+
+      // Transform data to ensure consistent field names
+      const transformedData = data.tariffs.map(item => {
+        const transformed = {};
+        fields.forEach(field => {
+          transformed[field.label] = item[field.key] || '';
+        });
+        return transformed;
+      });
+
+      // Convert to CSV using Papaparse
+      const csv = Papa.unparse(transformedData, {
+        header: true,
+        skipEmptyLines: true
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tariffs_${new Date().toISOString()}.csv`;
+      a.click();
+
+      window.URL.revokeObjectURL(url);
+      toast.success(`Exported ${data.tariffs.length} tariff records`);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setShowRelogin(true);
+        return;
+      }
+      console.error('Download failed:', err);
+      toast.error('Failed to export data');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const closeDialogs = () => {
     setShowCreate(false); setShowEdit(false); setShowDelete(false); setShowView(false);
@@ -515,7 +570,9 @@ export default function Dashboard() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm"><Download className="h-4 w-4" /></Button>
+                  <Button variant="outline" size="sm" onClick={handleDownload} disabled={isDownloading}>
+                    <Download className={`h-4 w-4 ${isDownloading ? "animate-spin" : ""}`} />
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>Export data</TooltipContent>
               </Tooltip>

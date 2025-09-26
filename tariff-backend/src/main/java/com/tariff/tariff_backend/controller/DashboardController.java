@@ -1,5 +1,9 @@
 package com.tariff.tariff_backend.controller;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -37,7 +41,8 @@ public class DashboardController {
     }
 
     @PostMapping("/tariffs")
-    public ResponseEntity<?> createTariff(@RequestHeader("Authorization") String authHeader, @RequestBody TariffPatchDTO request) {
+    public ResponseEntity<?> createTariff(@RequestHeader("Authorization") String authHeader,
+            @RequestBody TariffPatchDTO request) {
         if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have enough permissions.");
         }
@@ -49,7 +54,8 @@ public class DashboardController {
     }
 
     @PatchMapping("/tariffs/{tariffid}")
-    public ResponseEntity<?> updateTariff(@RequestHeader("Authorization") String authHeader, @PathVariable Integer tariffid, @RequestBody TariffPatchDTO patchDTO) {
+    public ResponseEntity<?> updateTariff(@RequestHeader("Authorization") String authHeader,
+            @PathVariable Integer tariffid, @RequestBody TariffPatchDTO patchDTO) {
         if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have enough permissions.");
         }
@@ -61,7 +67,8 @@ public class DashboardController {
     }
 
     @DeleteMapping("/tariffs/{tariffid}")
-    public ResponseEntity<?> deleteTariff(@RequestHeader("Authorization") String authHeader, @PathVariable Integer tariffid) {
+    public ResponseEntity<?> deleteTariff(@RequestHeader("Authorization") String authHeader,
+            @PathVariable Integer tariffid) {
         if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have enough permissions.");
         }
@@ -73,12 +80,19 @@ public class DashboardController {
     }
 
     @GetMapping("/tariffs")
-    public ResponseEntity<DashboardMetrics> getTariffs(
+    public ResponseEntity<?> getTariffs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
             @RequestParam(name = "tariffid", required = false) Integer tariffId,
             @RequestParam(name = "q", required = false) String descriptionQuery) {
-
+        
+        // Get all tariff data
+        if (size <= 0) {
+            List<TariffPatchDTO> allTariffs = dashboardService.getAllTariffs();
+            Map<String, List<TariffPatchDTO>> response = new HashMap<>();
+            response.put("tariffs", allTariffs);
+            return ResponseEntity.ok(response);
+        }
         int safePage = Math.max(page, 0);
         int safeSize = size > 0 ? size : 50;
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("tariffId").ascending());

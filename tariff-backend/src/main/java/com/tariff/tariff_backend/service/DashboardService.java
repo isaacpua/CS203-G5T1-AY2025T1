@@ -41,14 +41,14 @@ public class DashboardService {
                 throw new Exception("Country " + newTariffDTO.getReporterCountry() + " not found in database");
             }
             Tariff newTariff = Tariff.builder()
-                .descriptionwcountry(newTariffDTO.getDescriptionwcountry())
-                .partnerCountry(partnerCountries.get(0))
-                .reporterCountry(reporterCountries.get(0))
-                .unitname(newTariffDTO.getUnitname())
-                .category(newTariffDTO.getCategory())
-                .adValorem(newTariffDTO.getAdValorem())
-                .specificPerUnit(newTariffDTO.getSpecificPerUnit())
-                .build();
+                    .descriptionwcountry(newTariffDTO.getDescriptionwcountry())
+                    .partnerCountry(partnerCountries.get(0))
+                    .reporterCountry(reporterCountries.get(0))
+                    .unitname(newTariffDTO.getUnitname())
+                    .category(newTariffDTO.getCategory())
+                    .adValorem(newTariffDTO.getAdValorem())
+                    .specificPerUnit(newTariffDTO.getSpecificPerUnit())
+                    .build();
 
             Tariff savedTariff = tariffRepo.save(newTariff);
             Integer tariffId = savedTariff.getTariffId();
@@ -75,7 +75,7 @@ public class DashboardService {
             if (patchDTO.getDescriptionwcountry() != null) {
                 existingTariff.setDescriptionwcountry(patchDTO.getDescriptionwcountry());
             }
-            
+
             // Add the rest of the fields
             if (patchDTO.getPartnerCountry() != null) {
                 List<Country> partnerCountries = countryRepo.findByName(patchDTO.getPartnerCountry());
@@ -103,7 +103,6 @@ public class DashboardService {
             if (patchDTO.getSpecificPerUnit() != null) {
                 existingTariff.setSpecificPerUnit(patchDTO.getSpecificPerUnit());
             }
-
 
             tariffRepo.save(existingTariff);
 
@@ -145,21 +144,35 @@ public class DashboardService {
         }
 
         List<TariffPatchDTO> tariffDtoList = pageResult.getContent().stream()
-            .map(tariff -> new TariffPatchDTO(
-                tariff.getTariffId(),
-                tariff.getDescriptionwcountry(),
-                tariff.getPartnerCountry().getName(),
-                tariff.getReporterCountry().getName(),
-                tariff.getUnitname(),
-                tariff.getCategory(),
-                tariff.getAdValorem(),
-                tariff.getSpecificPerUnit()
-            )).toList();
+                .map(tariff -> new TariffPatchDTO(
+                        tariff.getTariffId(),
+                        tariff.getDescriptionwcountry(),
+                        tariff.getPartnerCountry().getName(),
+                        tariff.getReporterCountry().getName(),
+                        tariff.getUnitname(),
+                        tariff.getCategory(),
+                        tariff.getAdValorem(),
+                        tariff.getSpecificPerUnit()))
+                .toList();
 
         return new DashboardMetrics(
                 tariffDtoList,
                 pageResult.getNumber(),
                 pageResult.getTotalPages(),
                 pageResult.getTotalElements());
+    }
+
+    public List<TariffPatchDTO> getAllTariffs() {
+        return tariffRepo.findAll().stream()
+                .map(tariff -> new TariffPatchDTO(
+                        tariff.getTariffId(),
+                        tariff.getDescriptionwcountry(),
+                        tariff.getPartnerCountry().getName(),
+                        tariff.getReporterCountry().getName(),
+                        tariff.getUnitname(),
+                        tariff.getCategory(),
+                        tariff.getAdValorem(),
+                        tariff.getSpecificPerUnit()))
+                .toList();
     }
 }
