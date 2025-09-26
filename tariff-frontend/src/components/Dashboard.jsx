@@ -26,6 +26,28 @@ function useDebounce(value, delayMs = 500) {
   return debouncedValue;
 }
 
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(query).matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia(query);
+    const handler = (event) => setMatches(event.matches);
+    setMatches(mediaQuery.matches);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handler);
+      return () => mediaQuery.removeEventListener("change", handler);
+    }
+    mediaQuery.addListener(handler);
+    return () => mediaQuery.removeListener(handler);
+  }, [query]);
+
+  return matches;
+}
+
 /* ---------------- cells ---------------- */
 const TextCell = ({ row, column, grid }) => {
   const v = grid.api.columnField(column, row);
@@ -180,7 +202,7 @@ const StaticHeader = ({ column }) => (
 );
 
 /* ---------------- grid wrapper ---------------- */
-function TariffGrid({ userRole, data, onEdit, onDelete, onView }) {
+function TariffGrid({ userRole, data, onEdit, onDelete, onView, isMobile }) {
   const columns = useMemo(
     () => [
       { id: "tariffid", name: "Tariff ID", width: 120, resizable: true, cellRenderer: TariffIdCell, headerRenderer: SortableHeader },
@@ -192,21 +214,23 @@ function TariffGrid({ userRole, data, onEdit, onDelete, onView }) {
       { id: "specificPerUnit", name: "Specific/Unit", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
       { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} userRole={userRole} onEdit={onEdit} onDelete={onDelete} onView={onView} />, headerRenderer: StaticHeader },
     ],
-    [onEdit, onDelete, onView]
+    [onEdit, onDelete, onView, userRole]
   );
 
   // hook required by the grid library (mounted only when we have data)
   const ds = useClientRowDataSource({ data });
 
+  const baseGridId = useId();
+
   const grid = Grid.useLyteNyte({
-    gridId: useId(),
+    gridId: `${baseGridId}-${isMobile ? "mobile" : "desktop"}`,
     columns,
     rowDataSource: ds,
     rowHeight: 56,
     headerHeight: 52,
     rowSelection: { mode: "multiple" },
     columnMarkerEnabled: false,
-    columnSizeToFit: true,
+    columnSizeToFit: !isMobile,
     editCellMode: "cell",
     editClickActivator: "double-click",
     columnBase: { editable: false },
@@ -215,7 +239,7 @@ function TariffGrid({ userRole, data, onEdit, onDelete, onView }) {
   const view = grid.view.useValue();
 
   return (
-    <div className="border rounded-xl shadow-sm bg-card overflow-hidden" style={{ width: "100%", height: "520px" }}>
+    <div className={`border rounded-xl shadow-sm bg-card ${isMobile ? "overflow-x-auto" : "overflow-hidden"}`} style={{ width: "100%", height: "520px" }}>
       <Grid.Root grid={grid}>
         <Grid.Viewport>
           <Grid.Header>
@@ -441,6 +465,8 @@ export default function Dashboard() {
   const [showRelogin, setShowRelogin] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const debouncedQuery = useDebounce(query);
 
@@ -700,7 +726,7 @@ export default function Dashboard() {
               </div>
             </div>
           ) : results && results.content.length > 0 ? (
-            <TariffGrid userRole={userRole} data={results.content} onEdit={handleEdit} onDelete={handleDelete} onView={handleView} />
+            <TariffGrid userRole={userRole} data={results.content} onEdit={handleEdit} onDelete={handleDelete} onView={handleView} isMobile={isMobile} />
           ) : (
             <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-muted/30 border rounded-xl">
               <div className="text-center">
@@ -716,26 +742,28 @@ export default function Dashboard() {
 
           {/* Pagination */}
           {results && results.totalPages > 1 && (
-            <div className="flex justify-between items-center pt-6 border-t px-4 md:px-6">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-muted-foreground">Showing page {page + 1} of {results.totalPages}</span>
+            <div className="flex flex-col gap-4 pt-6 border-t px-4 md:px-6 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <span>Showing page {page + 1} of {results.totalPages}</span>
                 <Badge variant="outline" className="text-xs">{results.content.length} records</Badge>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm" disabled={page <= 0} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-                <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, results.totalPages) }, (_, i) => {
-                    const pageNum = i + Math.max(0, page - 2);
-                    if (pageNum >= results.totalPages) return null;
-                    return (
-                      <Button key={pageNum} variant={pageNum === page ? "default" : "outline"} size="sm" className="w-8 h-8 p-0" onClick={() => setPage(pageNum)}>
-                        {pageNum + 1}
-                      </Button>
-                    );
-                  })}
+              <div className="overflow-x-auto">
+                <div className="flex items-center gap-2 min-w-max">
+                  <Button variant="outline" size="sm" disabled={page <= 0} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, results.totalPages) }, (_, i) => {
+                      const pageNum = i + Math.max(0, page - 2);
+                      if (pageNum >= results.totalPages) return null;
+                      return (
+                        <Button key={pageNum} variant={pageNum === page ? "default" : "outline"} size="sm" className="w-8 h-8 p-0" onClick={() => setPage(pageNum)}>
+                          {pageNum + 1}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button variant="outline" size="sm" disabled={page + 1 >= results.totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
                 </div>
-                <Button variant="outline" size="sm" disabled={page + 1 >= results.totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
               </div>
             </div>
           )}
