@@ -31,6 +31,45 @@ const TextCell = ({ row, column, grid }) => {
   return <div className="px-3 py-2 text-sm text-foreground">{v ?? "—"}</div>;
 };
 
+const DescriptionCell = ({ row, column, grid, onView }) => {
+  const value = grid.api.columnField(column, row);
+  const maxLength = 80; // Adjust this value to control truncation
+  const isLong = value && value.length > maxLength;
+  const displayText = isLong ? value.substring(0, maxLength) + "..." : value;
+  
+  const handleViewMore = () => {
+    if (onView) {
+      onView(row.data);
+    }
+  };
+  
+  return (
+    <div className="flex items-center px-3 py-2 space-x-2">
+      <span className="text-sm text-foreground flex-1">{displayText || "—"}</span>
+      {isLong && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 flex-shrink-0 border border-gray-300 dark:border-gray-600 hover:bg-gray-100"
+                onClick={handleViewMore}
+              >
+                <MoreVertical className="h-3 w-3" />
+                <span className="sr-only">View full description</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Click to view full details</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+    </div>
+  );
+};
+
 const TariffIdCell = ({ row, column, grid }) => {
   const value = grid.api.columnField(column, row);
   return (
@@ -145,7 +184,7 @@ function TariffGrid({ userRole, data, onEdit, onDelete, onView }) {
     () => [
       { id: "tariffid", name: "Tariff ID", width: 120, resizable: true, cellRenderer: TariffIdCell, headerRenderer: SortableHeader },
       { id: "category", name: "Category", width: 180, resizable: true, cellRenderer: CategoryCell, headerRenderer: SortableHeader },
-      { id: "descriptionwcountry", name: "Description", flex: 1, minWidth: 250, resizable: true, cellRenderer: TextCell, headerRenderer: SortableHeader },
+      { id: "descriptionwcountry", name: "Description", width: 500, resizable: true, cellRenderer: (props) => <DescriptionCell {...props} onView={onView} />, headerRenderer: SortableHeader },
       { id: "partnerCountry", name: "Partner Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
       { id: "reporterCountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
       { id: "adValorem", name: "Ad Valorem", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
@@ -553,11 +592,11 @@ export default function Dashboard() {
     <TooltipProvider>
       {showRelogin && <Relogin />}
       <Card className="border-0 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-6">
-          <div className="flex justify-between items-center">
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 md:p-6">
+          <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-center md:space-y-0">
             <div className="space-y-1">
-              <CardTitle className="text-2xl font-bold text-foreground">Tariff Management</CardTitle>
-              <CardDescription className="text-muted-foreground">Manage and explore tariff data with advanced filtering and editing capabilities</CardDescription>
+              <CardTitle className="text-xl md:text-2xl font-bold text-foreground">Tariff Management</CardTitle>
+              <CardDescription className="text-sm md:text-base text-muted-foreground">Manage and explore tariff data with advanced filtering and editing capabilities</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <Tooltip>
@@ -576,15 +615,21 @@ export default function Dashboard() {
                 </TooltipTrigger>
                 <TooltipContent>Export data</TooltipContent>
               </Tooltip>
-              {userRole === "admin" && (<Button onClick={handleCreate}><Plus className="mr-2 h-4 w-4" />Create Tariff</Button>)}
+              {userRole === "admin" && (
+                <Button onClick={handleCreate} size="sm" className="text-sm">
+                  <Plus className="mr-1 md:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Create Tariff</span>
+                  <span className="sm:hidden">Create</span>
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="p-6">
+        <CardContent className="p-4 md:p-6">
           {/* Search Controls */}
-          <div className="flex items-end gap-4 mb-6 p-4 bg-muted/30 rounded-xl border">
-            <div className="flex-1">
+          <div className="flex flex-col md:flex-row md:items-end gap-4 mb-6 p-4 bg-muted/30 rounded-xl border">
+            <div className="w-full md:flex-1">
               <Label className="text-sm font-medium text-foreground">Search Method</Label>
               <Select value={mode} onValueChange={setMode}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
@@ -595,7 +640,7 @@ export default function Dashboard() {
               </Select>
             </div>
 
-            <div className="flex-[3]">
+            <div className="w-full md:flex-[3]">
               <Label className="text-sm font-medium text-foreground">{mode === "id" ? "Enter Tariff ID" : "Search Description"}</Label>
               <div className="relative mt-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -608,7 +653,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-2">
               <Badge variant="secondary" className="text-xs">{results ? `${results.totalElements ?? results.content.length} results` : "Loading..."}</Badge>
               {debouncedQuery && <Badge variant="outline" className="text-xs">Filtered</Badge>}
             </div>
