@@ -4,7 +4,7 @@ import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import HistoricalTariffExplorer from './pages/HistoricalTariffExplorer';
 import UserManagement from './pages/UserManagement';
-import Dashboard from './components/Dashboard';
+import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Header from './components/Header';
 import LandingPage from './pages/LandingPage';
