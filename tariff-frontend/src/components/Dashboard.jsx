@@ -297,37 +297,37 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
 
           <div className="col-span-2 space-y-2">
             <Label htmlFor="descriptionwcountry">Description <span className="text-red-500">*</span></Label>
-            <Input id="descriptionwcountry" value={form.descriptionwcountry || ""} onChange={(e) => setForm((f) => ({ ...f, descriptionwcountry: e.target.value }))} className={errors.descriptionwcountry ? "border-red-500" : ""} />
+            <Input id="descriptionwcountry" value={form.descriptionwcountry || ""} onChange={(e) => setForm((f) => ({ ...f, descriptionwcountry: e.target.value }))} className={errors.descriptionwcountry ? "border-red-500" : ""} placeholder="e.g., Industrial Machinery" />
             {errors.descriptionwcountry && <p className="text-sm text-red-500">{errors.descriptionwcountry}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="partnerCountry">Partner Country <span className="text-red-500">*</span></Label>
-            <Input id="partnerCountry" value={form.partnerCountry || ""} onChange={(e) => setForm((f) => ({ ...f, partnerCountry: e.target.value }))} className={errors.partnerCountry ? "border-red-500" : ""} />
+            <Input id="partnerCountry" value={form.partnerCountry || ""} onChange={(e) => setForm((f) => ({ ...f, partnerCountry: e.target.value }))} className={errors.partnerCountry ? "border-red-500" : ""} placeholder="e.g., Singapore (Case Sensitive)" />
             {errors.partnerCountry && <p className="text-sm text-red-500">{errors.partnerCountry}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="reporterCountry">Reporter Country <span className="text-red-500">*</span></Label>
-            <Input id="reporterCountry" value={form.reporterCountry || ""} onChange={(e) => setForm((f) => ({ ...f, reporterCountry: e.target.value }))} className={errors.reporterCountry ? "border-red-500" : ""} />
+            <Input id="reporterCountry" value={form.reporterCountry || ""} onChange={(e) => setForm((f) => ({ ...f, reporterCountry: e.target.value }))} className={errors.reporterCountry ? "border-red-500" : ""} placeholder="e.g., China (Case Sensitive)" />
             {errors.reporterCountry && <p className="text-sm text-red-500">{errors.reporterCountry}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="adValorem">Ad Valorem Rate</Label>
-            <Input id="adValorem" type="number" step="0.01" min="0" value={form.adValorem || ""} onChange={(e) => setForm((f) => ({ ...f, adValorem: e.target.value }))} className={errors.adValorem ? "border-red-500" : ""} />
+            <Input id="adValorem" type="number" step="0.01" min="0" value={form.adValorem || ""} onChange={(e) => setForm((f) => ({ ...f, adValorem: e.target.value }))} className={errors.adValorem ? "border-red-500" : ""} placeholder="e.g., 5.5" />
             {errors.adValorem && <p className="text-sm text-red-500">{errors.adValorem}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="specificPerUnit">Specific per Unit</Label>
-            <Input id="specificPerUnit" type="number" step="0.01" min="0" value={form.specificPerUnit || ""} onChange={(e) => setForm((f) => ({ ...f, specificPerUnit: e.target.value }))} className={errors.specificPerUnit ? "border-red-500" : ""} />
+            <Input id="specificPerUnit" type="number" step="0.01" min="0" value={form.specificPerUnit || ""} onChange={(e) => setForm((f) => ({ ...f, specificPerUnit: e.target.value }))} className={errors.specificPerUnit ? "border-red-500" : ""} placeholder="e.g., 12.50" />
             {errors.specificPerUnit && <p className="text-sm text-red-500">{errors.specificPerUnit}</p>}
           </div>
 
           <div className="col-span-2 space-y-2">
             <Label htmlFor="unitname">Unit Name</Label>
-            <Input id="unitname" value={form.unitname || ""} onChange={(e) => setForm((f) => ({ ...f, unitname: e.target.value }))} />
+            <Input id="unitname" value={form.unitname || ""} onChange={(e) => setForm((f) => ({ ...f, unitname: e.target.value }))} placeholder="e.g., kg" />
           </div>
 
         </div>
