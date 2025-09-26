@@ -6,10 +6,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu"
 import { getUserInitials } from "@/utils/AvatarHelpers"
 import { ModeToggle } from "./mode-toggle"
 import { logout } from "@/utils/logout"
 import { useAuth } from "@/utils/AuthContext"
+import { cn } from "@/lib/utils"
 
 export default function Header() {
   const { user, setUser } = useAuth();
@@ -26,9 +34,43 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center justify-between px-4">
-        <a className="flex items-center space-x-2" href="/">
-          <span className="font-bold">TARIFF Project</span>
-        </a>
+        <div className="flex items-center space-x-6">
+          <a className="flex items-center space-x-2" href="/">
+            <span className="font-bold">TARIFIC</span>
+          </a>
+
+          {/* Navigation Menu */}
+          {user && (
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    className={cn(navigationMenuTriggerStyle(), "cursor-pointer")}
+                    onClick={() => navigate("/calculator")}
+                  >
+                    Calculator
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    className={cn(navigationMenuTriggerStyle(), "cursor-pointer")}
+                    onClick={() => navigate("/dashboard")}
+                  >
+                    Dashboard
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    className={cn(navigationMenuTriggerStyle(), "cursor-pointer")}
+                    onClick={() => navigate("/historical")}
+                  >
+                    Historical Explorer
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+          )}
+        </div>
 
         {/* Right-side group: Avatar (if user exists) + ModeToggle */}
         <div className="flex items-center space-x-2">
