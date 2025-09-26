@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import Papa from 'papaparse';
+import { useNavigate } from "react-router-dom";
 
 function useDebounce(value, delayMs = 500) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -346,6 +347,19 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
 };
 
 const ViewDetailsModal = ({ isOpen, onClose, data }) => {
+  const navigate = useNavigate();
+  const viewInCalculator = () => {
+    console.log(data);
+    // TODO: Process the data and load into a query param
+    navigate("/calculator");
+  }
+
+  const viewInHistorical = () => {
+    console.log(data);
+    // TODO: Process the data and load into a query param
+    navigate("/calculator");
+  }
+
   if (!data) return null;
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -397,7 +411,11 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
           </div>
         </div>
 
-        <DialogFooter><Button onClick={onClose}>Close</Button></DialogFooter>
+        <DialogFooter>
+          <Button onClick={viewInCalculator} variant="link">View in Calculator</Button>
+          <Button onClick={viewInHistorical} variant="link">View in Historical Explorer</Button>
+          <Button onClick={onClose} variant="destructive">Close</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
