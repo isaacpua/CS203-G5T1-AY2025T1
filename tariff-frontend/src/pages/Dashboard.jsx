@@ -433,7 +433,7 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
   const viewInHistorical = () => {
     console.log(data);
     // TODO: Process the data and load into a query param
-    navigate("/calculator");
+    navigate("/historical");
   }
 
   if (!data) return null;
