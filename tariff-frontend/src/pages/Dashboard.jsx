@@ -428,16 +428,17 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
 const ViewDetailsModal = ({ isOpen, onClose, data }) => {
   const navigate = useNavigate();
   const viewInCalculator = () => {
-    console.log(data);
-    // TODO: Process the data and load into a query param
-    navigate("/calculator");
-  }
+    if (!data) return;
+    // Pass tariffId as a query param for auto-selection in calculator
+    const tariffId = data.tariffIdDisplay ?? data.tariffid;
+    navigate(`/calculator?tariffId=${encodeURIComponent(tariffId)}`);
+  };
 
   const viewInHistorical = () => {
-    console.log(data);
-    // TODO: Process the data and load into a query param
-    navigate("/historical");
-  }
+    if (!data) return;
+    const tariffId = data.tariffIdDisplay ?? data.tariffid;
+    navigate(`/historical?tariffId=${encodeURIComponent(tariffId)}`);
+  };
 
   if (!data) return null;
   const detailBadgeLabel = (() => {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import axiosClient from "@/api/axiosClient";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,15 @@ const URL_CALC = "/tariffs/calc";
 const NONE = "none";
 
 export default function TariffCalc() {
+    // Get tariffId from query string
+    const location = useLocation();
+    const [autoSelectId, setAutoSelectId] = useState(null);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const tid = params.get("tariffId");
+        setAutoSelectId(tid);
+    }, [location.search]);
     const [showRelogin, setShowRelogin] = useState(false);
 
     // Countries
@@ -43,7 +53,7 @@ export default function TariffCalc() {
     const [searchTick, setSearchTick] = useState(0);
 
     // Selection + compute
-    const [selected, setSelected] = useState(null);
+        const [selected, setSelected] = useState(null);
     const [declaredValue, setDeclaredValue] = useState("");
     const [quantity, setQuantity] = useState("");
     const [computing, setComputing] = useState(false);
@@ -179,6 +189,21 @@ export default function TariffCalc() {
                 }
 
                 setResults(normalized);
+                    // Auto-select tariff if query param is present and results loaded
+                    if (autoSelectId && normalized.content.length > 0) {
+                        const found = normalized.content.find(row => String(row.id ?? row.tariffId ?? row.tariffid) === String(autoSelectId));
+                        if (found) {
+                            const normalizedTariff = {
+                                id: found.id ?? found.tariffId ?? found.tariffid,
+                                descriptionwcountry: found.descriptionwcountry ?? found.descriptionWCountry ?? found.description,
+                                category: found.category,
+                                advalorem: found.advalorem ?? found.adValorem,
+                                specificperunit: found.specificperunit ?? found.specificPerUnit,
+                                unitname: found.unitname ?? found.unitName,
+                            };
+                            setSelected(normalizedTariff);
+                        }
+                    }
             } catch (e) {
                 if (e.response?.status === 401) { setShowRelogin(true); return; }
                 setSearchError("Search failed. Check /api/v1/tariffs/search and params.");
@@ -187,7 +212,7 @@ export default function TariffCalc() {
         };
 
         fetchPage();
-    }, [fromId, toId, debouncedQ, page, size, searchTick]);
+        }, [fromId, toId, debouncedQ, page, size, searchTick, autoSelectId]);
 
     /** Reset inputs when selecting a new row */
     useEffect(() => {
