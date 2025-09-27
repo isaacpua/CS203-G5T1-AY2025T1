@@ -27,9 +27,19 @@ import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
 import com.tariff.tariff_backend.service.DashboardService;
 import com.tariff.tariff_backend.service.JwtService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/api/v1/dashboard")
 @CrossOrigin(origins = "http://localhost:5173")
+@Tag(name = "Tariff Dashboard", description = "Tariff management dashboard operations")
 public class DashboardController {
 
     private final DashboardService dashboardService;
@@ -40,9 +50,25 @@ public class DashboardController {
         this.jwtService = jwtService;
     }
 
+    @Operation(
+        summary = "Create new tariff",
+        description = "Creates a new tariff entry. Requires admin role.",
+        security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Tariff created successfully",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = DashboardResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid tariff data",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = DashboardResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Insufficient permissions - admin role required",
+            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string", example = "You do not have enough permissions.")))
+    })
     @PostMapping("/tariffs")
-    public ResponseEntity<?> createTariff(@RequestHeader("Authorization") String authHeader,
-            @RequestBody TariffPatchDTO request) {
+    public ResponseEntity<?> createTariff(
+        @Parameter(description = "Bearer token for admin authentication", required = true)
+        @RequestHeader("Authorization") String authHeader,
+        @Parameter(description = "Tariff data to create", required = true)
+        @RequestBody TariffPatchDTO request) {
         if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have enough permissions.");
         }
@@ -53,9 +79,27 @@ public class DashboardController {
         return ResponseEntity.ok(dResponse);
     }
 
+    @Operation(
+        summary = "Update existing tariff",
+        description = "Updates an existing tariff by ID. Requires admin role.",
+        security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Tariff updated successfully",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = DashboardResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid tariff data or tariff not found",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = DashboardResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Insufficient permissions - admin role required",
+            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string", example = "You do not have enough permissions.")))
+    })
     @PatchMapping("/tariffs/{tariffid}")
-    public ResponseEntity<?> updateTariff(@RequestHeader("Authorization") String authHeader,
-            @PathVariable Integer tariffid, @RequestBody TariffPatchDTO patchDTO) {
+    public ResponseEntity<?> updateTariff(
+        @Parameter(description = "Bearer token for admin authentication", required = true)
+        @RequestHeader("Authorization") String authHeader,
+        @Parameter(description = "ID of the tariff to update", required = true, example = "1")
+        @PathVariable Integer tariffid,
+        @Parameter(description = "Updated tariff data", required = true)
+        @RequestBody TariffPatchDTO patchDTO) {
         if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have enough permissions.");
         }
@@ -66,9 +110,25 @@ public class DashboardController {
         return ResponseEntity.ok(dResponse);
     }
 
+    @Operation(
+        summary = "Delete tariff",
+        description = "Deletes an existing tariff by ID. Requires admin role.",
+        security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Tariff deleted successfully",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = DashboardResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Tariff not found or cannot be deleted",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = DashboardResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Insufficient permissions - admin role required",
+            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string", example = "You do not have enough permissions.")))
+    })
     @DeleteMapping("/tariffs/{tariffid}")
-    public ResponseEntity<?> deleteTariff(@RequestHeader("Authorization") String authHeader,
-            @PathVariable Integer tariffid) {
+    public ResponseEntity<?> deleteTariff(
+        @Parameter(description = "Bearer token for admin authentication", required = true)
+        @RequestHeader("Authorization") String authHeader,
+        @Parameter(description = "ID of the tariff to delete", required = true, example = "1")
+        @PathVariable Integer tariffid) {
         if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have enough permissions.");
         }
@@ -79,11 +139,23 @@ public class DashboardController {
         return ResponseEntity.ok(dResponse);
     }
 
+    @Operation(
+        summary = "Get tariffs",
+        description = "Retrieves tariffs with optional pagination, filtering by ID, and text search. Use size=0 or negative to get all tariffs without pagination."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Tariffs retrieved successfully",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = DashboardMetrics.class)))
+    })
     @GetMapping("/tariffs")
     public ResponseEntity<?> getTariffs(
+            @Parameter(description = "Page number (0-based)", example = "0")
             @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page. Use 0 or negative for all results", example = "50")
             @RequestParam(defaultValue = "50") int size,
+            @Parameter(description = "Filter by specific tariff ID", example = "123")
             @RequestParam(name = "tariffid", required = false) Integer tariffId,
+            @Parameter(description = "Search query for tariff description", example = "mobile data")
             @RequestParam(name = "q", required = false) String descriptionQuery) {
         
         // Get all tariff data

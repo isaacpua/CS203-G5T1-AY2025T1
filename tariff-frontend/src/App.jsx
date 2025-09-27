@@ -1,4 +1,4 @@
-import TariffCalculatorv2 from './pages/TariffCalculatorv2';
+import TariffCalculator from './pages/TariffCalculator';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -31,7 +31,7 @@ function AppContent() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/calculator" element={
                   <section className="container mx-auto py-8 md:py-12 lg:py-24">
-                    <TariffCalculatorv2 />
+                    <TariffCalculator />
                   </section>
                 } />
                 <Route path="/dashboard" element={
