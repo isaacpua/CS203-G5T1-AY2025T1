@@ -253,16 +253,19 @@ const StaticHeader = ({ column }) => (
 );
 
 /* ---------------- grid wrapper ---------------- */
+//
+// Change StaticHeader to SortableHeader to enable sorting
+//
 function TariffGrid({ userRole, data, onEdit, onDelete, onView, isMobile }) {
   const columns = useMemo(
     () => [
-      { id: "tariffid", name: "Tariff ID", width: 120, resizable: true, cellRenderer: TariffIdCell, headerRenderer: SortableHeader },
-      { id: "category", name: "Category", width: 180, resizable: true, cellRenderer: CategoryCell, headerRenderer: SortableHeader },
-      { id: "descriptionwcountry", name: "Description", width: 500, resizable: true, cellRenderer: (props) => <DescriptionCell {...props} onView={onView} />, headerRenderer: SortableHeader },
-      { id: "partnerCountry", name: "Partner Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
-      { id: "reporterCountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: SortableHeader },
-      { id: "adValorem", name: "Ad Valorem", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
-      { id: "specificPerUnit", name: "Specific/Unit", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: SortableHeader },
+      { id: "tariffid", name: "Tariff ID", width: 120, resizable: true, cellRenderer: TariffIdCell, headerRenderer: StaticHeader },
+      { id: "category", name: "Category", width: 180, resizable: true, cellRenderer: CategoryCell, headerRenderer: StaticHeader },
+      { id: "descriptionwcountry", name: "Description", width: 500, resizable: true, cellRenderer: (props) => <DescriptionCell {...props} onView={onView} />, headerRenderer: StaticHeader },
+      { id: "partnerCountry", name: "Partner Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: StaticHeader },
+      { id: "reporterCountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: StaticHeader },
+      { id: "adValorem", name: "Ad Valorem", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader },
+      { id: "specificPerUnit", name: "Specific/Unit", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader },
       { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} userRole={userRole} onEdit={onEdit} onDelete={onDelete} onView={onView} />, headerRenderer: StaticHeader },
     ],
     [onEdit, onDelete, onView, userRole]
