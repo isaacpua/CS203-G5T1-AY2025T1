@@ -167,10 +167,16 @@ const MoneyCell = ({ row, column, grid }) => {
   const value = grid.api.columnField(column, row);
   const n = Number(value);
   const show = Number.isFinite(n) && n !== 0;
+  // If column is adValorem, show as percentage
+  const isAdValorem = column.id === "adValorem";
   return (
     <div className="flex items-center justify-left px-3 py-2">
       <span className={`font-mono text-sm ${show ? "text-foreground" : "text-muted-foreground"}`}>
-        {show ? `$${n.toFixed(2)}` : "—"}
+        {show
+          ? isAdValorem
+            ? `${(n * 100).toFixed(2)}%`
+            : `$${n.toFixed(2)}`
+          : "—"}
       </span>
     </div>
   );
@@ -427,12 +433,22 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
 
 const ViewDetailsModal = ({ isOpen, onClose, data }) => {
   const navigate = useNavigate();
-  const viewInCalculator = () => {
-    if (!data) return;
-    // Pass tariffId as a query param for auto-selection in calculator
-    const tariffId = data.tariffIdDisplay ?? data.tariffid;
-    navigate(`/calculator?tariffId=${encodeURIComponent(tariffId)}`);
-  };
+        const getValidTariffId = () => {
+          if (!data) return null;
+          // Prefer normalized numeric tariffid if available
+          const numericId = Number(data.tariffid);
+          if (Number.isFinite(numericId) && numericId > 0) return numericId;
+          // Fallback to string display
+          const id = data.tariffIdDisplay ?? data.id;
+          if (id === undefined || id === null || String(id).trim() === "") return null;
+          return id;
+        };
+
+        const viewInCalculator = () => {
+          const tariffId = getValidTariffId();
+          if (!tariffId) return;
+          navigate(`/calculator?tariffId=${encodeURIComponent(tariffId)}`);
+        };
 
   const viewInHistorical = () => {
     if (!data) return;
@@ -500,7 +516,7 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
         </div>
 
         <DialogFooter>
-          <Button onClick={viewInCalculator} variant="link">View in Calculator</Button>
+                <Button onClick={viewInCalculator} variant="link" disabled={!getValidTariffId()}>View in Calculator</Button>
           <Button onClick={viewInHistorical} variant="link">View in Historical Explorer</Button>
           <Button onClick={onClose} variant="destructive">Close</Button>
         </DialogFooter>
