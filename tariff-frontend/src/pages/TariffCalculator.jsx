@@ -444,7 +444,11 @@ export default function TariffCalc() {
                                     )}
                                 </div>
 
-                                <Button className="w-full" onClick={onCompute} disabled={computing}>
+                                <Button
+                                    className="w-full"
+                                    onClick={onCompute}
+                                    disabled={computing || (needsDV && declaredValue.trim() === "")}
+                                >
                                     {computing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Computing…</>) : ("Compute Duty")}
                                 </Button>
 
