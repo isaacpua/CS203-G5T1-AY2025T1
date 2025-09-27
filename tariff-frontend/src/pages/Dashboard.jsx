@@ -1,4 +1,4 @@
-import { useEffect, useState, useId, useCallback, useMemo } from "react";
+import { useEffect, useState, useId, useCallback, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import axiosClient from "../api/axiosClient";
 import { Button } from "@/components/ui/button";
@@ -55,40 +55,70 @@ const TextCell = ({ row, column, grid }) => {
 };
 
 const DescriptionCell = ({ row, column, grid, onView }) => {
-  const value = grid.api.columnField(column, row);
-  const maxLength = 80; // Adjust this value to control truncation
-  const isLong = value && value.length > maxLength;
-  const displayText = isLong ? value.substring(0, maxLength) + "..." : value;
-  
-  const handleViewMore = () => {
+  const fullText = grid.api.columnField(column, row) ?? "";
+  const textRef = useRef(null);
+  const [canExpand, setCanExpand] = useState(false);
+
+  const collapsedStyle = {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "clip",
+    WebkitMaskImage: canExpand ? "linear-gradient(90deg, #000 75%, rgba(0,0,0,0))" : undefined,
+    maskImage: canExpand ? "linear-gradient(90deg, #000 75%, rgba(0,0,0,0))" : undefined,
+  };
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+
+    const updateOverflow = () => {
+      const isOverflowing = el.scrollWidth - el.clientWidth > 1;
+      setCanExpand(isOverflowing);
+    };
+
+    updateOverflow();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(updateOverflow);
+      observer.observe(el);
+      return () => observer.disconnect();
+    }
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", updateOverflow);
+      return () => window.removeEventListener("resize", updateOverflow);
+    }
+
+    return undefined;
+  }, [fullText]);
+
+  const handleShowDetails = (event) => {
+    event.stopPropagation();
     if (onView) {
       onView(row.data);
     }
   };
-  
+
   return (
-    <div className="flex items-center px-3 py-2 space-x-2">
-      <span className="text-sm text-foreground flex-1">{displayText || "—"}</span>
-      {isLong && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 flex-shrink-0 border border-gray-300 dark:border-gray-600 hover:bg-gray-100"
-                onClick={handleViewMore}
-              >
-                <MoreVertical className="h-3 w-3" />
-                <span className="sr-only">View full description</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Click to view full details</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
+    <div className="flex items-center px-3 py-2">
+      <div className="flex items-center min-w-0 gap-2 text-sm text-foreground">
+        <span
+          ref={textRef}
+          className="block min-w-0 flex-1 leading-snug"
+          style={collapsedStyle}
+        >
+          {fullText || "—"}
+        </span>
+        {canExpand && (
+          <button
+            type="button"
+            onClick={handleShowDetails}
+            className="flex-none text-xs font-medium text-primary hover:underline focus:outline-none"
+          >
+            Show more
+          </button>
+        )}
+      </div>
     </div>
   );
 };
@@ -410,7 +440,12 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
 
           <div>
             <Label className="text-sm font-medium text-muted-foreground">Description</Label>
-            <p className="mt-1 text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded-md">{data.descriptionwcountry}</p>
+            <div
+              className="mt-1 text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded-md border border-border/40 max-h-60 overflow-y-auto overflow-x-hidden whitespace-pre-wrap leading-relaxed"
+              style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
+            >
+              {data.descriptionwcountry || "—"}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
@@ -451,7 +486,7 @@ export default function Dashboard() {
   const [mode, setMode] = useState("desc");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize] = useState(50);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [results, setResults] = useState(null);
