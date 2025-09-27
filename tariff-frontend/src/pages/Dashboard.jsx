@@ -879,7 +879,23 @@ export default function Dashboard() {
                     const badgeLabel = idValue ? `#${idValue}` : "—";
                     return <Badge variant="secondary" className="font-mono">{badgeLabel}</Badge>;
                   })()}
-                  <span className="text-sm text-muted-foreground">{selectedRow.descriptionwcountry}</span>
+                  <div
+                    className="text-sm text-muted-foreground block min-w-0 flex-1 leading-snug"
+                    style={{
+                      maxWidth: "600px",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      whiteSpace: "normal",
+                      wordBreak: "break-word",
+                      WebkitMaskImage: "linear-gradient(90deg, #000 85%, rgba(0,0,0,0))",
+                      maskImage: "linear-gradient(90deg, #000 85%, rgba(0,0,0,0))",
+                    }}
+                  >
+                    {selectedRow.descriptionwcountry || "—"}
+                  </div>
                 </div>
               </div>
             )}
