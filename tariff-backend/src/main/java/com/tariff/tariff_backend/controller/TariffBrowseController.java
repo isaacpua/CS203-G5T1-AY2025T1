@@ -7,11 +7,15 @@ import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.tariff.tariff_backend.dto.CountryDTO;
+import com.tariff.tariff_backend.dto.CalculationDTO.CalculateDutyRequest;
+import com.tariff.tariff_backend.dto.CalculationDTO.CalculateDutyResponse;
 import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 import com.tariff.tariff_backend.repository.TariffRepo;
+import com.tariff.tariff_backend.service.CalculationService;
 
 @RestController
 @RequestMapping("/api/v1/tariffs")
@@ -19,9 +23,11 @@ public class TariffBrowseController {
 
     // Fill the FROM dropdown (distinct partner countries present in tariffs)
     private final TariffRepo repo;
+    private final CalculationService calcService;
 
-    public TariffBrowseController(TariffRepo repo) {
+    public TariffBrowseController(TariffRepo repo, CalculationService calcService) {
         this.repo = repo;
+        this.calcService = calcService;
     }
 
     @GetMapping("/countries/partners")
@@ -37,7 +43,7 @@ public class TariffBrowseController {
         return repo.availableTo(fromId);
     }
 
-    @GetMapping("/search2")
+    @GetMapping("/search")
     public Map<String, Object> search(
             @RequestParam(required = false) Integer fromId,
             @RequestParam(required = false) Integer toId,
@@ -57,5 +63,10 @@ public class TariffBrowseController {
         response.put("last", result.isLast());
 
         return response;
+    }
+
+    @PostMapping("/calc")
+    public ResponseEntity<CalculateDutyResponse> calculate(@RequestBody CalculateDutyRequest req) {
+        return ResponseEntity.ok(calcService.calculateAndStore(req));
     }
 }

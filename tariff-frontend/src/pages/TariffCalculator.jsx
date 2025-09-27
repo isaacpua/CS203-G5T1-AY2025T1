@@ -1,4 +1,3 @@
-// src/pages/TariffCalcV2.jsx
 import { useEffect, useRef, useState } from "react";
 import axiosClient from "@/api/axiosClient";
 import { Button } from "@/components/ui/button";
@@ -19,12 +18,12 @@ const URL_PARTNERS_ALL = "/tariffs/countries/partners";
 const URL_REPORTERS_ALL = "/tariffs/countries/reporters";
 const URL_REPORTERS_FROM = (fromId) => `/tariffs/countries/reporters?fromId=${fromId}`;
 const URL_PARTNERS_BY_TO = (toId) => `/tariffs/countries/partners?toId=${toId}`;
-const URL_SEARCH = "/tariffs/search2";
+const URL_SEARCH = "/tariffs/search";
 const URL_CALC = "/tariffs/calc";
 
 const NONE = "none";
 
-export default function TariffCalcV2() {
+export default function TariffCalc() {
     const [showRelogin, setShowRelogin] = useState(false);
 
     // Countries
