@@ -1,5 +1,6 @@
 package com.tariff.tariff_backend.service;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,10 +8,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.tariff.tariff_backend.model.tariffs_new.Country;
 import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 import com.tariff.tariff_backend.model.dashboard.DashboardMetrics;
 import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
 import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
+import com.tariff.tariff_backend.repository.CountryRepo;
 import com.tariff.tariff_backend.repository.TariffRepo;
 
 import lombok.RequiredArgsConstructor;
@@ -21,16 +24,34 @@ public class DashboardService {
 
     @Autowired
     private final TariffRepo tariffRepo;
+    @Autowired
+    private final CountryRepo countryRepo;
 
-    public DashboardResponse createTariff(Tariff request) {
+    public DashboardResponse createTariff(TariffPatchDTO newTariffDTO) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully created the new tariff.");
-        Integer tariffId = request.getTariffId();
         try {
-            if (tariffRepo.existsById(tariffId)) {
-                throw new Exception("Unable to create new tariff because the Tariff ID " + tariffId + " already exists.");
+            System.out.println("Building new Tariff WOWWWWWWWW");
+            System.out.println(newTariffDTO);
+            List<Country> partnerCountries = countryRepo.findByName(newTariffDTO.getPartnerCountry());
+            if (partnerCountries.size() == 0) {
+                throw new Exception("Country " + newTariffDTO.getPartnerCountry() + " not found in database");
             }
+            List<Country> reporterCountries = countryRepo.findByName(newTariffDTO.getReporterCountry());
+            if (reporterCountries.size() == 0) {
+                throw new Exception("Country " + newTariffDTO.getReporterCountry() + " not found in database");
+            }
+            Tariff newTariff = Tariff.builder()
+                    .descriptionwcountry(newTariffDTO.getDescriptionwcountry())
+                    .partnerCountry(partnerCountries.get(0))
+                    .reporterCountry(reporterCountries.get(0))
+                    .unitname(newTariffDTO.getUnitname())
+                    .category(newTariffDTO.getCategory())
+                    .adValorem(newTariffDTO.getAdValorem())
+                    .specificPerUnit(newTariffDTO.getSpecificPerUnit())
+                    .build();
 
-            Tariff savedTariff = tariffRepo.save(request);
+            Tariff savedTariff = tariffRepo.save(newTariff);
+            Integer tariffId = savedTariff.getTariffId();
 
             if (savedTariff == null || !tariffRepo.existsById(tariffId)) {
                 throw new Exception("Unable to create the new tariff.");
@@ -51,23 +72,24 @@ public class DashboardService {
             }
             Tariff existingTariff = optionalTariff.get();
 
-            if (patchDTO.getTariffId() != null) {
-                if (!patchDTO.getTariffId().equals(tariffId) && tariffRepo.existsById(patchDTO.getTariffId())) {
-                    throw new Exception("Unable to update tariff because the new Tariff ID " + patchDTO.getTariffId() + " already exists.");
-                }
-                existingTariff.setTariffId(patchDTO.getTariffId());
-            }
-
             if (patchDTO.getDescriptionwcountry() != null) {
                 existingTariff.setDescriptionwcountry(patchDTO.getDescriptionwcountry());
             }
-            
+
             // Add the rest of the fields
             if (patchDTO.getPartnerCountry() != null) {
-                existingTariff.setPartnerCountry(patchDTO.getPartnerCountry());
+                List<Country> partnerCountries = countryRepo.findByName(patchDTO.getPartnerCountry());
+                if (partnerCountries.size() == 0) {
+                    throw new Exception("Country " + patchDTO.getPartnerCountry() + " not found in database");
+                }
+                existingTariff.setPartnerCountry(partnerCountries.get(0));
             }
             if (patchDTO.getReporterCountry() != null) {
-                existingTariff.setReporterCountry(patchDTO.getReporterCountry());
+                List<Country> reporterCountries = countryRepo.findByName(patchDTO.getReporterCountry());
+                if (reporterCountries.size() == 0) {
+                    throw new Exception("Country " + patchDTO.getReporterCountry() + " not found in database");
+                }
+                existingTariff.setReporterCountry(reporterCountries.get(0));
             }
             if (patchDTO.getUnitname() != null) {
                 existingTariff.setUnitname(patchDTO.getUnitname());
@@ -81,7 +103,6 @@ public class DashboardService {
             if (patchDTO.getSpecificPerUnit() != null) {
                 existingTariff.setSpecificPerUnit(patchDTO.getSpecificPerUnit());
             }
-
 
             tariffRepo.save(existingTariff);
 
@@ -122,10 +143,36 @@ public class DashboardService {
             pageResult = tariffRepo.findAll(pageable);
         }
 
+        List<TariffPatchDTO> tariffDtoList = pageResult.getContent().stream()
+                .map(tariff -> new TariffPatchDTO(
+                        tariff.getTariffId(),
+                        tariff.getDescriptionwcountry(),
+                        tariff.getPartnerCountry().getName(),
+                        tariff.getReporterCountry().getName(),
+                        tariff.getUnitname(),
+                        tariff.getCategory(),
+                        tariff.getAdValorem(),
+                        tariff.getSpecificPerUnit()))
+                .toList();
+
         return new DashboardMetrics(
-                pageResult.getContent(),
+                tariffDtoList,
                 pageResult.getNumber(),
                 pageResult.getTotalPages(),
                 pageResult.getTotalElements());
+    }
+
+    public List<TariffPatchDTO> getAllTariffs() {
+        return tariffRepo.findAll().stream()
+                .map(tariff -> new TariffPatchDTO(
+                        tariff.getTariffId(),
+                        tariff.getDescriptionwcountry(),
+                        tariff.getPartnerCountry().getName(),
+                        tariff.getReporterCountry().getName(),
+                        tariff.getUnitname(),
+                        tariff.getCategory(),
+                        tariff.getAdValorem(),
+                        tariff.getSpecificPerUnit()))
+                .toList();
     }
 }

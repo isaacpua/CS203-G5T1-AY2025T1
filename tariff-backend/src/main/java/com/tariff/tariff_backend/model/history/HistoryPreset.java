@@ -1,9 +1,20 @@
 package com.tariff.tariff_backend.model.history;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Predefined tariff analysis configuration for quick access")
 public class HistoryPreset {
+    
+    @Schema(description = "Display title for the preset", example = "US-China Steel Tariffs", required = true)
     private String title;
+    
+    @Schema(description = "Reporter country for the preset", example = "United States", required = true)
     private String reporter;
+    
+    @Schema(description = "Partner country for the preset", example = "China", required = true)
     private String partner;
+    
+    @Schema(description = "Product item code for the preset", example = "720839", required = true)
     private String itemCode;
 
     public HistoryPreset() {}

@@ -1,5 +1,5 @@
-// src/pages/TariffCalcV2.jsx
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import axiosClient from "@/api/axiosClient";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,12 +19,21 @@ const URL_PARTNERS_ALL = "/tariffs/countries/partners";
 const URL_REPORTERS_ALL = "/tariffs/countries/reporters";
 const URL_REPORTERS_FROM = (fromId) => `/tariffs/countries/reporters?fromId=${fromId}`;
 const URL_PARTNERS_BY_TO = (toId) => `/tariffs/countries/partners?toId=${toId}`;
-const URL_SEARCH = "/tariffs/search2";
+const URL_SEARCH = "/tariffs/search";
 const URL_CALC = "/tariffs/calc";
 
 const NONE = "none";
 
-export default function TariffCalcV2() {
+export default function TariffCalc() {
+    // Get tariffId from query string
+    const location = useLocation();
+    const [autoSelectId, setAutoSelectId] = useState(null);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const tid = params.get("tariffId");
+        setAutoSelectId(tid);
+    }, [location.search]);
     const [showRelogin, setShowRelogin] = useState(false);
 
     // Countries
@@ -44,7 +53,7 @@ export default function TariffCalcV2() {
     const [searchTick, setSearchTick] = useState(0);
 
     // Selection + compute
-    const [selected, setSelected] = useState(null);
+        const [selected, setSelected] = useState(null);
     const [declaredValue, setDeclaredValue] = useState("");
     const [quantity, setQuantity] = useState("");
     const [computing, setComputing] = useState(false);
@@ -180,6 +189,21 @@ export default function TariffCalcV2() {
                 }
 
                 setResults(normalized);
+                    // Auto-select tariff if query param is present and results loaded
+                    if (autoSelectId && normalized.content.length > 0) {
+                        const found = normalized.content.find(row => String(row.id ?? row.tariffId ?? row.tariffid) === String(autoSelectId));
+                        if (found) {
+                            const normalizedTariff = {
+                                id: found.id ?? found.tariffId ?? found.tariffid,
+                                descriptionwcountry: found.descriptionwcountry ?? found.descriptionWCountry ?? found.description,
+                                category: found.category,
+                                advalorem: found.advalorem ?? found.adValorem,
+                                specificperunit: found.specificperunit ?? found.specificPerUnit,
+                                unitname: found.unitname ?? found.unitName,
+                            };
+                            setSelected(normalizedTariff);
+                        }
+                    }
             } catch (e) {
                 if (e.response?.status === 401) { setShowRelogin(true); return; }
                 setSearchError("Search failed. Check /api/v1/tariffs/search and params.");
@@ -188,7 +212,7 @@ export default function TariffCalcV2() {
         };
 
         fetchPage();
-    }, [fromId, toId, debouncedQ, page, size, searchTick]);
+        }, [fromId, toId, debouncedQ, page, size, searchTick, autoSelectId]);
 
     /** Reset inputs when selecting a new row */
     useEffect(() => {
@@ -420,7 +444,25 @@ export default function TariffCalcV2() {
                                     )}
                                 </div>
 
-                                <Button className="w-full" onClick={onCompute} disabled={computing}>
+                                <Button
+                                    className="w-full"
+                                    onClick={onCompute}
+                                    disabled={
+                                        computing ||
+                                        (needsDV && (
+                                            declaredValue.trim() === "" ||
+                                            isNaN(Number(declaredValue)) ||
+                                            !Number.isFinite(Number(declaredValue)) ||
+                                            Number(declaredValue) <= 0
+                                        )) ||
+                                        (needsQty && (
+                                            quantity.trim() === "" ||
+                                            isNaN(Number(quantity)) ||
+                                            !Number.isFinite(Number(quantity)) ||
+                                            Number(quantity) <= 0
+                                        ))
+                                    }
+                                >
                                     {computing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Computing…</>) : ("Compute Duty")}
                                 </Button>
 
