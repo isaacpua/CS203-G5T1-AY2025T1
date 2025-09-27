@@ -168,7 +168,7 @@ const MoneyCell = ({ row, column, grid }) => {
   const n = Number(value);
   const show = Number.isFinite(n) && n !== 0;
   return (
-    <div className="flex items-center justify-end px-3 py-2">
+    <div className="flex items-center justify-left px-3 py-2">
       <span className={`font-mono text-sm ${show ? "text-foreground" : "text-muted-foreground"}`}>
         {show ? `$${n.toFixed(2)}` : "—"}
       </span>
@@ -247,7 +247,7 @@ const SortableHeader = ({ column, grid }) => {
 };
 
 const StaticHeader = ({ column }) => (
-  <div className="flex items-center justify-center px-3 py-3 h-full w-full bg-muted border-b border-border font-semibold text-foreground text-sm">
+  <div className="flex items-center justify-left px-3 py-3 h-full w-full bg-muted border-b border-border font-semibold text-foreground text-sm">
     <span>{column.name}</span>
   </div>
 );
