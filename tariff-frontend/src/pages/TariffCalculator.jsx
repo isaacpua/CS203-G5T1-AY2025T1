@@ -452,12 +452,14 @@ export default function TariffCalc() {
                                         (needsDV && (
                                             declaredValue.trim() === "" ||
                                             isNaN(Number(declaredValue)) ||
-                                            !Number.isFinite(Number(declaredValue))
+                                            !Number.isFinite(Number(declaredValue)) ||
+                                            Number(declaredValue) <= 0
                                         )) ||
                                         (needsQty && (
                                             quantity.trim() === "" ||
                                             isNaN(Number(quantity)) ||
-                                            !Number.isFinite(Number(quantity))
+                                            !Number.isFinite(Number(quantity)) ||
+                                            Number(quantity) <= 0
                                         ))
                                     }
                                 >
