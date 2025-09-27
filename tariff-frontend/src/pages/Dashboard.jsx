@@ -125,9 +125,12 @@ const DescriptionCell = ({ row, column, grid, onView }) => {
 
 const TariffIdCell = ({ row, column, grid }) => {
   const value = grid.api.columnField(column, row);
+  const display = row.data?.tariffIdDisplay ?? value;
+  const label = display !== undefined && display !== null && display !== "" ? String(display) : "—";
+  const formatted = label === "—" ? label : `#${label}`;
   return (
     <div className="flex items-center px-3 py-2">
-      <Badge variant="secondary" className="font-mono text-xs">#{value}</Badge>
+      <Badge variant="secondary" className="font-mono text-xs">{formatted}</Badge>
     </div>
   );
 };
@@ -197,21 +200,39 @@ const ActionCell = ({ userRole, row, onEdit, onDelete, onView }) => (
   </div>
 );
 
+const getSortSpecForColumn = (columnId) => {
+  switch (columnId) {
+    case "tariffid":
+    case "adValorem":
+    case "specificPerUnit":
+      return { kind: "number" };
+    default:
+      return { kind: "string" };
+  }
+};
+
 const SortableHeader = ({ column, grid }) => {
-  const sort = grid.state.sortModel.useValue().find((c) => c.columnId === column.id);
-  const isDescending = sort?.isDescending ?? false;
+  const sortEntry = grid.state.sortModel.useValue().find((c) => c.columnId === column.id);
+  const isDescending = sortEntry?.sort?.isDescending ?? false;
+  const hasSort = Boolean(sortEntry);
 
   const handleSort = () => {
-    const current = grid.api.sortForColumn(column.id);
-    if (current == null) {
-      grid.state.sortModel.set([{ columnId: column.id, sort: { kind: "string" } }]);
+    const createSortModel = (overrides = {}) => ({
+      columnId: column.id,
+      sort: { ...getSortSpecForColumn(column.id), ...overrides },
+    });
+
+    if (!hasSort) {
+      grid.state.sortModel.set([createSortModel()]);
       return;
     }
-    if (!current.sort.isDescending) {
-      grid.state.sortModel.set([{ ...current, sort: { ...current.sort, isDescending: true } }]);
-    } else {
-      grid.state.sortModel.set([]);
+
+    if (!isDescending) {
+      grid.state.sortModel.set([createSortModel({ isDescending: true })]);
+      return;
     }
+
+    grid.state.sortModel.set([]);
   };
 
   return (
@@ -220,7 +241,7 @@ const SortableHeader = ({ column, grid }) => {
       onClick={handleSort}
     >
       <span>{column.name}</span>
-      {sort && <div className="ml-2">{!isDescending ? "↑" : "↓"}</div>}
+      {hasSort && <div className="ml-2">{!isDescending ? "↑" : "↓"}</div>}
     </div>
   );
 };
@@ -416,16 +437,19 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
   }
 
   if (!data) return null;
+  const detailBadgeLabel = (() => {
+    const idValue = data.tariffIdDisplay ?? data.tariffid;
+        return idValue ? `#${idValue}` : "—";
+  })();
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <Badge variant="secondary" className="font-mono">#{data.tariffid}</Badge>
+            <Badge variant="secondary" className="font-mono">{detailBadgeLabel}</Badge>
             <span>Tariff Details</span>
           </DialogTitle>
         </DialogHeader>
-
         <div className="space-y-6 py-6">
           <div className="grid grid-cols-2 gap-6">
             <div>
@@ -525,10 +549,14 @@ export default function Dashboard() {
 
       // Normalize fields so they always match our column IDs
       const mappedContent = (Array.isArray(data.content) ? data.content : []).map((row) => {
-        const tariffid = row.tariffid ?? row.tariffId ?? row.id ?? "";
+        const rawTariffId = row.tariffid ?? row.tariffId ?? row.id ?? "";
+        const tariffIdString = rawTariffId != null ? String(rawTariffId) : "";
+        const tariffIdNumber = Number(tariffIdString);
+        const normalizedTariffId = Number.isFinite(tariffIdNumber) ? tariffIdNumber : tariffIdString;
         return {
-          id: tariffid,
-          tariffid,
+          id: tariffIdString,
+          tariffid: normalizedTariffId,
+          tariffIdDisplay: tariffIdString,
           category: row.category ?? "",
           descriptionwcountry: row.descriptionwcountry ?? row.descriptionWCountry ?? row.description ?? "",
           partnerCountry: row.partnerCountry ?? row.partnerCountry ?? "",
@@ -537,6 +565,15 @@ export default function Dashboard() {
           specificPerUnit: row.specificPerUnit ?? row.specificPerUnit ?? "",
           unitname: row.unitname ?? row.unitName ?? "",
         };
+      }).sort((a, b) => {
+        const aId = typeof a.tariffid === "number" ? a.tariffid : Number(a.tariffid);
+        const bId = typeof b.tariffid === "number" ? b.tariffid : Number(b.tariffid);
+        const aIsNumber = Number.isFinite(aId);
+        const bIsNumber = Number.isFinite(bId);
+        if (aIsNumber && bIsNumber) return aId - bId;
+        if (aIsNumber) return -1;
+        if (bIsNumber) return 1;
+        return String(a.tariffid).localeCompare(String(b.tariffid));
       });
 
       setResults({
@@ -628,7 +665,8 @@ export default function Dashboard() {
   const onSaveChanges = async (formData) => {
     setActionLoading(true); setActionError("");
     console.log("Form data to submit:", formData);
-    delete formData.tariffid
+    delete formData.tariffid;
+    delete formData.tariffIdDisplay;
     try {
       if (showEdit) {
         console.log("Updating tariff with ID:", selectedRow.id, "and data:", formData);
@@ -832,7 +870,11 @@ export default function Dashboard() {
             {selectedRow && (
               <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center space-x-2">
-                  <Badge variant="secondary" className="font-mono">#{selectedRow.tariffid}</Badge>
+                  {(() => {
+                    const idValue = selectedRow.tariffIdDisplay ?? selectedRow.tariffid;
+                    const badgeLabel = idValue ? `#${idValue}` : "—";
+                    return <Badge variant="secondary" className="font-mono">{badgeLabel}</Badge>;
+                  })()}
                   <span className="text-sm text-muted-foreground">{selectedRow.descriptionwcountry}</span>
                 </div>
               </div>
