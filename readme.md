@@ -7,7 +7,6 @@
 
 ```
 cd tariff-frontend
-npm i recharts
 npm install
 ```
 
