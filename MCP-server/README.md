@@ -12,7 +12,7 @@ The goal of this project is to create a clear, scalable, and maintainable archit
 The project is organized to keep each server and its related components isolated, making it easy to work on a single server without affecting others. Here is the standard structure for any server within this repository:
 
 ```
-mcp\_backend\_dev/
+MCP-server
 │
 ├── \<server\_name\>/
 │   ├── server.py             \# Main server file: Defines tools and runs the FastMCP server.
@@ -42,7 +42,7 @@ To get the project running, you'll need to set up a Python environment and insta
 1.  **Clone the repository:**
     ```bash
     git clone <repository-url>
-    cd mcp_backend_dev
+    cd MCP-server
     ```
 
 2.  **Create a virtual environment:**
