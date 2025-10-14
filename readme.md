@@ -5,7 +5,7 @@
 
 # Development
 
-## Frontend
+## React Frontend
 
 ```
 cd tariff-frontend
@@ -13,9 +13,28 @@ npm install
 npm run dev
 ```
 
-## Backend
+## Java Springboot Backend
 
 ```
 cd tariff-backend
 ./mvnw clean spring-boot:run
 ```
+## Python MCP Server Backend
+
+For macOS/Linux:
+``` 
+cd MCP-server
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+fastapi run
+```
+For Windows:
+```
+cd MCP-server
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+fastapi run
+```
+
