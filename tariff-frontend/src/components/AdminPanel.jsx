@@ -31,9 +31,9 @@ export default function AdminPanel() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setOpen} className="p-5">
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2" data-admin-panel-trigger>
           <Shield className="h-4 w-4" />
           Admin Panel
         </Button>
@@ -49,11 +49,14 @@ export default function AdminPanel() {
           {adminRoutes.map((route) => {
             const Icon = route.icon
             return (
-              <Button
+              <button
                 key={route.path}
                 onClick={() => handleNavigate(route.path)}
-                variant="outline"
-                className="flex items-start gap-4 p-4 rounded-lg border transition-all text-left group w-full justify-start"
+                className={`
+                  flex items-start gap-4 p-4 rounded-lg border text-left group transition-all
+                  hover:bg-muted hover:border-muted-foreground/50
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+                `}
               >
                 <div className={`p-2 rounded-lg ${route.color}`}>
                   <Icon className="h-5 w-5" />
@@ -62,10 +65,9 @@ export default function AdminPanel() {
                   <h3 className="font-semibold mb-1">{route.name}</h3>
                   <p className="text-sm">{route.description}</p>
                 </div>
-              </Button>
+              </button>
             )
           })}
-
         </div>
       </DialogContent>
     </Dialog>

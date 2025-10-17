@@ -81,9 +81,10 @@ export default function Header() {
 
         {/* Right-side group: AdminPanel + Mobile menu + Avatar + ModeToggle */}
         <div className="flex items-center space-x-2">
-          {/* Admin Panel Modal - Only show for admins */}
           {user && isAdmin && (
-            <AdminPanel />
+            <div className="hidden md:block">
+              <AdminPanel />
+            </div>
           )}
 
           {/* Mobile Navigation Menu */}
@@ -112,7 +113,20 @@ export default function Header() {
                       {item.label}
                     </Button>
                   ))}
-                  
+                  {/* Admin Panel (mobile version) */}
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      className="justify-start text-left"
+                      onClick={() => {
+                        setIsOpen(false)
+                        setIsOpen(true)
+                        document.querySelector('[data-admin-panel-trigger]')?.click()
+                      }}
+                    >
+                      Admin Panel
+                    </Button>
+                  )}
                   {/* Mobile Profile and Logout */}
                   <div className="border-t pt-4 mt-4">
                     <div className="text-sm font-medium mb-2 text-muted-foreground">Account</div>
