@@ -89,3 +89,55 @@ export function getTokenExpiration(payload) {
   
   return new Date(payload.exp * 1000);
 }
+
+/**
+ * Extracts the role from a JWT token
+ * @param {string} token - The JWT token
+ * @returns {string|null} The role name or null if not found
+ */
+export function getRoleFromToken(token) {
+  if (!token) return null;
+  
+  try {
+    const payload = decodeJWT(token);
+    return payload.roles || null;
+  } catch (error) {
+    console.error('Error decoding token for role:', error);
+    return null;
+  }
+}
+
+/**
+ * Checks if a user is an admin based on their JWT token
+ * @param {Object} user - The user object containing accessToken
+ * @returns {boolean} True if user has admin role
+ */
+export function isAdmin(user) {
+  if (!user || !user.accessToken) return false;
+  
+  try {
+    const role = getRoleFromToken(user.accessToken);
+    return role === 'admin';
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+}
+
+/**
+ * Checks if a user has a specific role
+ * @param {Object} user - The user object containing accessToken
+ * @param {string} requiredRole - The role to check for
+ * @returns {boolean} True if user has the required role
+ */
+export function hasRole(user, requiredRole) {
+  if (!user || !user.accessToken || !requiredRole) return false;
+  
+  try {
+    const role = getRoleFromToken(user.accessToken);
+    return role === requiredRole;
+  } catch (error) {
+    console.error('Error checking role:', error);
+    return false;
+  }
+}

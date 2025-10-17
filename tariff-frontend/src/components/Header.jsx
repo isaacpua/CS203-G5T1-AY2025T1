@@ -26,14 +26,15 @@ import { ModeToggle } from "./mode-toggle"
 import { logout } from "@/utils/logout"
 import { useAuth } from "@/utils/AuthContext"
 import { cn } from "@/lib/utils"
+import AdminPanel from "@/components/AdminPanel"
 
 export default function Header() {
-  const { user, setUser } = useAuth();
-  const navigate = useNavigate()
-  const [isOpen, setIsOpen] = useState(false)
+  const { user, setUser, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleProfileClick = () => {
-    navigate("/profile")
+    navigate("/profile");
   }
 
   const handleLogout = () => {
@@ -41,8 +42,8 @@ export default function Header() {
   }
 
   const handleNavigate = (path) => {
-    navigate(path)
-    setIsOpen(false)
+    navigate(path);
+    setIsOpen(false);
   }
 
   const navigationItems = [
@@ -78,8 +79,13 @@ export default function Header() {
           )}
         </div>
 
-        {/* Right-side group: Mobile menu + Avatar (if user exists) + ModeToggle */}
+        {/* Right-side group: AdminPanel + Mobile menu + Avatar + ModeToggle */}
         <div className="flex items-center space-x-2">
+          {/* Admin Panel Modal - Only show for admins */}
+          {user && isAdmin && (
+            <AdminPanel />
+          )}
+
           {/* Mobile Navigation Menu */}
           {user && (
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -114,8 +120,8 @@ export default function Header() {
                       variant="ghost"
                       className="justify-start text-left w-full"
                       onClick={() => {
-                        handleProfileClick()
-                        setIsOpen(false)
+                        handleProfileClick();
+                        setIsOpen(false);
                       }}
                     >
                       Profile
@@ -124,8 +130,8 @@ export default function Header() {
                       variant="ghost"
                       className="justify-start text-left w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                       onClick={() => {
-                        handleLogout()
-                        setIsOpen(false)
+                        handleLogout();
+                        setIsOpen(false);
                       }}
                     >
                       Logout

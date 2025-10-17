@@ -24,6 +24,8 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     setUser,
+    userRole: user?.role || null,
+    isAdmin: user?.role === 'admin',
   };
 
   return (
