@@ -1,6 +1,6 @@
 import { useEffect, useState, useId, useCallback, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import axiosClient from "../api/axiosClient";
+import { createTariff, deleteTariff, getDashboardData, updateTariff } from "../api/axiosClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -565,7 +565,7 @@ export default function Dashboard() {
         if (mode === "id") params.set("tariffid", dQ);
         if (mode === "desc") params.set("q", dQ);
       }
-      const { data } = await axiosClient.get(`/dashboard/tariffs?${params.toString()}`);
+      const { data } = await getDashboardData(params);
 
       // Normalize fields so they always match our column IDs
       const mappedContent = (Array.isArray(data.content) ? data.content : []).map((row) => {
@@ -626,7 +626,7 @@ export default function Dashboard() {
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
-      const { data } = await axiosClient.get("/dashboard/tariffs?size=-1");
+      const { data } = await getDashboardData("size=-1");
 
       // Define the fields you want to export and their display names
       const fields = [
@@ -690,11 +690,11 @@ export default function Dashboard() {
     try {
       if (showEdit) {
         console.log("Updating tariff with ID:", selectedRow.id, "and data:", formData);
-        await axiosClient.patch(`/dashboard/tariffs/${selectedRow.id}`, formData);
+        await updateTariff(selectedRow.id, formData);
         toast.success("Tariff updated successfully");
       } else {
         console.log("Creating tariff with data:", formData);
-        await axiosClient.post("/dashboard/tariffs", formData);
+        await createTariff(formData);
         toast.success("Tariff created successfully");
       }
       closeDialogs();
@@ -712,7 +712,7 @@ export default function Dashboard() {
   const onDeleteConfirm = async () => {
     setActionLoading(true); setActionError("");
     try {
-      await axiosClient.delete(`/dashboard/tariffs/${selectedRow.id}`);
+      await deleteTariff(selectedRow.id);
       toast.success("Tariff deleted successfully");
       closeDialogs();
       fetchTariffs();

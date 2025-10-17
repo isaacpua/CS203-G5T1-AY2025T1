@@ -1,4 +1,4 @@
-import axiosClient from "@/api/axiosClient";
+import { getUserData, loginUser, registerUser } from "@/api/axiosClient";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button"
 import {
@@ -49,11 +49,11 @@ const Login = () => {
         password: trimmedPassword,
       });
 
-      const response = await axiosClient.post("/auth/login", credentials);
+      const response = await loginUser(credentials);
       if (response.status == 200) {
         localStorage.setItem("accessToken", response.data.accessToken);
         const decodedJWT = decodeJWT(response.data.accessToken);
-        const { data } = await axiosClient.get(`/users/${decodedJWT.sub}`);
+        const { data } = await getUserData(decodedJWT.sub);
         console.log(decodedJWT)
         setUser(data.user);
         return navigate(from, { replace: true }); // go to original page that required login
@@ -97,7 +97,7 @@ const Login = () => {
         password: trimmedPassword,
       });
 
-      const response = await axiosClient.post("/auth/register", credentials);
+      const response = registerUser(credentials);
       console.log(response.data);
       toggleMode(); // switch back to login mode
     } catch (err) {
