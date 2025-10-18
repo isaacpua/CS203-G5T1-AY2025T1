@@ -19,6 +19,29 @@ npm run dev
 cd tariff-backend
 ./mvnw clean spring-boot:run
 ```
+
+## Python Logic Backend
+For macOS/Linux:
+``` 
+cd MCP-server
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+For Windows:
+```
+cd MCP-server
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+```
+cd src
+fastapi dev app.py --port 8001
+```
+
+
 ## Python MCP Server Backend
 
 For macOS/Linux:
