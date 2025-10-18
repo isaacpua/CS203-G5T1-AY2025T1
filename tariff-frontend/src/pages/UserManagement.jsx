@@ -33,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import axiosClient from "@/api/axiosClient";
+import { deleteUserByID, getAllUsers, updateUsernameAndRole } from "@/api/axiosClient";
 import { useEffect, useState, useRef } from "react";
 import {
   Dialog,
@@ -67,7 +67,7 @@ const UserManagement = () => {
   useEffect(() => {
     const fetchAllUsers = async () => {
       try {
-        const response = await axiosClient.get("/users/");
+        const response = await getAllUsers();
 
         if (response.status === 200) {
           console.log("Fetched users:", response.data.users);
@@ -111,10 +111,7 @@ const UserManagement = () => {
         const newRole = roleRef.current || editUser.role;
         const userID = editUser.id;
         
-        const response = await axiosClient.put(`/users/${userID}`, {
-          username: newUsername,
-          role: newRole,
-        });
+        const response = await updateUsernameAndRole(userID, newUsername, newRole);
         
         if (response.status === 200) {
           console.log(response.data.message)
@@ -149,7 +146,7 @@ const UserManagement = () => {
       
       try {
         const userID = deleteUser.id;
-        const response = await axiosClient.delete(`/users/${userID}`);
+        const response = await deleteUserByID(userID);
         
         if (response.status === 200) {
           console.log(response.data.message)

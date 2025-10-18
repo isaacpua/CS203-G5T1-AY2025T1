@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import axiosClient from "../api/axiosClient";
+import { verifyJWT } from "../api/axiosClient";
 import { Spinner } from "./ui/shadcn-io/spinner";
 import { useAuth } from "@/utils/AuthContext";
 
@@ -21,11 +21,7 @@ export default function ProtectedRoute() {
                 }
 
                 console.log("Token found, verifying...");
-                await axiosClient.post("/auth/verifyJWT", {}, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+                await verifyJWT(token);
                 console.log("Token is valid");
                 setAuthState("authenticated");
             } catch (error) {

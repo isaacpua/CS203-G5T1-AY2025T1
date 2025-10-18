@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import axiosClient from "@/api/axiosClient";
+import { calculateTariff, getAllPartnerCountries, getAllReporterCountries, getPartnersByTo, getReportersFrom, searchTariff } from "@/api/axiosClient";
 import { Button } from "@/components/ui/button";
 import {
     Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription,
@@ -14,13 +14,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Search, Calculator, Terminal } from "lucide-react";
 import { Relogin } from "@/components/Relogin";
 
-/** ---- ENDPOINTS ---- */
-const URL_PARTNERS_ALL = "/tariffs/countries/partners";
-const URL_REPORTERS_ALL = "/tariffs/countries/reporters";
-const URL_REPORTERS_FROM = (fromId) => `/tariffs/countries/reporters?fromId=${fromId}`;
-const URL_PARTNERS_BY_TO = (toId) => `/tariffs/countries/partners?toId=${toId}`;
-const URL_SEARCH = "/tariffs/search";
-const URL_CALC = "/tariffs/calc";
 
 const NONE = "none";
 
@@ -68,7 +61,7 @@ export default function TariffCalc() {
     const loadAllFrom = async () => {
         setLoadingCountries(true);
         try {
-            const { data } = await axiosClient.get(URL_PARTNERS_ALL);
+            const { data } = await getAllPartnerCountries();
             setFromOptions(data || []);
         } catch (e) {
             if (e.response?.status === 401) { setShowRelogin(true); return; }
@@ -78,7 +71,7 @@ export default function TariffCalc() {
     const loadAllTo = async () => {
         setLoadingCountries(true);
         try {
-            const { data } = await axiosClient.get(URL_REPORTERS_ALL);
+            const { data } = await getAllReporterCountries();
             setToOptions(data || []);
         } catch (e) {
             if (e.response?.status === 401) { setShowRelogin(true); return; }
@@ -107,7 +100,7 @@ export default function TariffCalc() {
         const loadReporters = async () => {
             setLoadingCountries(true);
             try {
-                const { data } = await axiosClient.get(URL_REPORTERS_FROM(fromId));
+                const { data } = await getReportersFrom(fromId);
                 setToOptions(data || []);
             } catch (e) {
                 if (e.response?.status === 401) { setShowRelogin(true); return; }
@@ -132,7 +125,7 @@ export default function TariffCalc() {
         const loadPartnersByTo = async () => {
             setLoadingCountries(true);
             try {
-                const { data } = await axiosClient.get(URL_PARTNERS_BY_TO(toId));
+                const { data } = await getPartnersByTo(toId);
                 setFromOptions(data || []);
             } catch (e) {
                 if (e.response?.status === 401) { setShowRelogin(true); return; }
@@ -164,7 +157,7 @@ export default function TariffCalc() {
                 const dQ = debouncedQ.trim();
                 if (dQ !== "") params.set("q", dQ);
 
-                const { data } = await axiosClient.get(`${URL_SEARCH}?${params.toString()}`);
+                const { data } = await searchTariff(params);
 
                 // ---- normalize paging to avoid NaN and support Page or Slice ----
                 const totalPages =
@@ -235,7 +228,7 @@ export default function TariffCalc() {
                 customsValue: toNumberOrNull(declaredValue),
                 quantity: toNumberOrNull(quantity),
             };
-            const { data } = await axiosClient.post(URL_CALC, payload);
+            const { data } = await calculateTariff(payload);
             setComputeRes(data);
         } catch (e) {
             if (e.response?.status === 401) { setShowRelogin(true); return; }
