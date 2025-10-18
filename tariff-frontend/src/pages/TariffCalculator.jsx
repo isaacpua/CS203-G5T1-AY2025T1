@@ -455,10 +455,14 @@ export default function TariffCalc() {
                                         <div className="col-span-1">
                                             <Label>Quantity{selected.unitname ? ` (${selected.unitname})` : ""}</Label>
                                             <Input
+                                                type="number"
+                                                step={isUnitCount(selected) ? 1 : "any"}
+                                                inputMode={isUnitCount(selected) ? "numeric" : "decimal"}
+                                                pattern={isUnitCount(selected) ? "\\d*" : "[0-9]*[.,]?[0-9]*"}
                                                 value={quantity}
                                                 onChange={(e) => setQuantity(e.target.value)}
-                                                placeholder="e.g. 200"
-                                                inputMode="decimal"
+                                                placeholder={isUnitCount(selected) ? "e.g. 10" : "e.g. 1.25"}
+                                                
                                             />
                                         </div>
                                     )}
@@ -469,8 +473,8 @@ export default function TariffCalc() {
                                     onClick={onCompute}
                                     disabled={
                                         computing ||
-                                        (needsDV && (declaredValue.trim() === "" || isNaN(Number(declaredValue)) || !Number.isFinite(Number(declaredValue)) || Number(declaredValue) <= 0)) ||
-                                        (needsQty && (quantity.trim() === "" || isNaN(Number(quantity)) || !Number.isFinite(Number(quantity)) || Number(quantity) <= 0))
+                                        (needsDV && (toNumberOrNull(declaredValue) == null ||toNumberOrNull(declaredValue) <= 0)) ||
+                                        (needsQty && (toNumberOrNull(quantity) == null ||toNumberOrNull(quantity) <= 0 ||(isUnitCount(selected) && !Number.isInteger(Number(quantity)))))
                                     }
                                 >
                                     {computing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Computing…</>) : ("Compute Duty")}
@@ -587,4 +591,13 @@ function rateSummary(selected) {
         return parts.join(" + ");
     }
     return "";
+}
+
+function isUnitCount(selected) {
+  const unit = (selected?.unitname || "").toLowerCase();
+  return (
+    unit.includes("unit") ||
+    unit.includes("piece") ||
+    unit.includes("item")
+  );
 }
