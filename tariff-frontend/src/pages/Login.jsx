@@ -97,7 +97,7 @@ const Login = () => {
         password: trimmedPassword,
       });
 
-      const response = registerUser(credentials);
+      const response = await registerUser(credentials);
       console.log(response.data);
       toggleMode(); // switch back to login mode
     } catch (err) {

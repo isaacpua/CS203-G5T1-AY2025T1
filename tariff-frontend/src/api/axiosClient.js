@@ -37,7 +37,7 @@ export const updateTariff = async (id, formData) => {
 
 export const createTariff = async (formData) => {
   await axiosClient.post("/dashboard/tariffs", formData);
-}
+};
 
 export const deleteTariff = async (id) => {
   await axiosClient.delete(`/dashboard/tariffs/${id.toString()}`);
@@ -63,7 +63,7 @@ export const getUserData = async (username) => {
 
 export const registerUser = async (credentials) => {
   return await axiosClient.post("/auth/register", credentials);
-}
+};
 
 export const updateUsername = async (id, usernameUpdateDTO) => {
   await axiosClient.put(

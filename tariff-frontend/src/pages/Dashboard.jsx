@@ -626,7 +626,7 @@ export default function Dashboard() {
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
-      const { data } = await getDashboardData("size=-1");
+      const { data } = await getDashboardData(new URLSearchParams("size=-1"));
 
       // Define the fields you want to export and their display names
       const fields = [
