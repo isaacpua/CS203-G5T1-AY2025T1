@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import Header from './components/Header';
 import LandingPage from './pages/LandingPage';
 import { AuthProvider } from './utils/AuthProvider';
+import ChatbotPage from './pages/Chatbot';
 
 function AppContent() {
 
@@ -42,6 +43,11 @@ function AppContent() {
                 <Route path="/historical" element={
                   <section className="container mx-auto py-8 md:py-12 lg:py-24">
                     <HistoricalTariffExplorer />
+                  </section>
+                } />
+                <Route path="/chatbot" element={
+                  <section className="container mx-auto py-8 md:py-12 lg:py-24">
+                    <ChatbotPage />
                   </section>
                 } />
                 <Route path="/user-management" element={<UserManagement />} />

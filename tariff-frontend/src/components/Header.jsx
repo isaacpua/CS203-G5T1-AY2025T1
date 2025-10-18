@@ -49,6 +49,7 @@ export default function Header() {
     { label: "Calculator", path: "/calculator" },
     { label: "Dashboard", path: "/dashboard" },
     { label: "Historical Explorer", path: "/historical" },
+    { label: "Chatbot", path: "/chatbot" },
   ]
 
   return (

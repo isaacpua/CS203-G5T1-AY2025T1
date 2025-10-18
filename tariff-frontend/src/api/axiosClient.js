@@ -19,6 +19,13 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
+const chatbotAxiosClient = axios.create({
+  baseURL: 'http://localhost:5000', // Default Flask port
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 export const verifyJWT = async (token) => {
   await axiosClient.post("/auth/verifyJWT", {}, {
     headers: {

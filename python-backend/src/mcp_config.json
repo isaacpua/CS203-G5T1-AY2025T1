@@ -1,0 +1,20 @@
+{
+    "mcpServers": {
+        "greet": {
+            "url": "https://mcpbackenddev-e7f3cpdddnh9ajbv.canadacentral-01.azurewebsites.net/greet/mcp/",
+            "transport": "streamable_http"
+        },
+        "url_scraper": {
+            "url": "http://127.0.0.1:8000/scraper/mcp",
+            "transport": "streamable_http"
+        },
+        "data_analysis": {
+            "url": "https://mcpbackenddev-e7f3cpdddnh9ajbv.canadacentral-01.azurewebsites.net/data_analysis/mcp/",
+            "transport": "streamable_http"
+        },
+        "desktop_automation": {
+            "url": "http://127.0.0.1:8000/desktop_automation/mcp",
+            "transport": "streamable_http"
+        }
+    }
+}
