@@ -17,6 +17,7 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -32,6 +33,7 @@ export default function Header() {
   const { user, setUser, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
 
   const handleProfileClick = () => {
     navigate("/profile");
@@ -83,7 +85,7 @@ export default function Header() {
         <div className="flex items-center space-x-2">
           {user && isAdmin && (
             <div className="hidden md:block">
-              <AdminPanel />
+              <AdminPanel open={adminPanelOpen} onOpenChange={setAdminPanelOpen} />
             </div>
           )}
 
@@ -101,8 +103,8 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-72">
-                <div className="flex flex-col space-y-4 mt-8">
-                  <div className="text-lg font-semibold mb-4">Navigation</div>
+                <SheetTitle>Navigation</SheetTitle>
+                <div className="flex flex-col space-y-4 mt-4">
                   {navigationItems.map((item) => (
                     <Button
                       key={item.path}
@@ -119,9 +121,8 @@ export default function Header() {
                       variant="ghost"
                       className="justify-start text-left"
                       onClick={() => {
-                        setIsOpen(false)
-                        setIsOpen(true)
-                        document.querySelector('[data-admin-panel-trigger]')?.click()
+                        setIsOpen(false);
+                        setAdminPanelOpen(true);
                       }}
                     >
                       Admin Panel

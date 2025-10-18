@@ -11,8 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Users, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function AdminPanel() {
-  const [open, setOpen] = useState(false);
+export default function AdminPanel({open, onOpenChange}) {
   const navigate = useNavigate();
 
   const adminRoutes = [
@@ -27,11 +26,11 @@ export default function AdminPanel() {
 
   const handleNavigate = (path) => {
     navigate(path);
-    setOpen(false);
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen} className="p-5">
+    <Dialog open={open} onOpenChange={onOpenChange} className="p-5">
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2" data-admin-panel-trigger>
           <Shield className="h-4 w-4" />

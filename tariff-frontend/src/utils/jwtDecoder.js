@@ -1,14 +1,3 @@
-/**
- * Simple JWT decoder for frontend use
- * Extracts payload without signature verification
- */
-
-/**
- * Decodes a JWT token and returns the payload
- * @param {string} token - The JWT token to decode
- * @returns {Object} The decoded payload
- * @throws {Error} If token is invalid or malformed
- */
 export function decodeJWT(token) {
   if (!token || typeof token !== 'string') {
     throw new Error('Invalid token: Token must be a non-empty string');
@@ -38,11 +27,6 @@ export function decodeJWT(token) {
   }
 }
 
-/**
- * Decodes JWT header (optional utility)
- * @param {string} token - The JWT token
- * @returns {Object} The decoded header
- */
 export function decodeJWTHeader(token) {
   if (!token || typeof token !== 'string') {
     throw new Error('Invalid token: Token must be a non-empty string');
@@ -63,11 +47,6 @@ export function decodeJWTHeader(token) {
   }
 }
 
-/**
- * Checks if token is expired based on 'exp' claim
- * @param {Object} payload - The decoded payload
- * @returns {boolean} True if token is expired
- */
 export function isTokenExpired(payload) {
   if (!payload.exp) {
     return false; // No expiration claim
@@ -77,11 +56,6 @@ export function isTokenExpired(payload) {
   return payload.exp < currentTime;
 }
 
-/**
- * Gets token expiration date
- * @param {Object} payload - The decoded payload
- * @returns {Date|null} Expiration date or null if no exp claim
- */
 export function getTokenExpiration(payload) {
   if (!payload.exp) {
     return null;
@@ -90,11 +64,6 @@ export function getTokenExpiration(payload) {
   return new Date(payload.exp * 1000);
 }
 
-/**
- * Extracts the role from a JWT token
- * @param {string} token - The JWT token
- * @returns {string|null} The role name or null if not found
- */
 export function getRoleFromToken(token) {
   if (!token) return null;
   
@@ -107,11 +76,6 @@ export function getRoleFromToken(token) {
   }
 }
 
-/**
- * Checks if a user is an admin based on their JWT token
- * @param {Object} user - The user object containing accessToken
- * @returns {boolean} True if user has admin role
- */
 export function isAdmin(user) {
   if (!user || !user.accessToken) return false;
   
@@ -124,12 +88,6 @@ export function isAdmin(user) {
   }
 }
 
-/**
- * Checks if a user has a specific role
- * @param {Object} user - The user object containing accessToken
- * @param {string} requiredRole - The role to check for
- * @returns {boolean} True if user has the required role
- */
 export function hasRole(user, requiredRole) {
   if (!user || !user.accessToken || !requiredRole) return false;
   
