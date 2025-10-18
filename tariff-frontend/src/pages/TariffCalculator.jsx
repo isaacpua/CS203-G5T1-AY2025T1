@@ -1,19 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { calculateTariff, getAllPartnerCountries, getAllReporterCountries, getPartnersByTo, getReportersFrom, searchTariff } from "@/api/axiosClient";
+import {calculateTariff,getAllPartnerCountries,getAllReporterCountries,getPartnersByTo,getReportersFrom,searchTariff,} from "@/api/axiosClient";
 import { Button } from "@/components/ui/button";
-import {
-    Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription,
-} from "@/components/ui/card";
+import {Card,CardContent,CardFooter,CardHeader,CardTitle,CardDescription,} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue,} from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Search, Calculator, Terminal } from "lucide-react";
+import { Loader2, Search, Calculator } from "lucide-react";
 import { Relogin } from "@/components/Relogin";
-
 
 const NONE = "none";
 
@@ -27,6 +22,7 @@ export default function TariffCalc() {
         const tid = params.get("tariffId");
         setAutoSelectId(tid);
     }, [location.search]);
+
     const [showRelogin, setShowRelogin] = useState(false);
 
     // Countries
@@ -42,16 +38,19 @@ export default function TariffCalc() {
     const [size, setSize] = useState(10);
     const [searching, setSearching] = useState(false);
     const [searchError, setSearchError] = useState("");
-    const [results, setResults] = useState({ content: [], totalPages: 0, number: 0, size: 10, last: null });
+    const [results, setResults] = useState({ content: [], totalPages: 0, number: 0, size: 10,last: null,});
     const [searchTick, setSearchTick] = useState(0);
 
     // Selection + compute
-        const [selected, setSelected] = useState(null);
+    const [selected, setSelected] = useState(null);
     const [declaredValue, setDeclaredValue] = useState("");
     const [quantity, setQuantity] = useState("");
     const [computing, setComputing] = useState(false);
     const [computeError, setComputeError] = useState("");
-    const [computeRes, setComputeRes] = useState(null);
+    const [computeRes, setComputeRes] = useState(null); // we use only the total for the last line
+
+    // Workings visibility (no toggle; just show after compute)
+    const [showWorkings, setShowWorkings] = useState(false);
 
     // Debounce q
     const debouncedQ = useDebounce(q, 300);
@@ -64,7 +63,7 @@ export default function TariffCalc() {
             const { data } = await getAllPartnerCountries();
             setFromOptions(data || []);
         } catch (e) {
-            if (e.response?.status === 401) { setShowRelogin(true); return; }
+            if (e?.response?.status === 401) { setShowRelogin(true); return; }
             console.error(e);
         } finally { setLoadingCountries(false); }
     };
@@ -74,7 +73,7 @@ export default function TariffCalc() {
             const { data } = await getAllReporterCountries();
             setToOptions(data || []);
         } catch (e) {
-            if (e.response?.status === 401) { setShowRelogin(true); return; }
+            if (e?.response?.status === 401) { setShowRelogin(true); return; }
             console.error(e);
         } finally { setLoadingCountries(false); }
     };
@@ -85,17 +84,18 @@ export default function TariffCalc() {
         loadAllTo();
     }, []);
 
-    /** When FROM changes, narrow TO (or reset), and reset page */
+    /** When FROM changes */
     useEffect(() => {
         setSelected(null);
         setResults({ content: [], totalPages: 0, number: 0, size, last: null });
+        setComputeError("");
         setComputeRes(null);
+        setShowWorkings(false);
+        setDeclaredValue("");
+        setQuantity("");
         setPage(0);
 
-        if (!fromId || fromId === NONE) {
-            loadAllTo();
-            return;
-        }
+        if (!fromId || fromId === NONE) { loadAllTo(); return; }
 
         const loadReporters = async () => {
             setLoadingCountries(true);
@@ -103,24 +103,25 @@ export default function TariffCalc() {
                 const { data } = await getReportersFrom(fromId);
                 setToOptions(data || []);
             } catch (e) {
-                if (e.response?.status === 401) { setShowRelogin(true); return; }
+                if (e?.response?.status === 401) { setShowRelogin(true); return; }
                 console.error(e);
             } finally { setLoadingCountries(false); }
         };
         loadReporters();
     }, [fromId]);
 
-    /** When TO changes, narrow FROM (or reset), and reset page */
+    /** When TO changes */
     useEffect(() => {
         setSelected(null);
         setResults({ content: [], totalPages: 0, number: 0, size, last: null });
+        setComputeError("");
         setComputeRes(null);
+        setShowWorkings(false);
+        setDeclaredValue("");
+        setQuantity("");
         setPage(0);
 
-        if (!toId || toId === NONE) {
-            loadAllFrom();
-            return;
-        }
+        if (!toId || toId === NONE) { loadAllFrom(); return; }
 
         const loadPartnersByTo = async () => {
             setLoadingCountries(true);
@@ -128,7 +129,7 @@ export default function TariffCalc() {
                 const { data } = await getPartnersByTo(toId);
                 setFromOptions(data || []);
             } catch (e) {
-                if (e.response?.status === 401) { setShowRelogin(true); return; }
+                if (e?.response?.status === 401) { setShowRelogin(true); return; }
                 console.error(e);
             } finally { setLoadingCountries(false); }
         };
@@ -159,61 +160,63 @@ export default function TariffCalc() {
 
                 const { data } = await searchTariff(params);
 
-                // ---- normalize paging to avoid NaN and support Page or Slice ----
-                const totalPages =
-                    Number.isFinite(Number(data?.totalPages))
-                        ? Number(data.totalPages)
-                        : (Number.isFinite(Number(data?.totalElements))
-                            ? Math.max(1, Math.ceil(Number(data.totalElements) / Number(data?.size ?? size)))
-                            : 1);
+                // normalize paging (Page or Slice)
+                const totalPages = Number.isFinite(Number(data?.totalPages))
+                    ? Number(data.totalPages)
+                    : Number.isFinite(Number(data?.totalElements))
+                        ? Math.max(1, Math.ceil(Number(data.totalElements) / Number(data?.size ?? size)))
+                        : 1;
 
                 const normalized = {
                     content: Array.isArray(data?.content) ? data.content : [],
                     number: Number(data?.number ?? 0),
                     size: Number(data?.size ?? size),
                     totalPages: Number(totalPages),
-                    last: data?.last ?? null, // for Slice support
+                    last: data?.last ?? null,
                 };
 
-                // ⛳ CLAMP: if the server says we’re beyond the last page, jump back and refetch
                 if (normalized.totalPages > 0 && page >= normalized.totalPages) {
                     setPage(normalized.totalPages - 1);
-                    return; // the effect will re-run with the corrected page
+                    return;
                 }
 
                 setResults(normalized);
-                    // Auto-select tariff if query param is present and results loaded
-                    if (autoSelectId && normalized.content.length > 0) {
-                        const found = normalized.content.find(row => String(row.id ?? row.tariffId ?? row.tariffid) === String(autoSelectId));
-                        if (found) {
-                            const normalizedTariff = {
-                                id: found.id ?? found.tariffId ?? found.tariffid,
-                                descriptionwcountry: found.descriptionwcountry ?? found.descriptionWCountry ?? found.description,
-                                category: found.category,
-                                advalorem: found.advalorem ?? found.adValorem,
-                                specificperunit: found.specificperunit ?? found.specificPerUnit,
-                                unitname: found.unitname ?? found.unitName,
-                            };
-                            setSelected(normalizedTariff);
-                        }
+
+                // auto-select by query param
+                if (autoSelectId && normalized.content.length > 0) {
+                    const found = normalized.content.find(
+                        (row) => String(row.id ?? row.tariffId ?? row.tariffid) === String(autoSelectId)
+                    );
+                    if (found) {
+                        const normalizedTariff = {
+                            id: found.id ?? found.tariffId ?? found.tariffid,
+                            descriptionwcountry: found.descriptionwcountry ?? found.descriptionWCountry ?? found.description,
+                            category: found.category,
+                            advalorem: found.advalorem ?? found.adValorem,
+                            specificperunit: found.specificperunit ?? found.specificPerUnit,
+                            unitname: found.unitname ?? found.unitName,
+                        };
+                        setSelected(normalizedTariff);
                     }
+                }
             } catch (e) {
-                if (e.response?.status === 401) { setShowRelogin(true); return; }
+                if (e?.response?.status === 401) { setShowRelogin(true); return; }
                 setSearchError("Search failed. Check /api/v1/tariffs/search and params.");
                 console.error(e);
             } finally { setSearching(false); }
         };
 
         fetchPage();
-        }, [fromId, toId, debouncedQ, page, size, searchTick, autoSelectId]);
+    }, [fromId, toId, debouncedQ, page, size, searchTick, autoSelectId]);
 
     /** Reset inputs when selecting a new row */
     useEffect(() => {
         if (!selected) return;
         setDeclaredValue("");
         setQuantity("");
-        setComputeRes(null);
         setComputeError("");
+        setComputeRes(null);
+        setShowWorkings(false);
     }, [selected?.id]);
 
     /** Compute */
@@ -222,6 +225,8 @@ export default function TariffCalc() {
         setComputing(true);
         setComputeError("");
         setComputeRes(null);
+        setShowWorkings(false);
+
         try {
             const payload = {
                 tariffId: selected.id,
@@ -229,25 +234,48 @@ export default function TariffCalc() {
                 quantity: toNumberOrNull(quantity),
             };
             const { data } = await calculateTariff(payload);
-            setComputeRes(data);
+            setComputeRes(data);     // we will use its total for the last line
+            setShowWorkings(true);   // reveal workings block
         } catch (e) {
-            if (e.response?.status === 401) { setShowRelogin(true); return; }
+            if (e?.response?.status === 401) { setShowRelogin(true); return; }
             setComputeError("Compute failed. Check /api/v1/tariffs/calc.");
             console.error(e);
-        } finally { setComputing(false); }
+        } finally {
+            setComputing(false);
+        }
     };
 
-    // Inputs needed
+    // Which inputs are needed (align with backend)
     const cat = (selected?.category || "").toUpperCase();
-    const needsDV = cat === "AD_VALOREM";
+    const needsDV = cat === "AD_VALOREM"; // composite doesn't need customs value per your backend
     const needsQty = cat === "SPECIFIC_PER_UNIT" || cat === "COMPOSITE";
 
-    // Safe pagination numbers for render
+    // paging
     const pageIdx = Math.max(0, Number(results?.number ?? 0));
     const totalPages = Math.max(1, Number(results?.totalPages ?? 1));
     const canPrev = pageIdx > 0;
-    // Enable Next if either totalPages indicates more pages OR 'last' explicitly false
-    const canNext = (results?.last === false) || (pageIdx + 1 < totalPages);
+    const canNext = results?.last === false || pageIdx + 1 < totalPages;
+
+    // numbers for rendering (only for the lines; final number is backend)
+    const avDec = toNumberOrNull(selected?.advalorem);   // e.g. 0.05
+    const avPct = avDec != null ? avDec * 100 : null;    // 5
+    const avMult = avDec != null ? 1 + avDec : null;     // 1.05
+    const sp = toNumberOrNull(selected?.specificperunit);
+    const unit = selected?.unitname || "unit";
+    const dvNum = toNumberOrNull(declaredValue);
+    const qtyNum = toNumberOrNull(quantity);
+
+    // ✅ compute intermediates safely for display
+    const specPart =
+        (cat === "SPECIFIC_PER_UNIT" || cat === "COMPOSITE") && qtyNum != null && sp != null
+            ? qtyNum * sp
+            : null;
+
+    // backend total (for last line only)
+    const backendTotal = Number(
+        (computeRes?.total ?? computeRes?.totalDuty ?? computeRes?.calculatedValue)
+    );
+    const hasBackendTotal = Number.isFinite(backendTotal);
 
     return (
         <>
@@ -260,7 +288,9 @@ export default function TariffCalc() {
                             <Search className="h-5 w-5" />
                             Find Tariffs
                         </CardTitle>
-                        <CardDescription>Pick origin/destination, optionally add text, then search.</CardDescription>
+                        <CardDescription>
+                            Pick origin/destination, optionally add text, then search.
+                        </CardDescription>
                     </CardHeader>
 
                     <CardContent className="space-y-4">
@@ -274,7 +304,7 @@ export default function TariffCalc() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value={NONE}>None</SelectItem>
-                                        {fromOptions.filter(c => c?.countryId != null).map(c => (
+                                        {fromOptions.filter((c) => c?.countryId != null).map((c) => (
                                             <SelectItem key={c.countryId} value={String(c.countryId)}>
                                                 {c.name} ({c.iso2})
                                             </SelectItem>
@@ -291,7 +321,7 @@ export default function TariffCalc() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value={NONE}>None</SelectItem>
-                                        {toOptions.filter(c => c?.countryId != null).map(c => (
+                                        {toOptions.filter((c) => c?.countryId != null).map((c) => (
                                             <SelectItem key={c.countryId} value={String(c.countryId)}>
                                                 {c.name} ({c.iso2})
                                             </SelectItem>
@@ -319,7 +349,7 @@ export default function TariffCalc() {
                                 </Select>
                             </div>
                             <div className="col-span-3 flex items-end justify-end">
-                                <Button className="w-full" onClick={() => setSearchTick(n => n + 1)} disabled={searching}>
+                                <Button className="w-full" onClick={() => setSearchTick((n) => n + 1)} disabled={searching}>
                                     {searching ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Searching…</>) : "Search"}
                                 </Button>
                             </div>
@@ -350,9 +380,7 @@ export default function TariffCalc() {
                                             <div className="font-medium">ID: {id}</div>
                                             <div className="text-xs">{(normalized.category || "").toString()}</div>
                                         </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {normalized.descriptionwcountry}
-                                        </div>
+                                        <div className="text-sm text-muted-foreground">{normalized.descriptionwcountry}</div>
                                     </button>
                                 );
                             })}
@@ -360,23 +388,11 @@ export default function TariffCalc() {
 
                         {/* Pagination */}
                         <div className="flex justify-between items-center">
-                            <Button
-                                variant="outline"
-                                disabled={!canPrev}
-                                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                            >
+                            <Button variant="outline" disabled={!canPrev} onClick={() => setPage((p) => Math.max(0, p - 1))}>
                                 Prev
                             </Button>
-
-                            <div className="text-sm">
-                                Page {pageIdx + 1} / {totalPages}
-                            </div>
-
-                            <Button
-                                variant="outline"
-                                disabled={!canNext}
-                                onClick={() => setPage((p) => p + 1)}
-                            >
+                            <div className="text-sm">Page {pageIdx + 1} / {totalPages}</div>
+                            <Button variant="outline" disabled={!canNext} onClick={() => setPage((p) => p + 1)}>
                                 Next
                             </Button>
                         </div>
@@ -408,6 +424,10 @@ export default function TariffCalc() {
                                 <div className="text-sm">
                                     <div className="font-medium">ID: {selected.id}</div>
                                     <div className="text-muted-foreground">{selected.descriptionwcountry}</div>
+                                    {/* Rate summary (shows before compute) */}
+                                    <div className="mt-1 text-xs text-muted-foreground">
+                                        <span className="font-medium">Rate:</span> {rateSummary(selected) || "—"}
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-4">
@@ -424,9 +444,7 @@ export default function TariffCalc() {
                                     )}
                                     {needsQty && (
                                         <div className="col-span-1">
-                                            <Label>
-                                                Quantity{selected.unitname ? ` (${selected.unitname})` : ""}
-                                            </Label>
+                                            <Label>Quantity{selected.unitname ? ` (${selected.unitname})` : ""}</Label>
                                             <Input
                                                 value={quantity}
                                                 onChange={(e) => setQuantity(e.target.value)}
@@ -442,38 +460,62 @@ export default function TariffCalc() {
                                     onClick={onCompute}
                                     disabled={
                                         computing ||
-                                        (needsDV && (
-                                            declaredValue.trim() === "" ||
-                                            isNaN(Number(declaredValue)) ||
-                                            !Number.isFinite(Number(declaredValue)) ||
-                                            Number(declaredValue) <= 0
-                                        )) ||
-                                        (needsQty && (
-                                            quantity.trim() === "" ||
-                                            isNaN(Number(quantity)) ||
-                                            !Number.isFinite(Number(quantity)) ||
-                                            Number(quantity) <= 0
-                                        ))
+                                        (needsDV && (declaredValue.trim() === "" || isNaN(Number(declaredValue)) || !Number.isFinite(Number(declaredValue)) || Number(declaredValue) <= 0)) ||
+                                        (needsQty && (quantity.trim() === "" || isNaN(Number(quantity)) || !Number.isFinite(Number(quantity)) || Number(quantity) <= 0))
                                     }
                                 >
                                     {computing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Computing…</>) : ("Compute Duty")}
                                 </Button>
 
-                                {computeRes && (
-                                    <Alert className="mt-2">
-                                        <Terminal className="h-4 w-4" />
-                                        <AlertTitle>Duty</AlertTitle>
-                                        <AlertDescription className="font-mono">
-                                            <div>Total Duty: ${Number(computeRes.total ?? computeRes.totalDuty ?? 0).toFixed(2)}</div>
-                                            {Array.isArray(computeRes.breakdown) && computeRes.breakdown.length > 0 && (
-                                                <div className="mt-1">
-                                                    {computeRes.breakdown.map((c, i) => (
-                                                        <div key={i}>• {c.kind}: ${Number(c.dutyAmount || 0).toFixed(2)}</div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </AlertDescription>
-                                    </Alert>
+                                {/* WORKINGS — final number comes from backendTotal */}
+                                {showWorkings && (
+                                    <div className="mt-3 bg-zinc-900 text-white rounded-lg p-4 font-mono text-sm whitespace-pre-wrap">
+                                        <div>Tariff ID: {selected.id}</div>
+                                        <div>Category: {cat}</div>
+
+                                        {/* AD_VALOREM (backend: total = DeclaredValue × (1 + rate)) */}
+                                        {cat === "AD_VALOREM" && avDec != null && dvNum != null && (
+                                            <>
+                                                <div>Ad Valorem Rate: {fmtPct(avPct)} (multiplier = 1 + {fmt(avDec)} = {fmt(avMult)})</div>
+                                                <div> </div>
+                                                <div>Total = Declared Value × (1 + rate)</div>
+                                                <div>= ${fmt(dvNum)} × {fmt(avMult)}</div>
+                                                <div>= {hasBackendTotal ? `$${fmt(backendTotal)}` : "—"}</div>
+                                            </>
+                                        )}
+
+                                        {/* SPECIFIC_PER_UNIT (backend: total = Quantity × Rate per unit) */}
+                                        {cat === "SPECIFIC_PER_UNIT" && sp != null && qtyNum != null && (
+                                            <>
+                                                <div>Specific Rate: ${fmt(sp)} per {unit}</div>
+                                                <div> </div>
+                                                <div>Total = Quantity × Rate per {unit}</div>
+                                                <div>= {fmt(qtyNum)} × ${fmt(sp)} / {unit}</div>
+                                                <div>= {hasBackendTotal ? `$${fmt(backendTotal)}` : "—"}</div>
+                                            </>
+                                        )}
+
+                                        {/* COMPOSITE (backend: total = (Quantity × Rate) × (1 + rate)) */}
+                                        {cat === "COMPOSITE" && sp != null && qtyNum != null && avDec != null && (
+                                            <>
+                                                <div>Specific Rate: ${fmt(sp)} per {unit}</div>
+                                                <div>Ad Valorem Rate: {fmtPct(avPct)} (multiplier = 1 + {fmt(avDec)} = {fmt(avMult)})</div>
+                                                <div> </div>
+
+                                                {/* Step 1 — show the computed specific part number */}
+                                                <div>Step 1 — Specific Part = Quantity × Rate per {unit}</div>
+                                                <div>= {fmt(qtyNum)} × ${fmt(sp)} / {unit}</div>
+                                                <div>= ${fmt(specPart)}</div>
+                                                <div> </div>
+
+                                                {/* Step 2 — show the multiplication with the multiplier, then the backend total */}
+                                                <div>Step 2 — Apply Ad Valorem Multiplier</div>
+                                                <div>Total = Specific Part × (1 + rate)</div>
+                                                <div>= ${fmt(specPart)} × {fmt(avMult)}</div>
+                                                <div>= {hasBackendTotal ? `$${fmt(backendTotal)}` : "—"}</div>
+                                            </>
+                                        )}
+                                    </div>
                                 )}
 
                                 {computeError && (
@@ -492,7 +534,7 @@ export default function TariffCalc() {
     );
 }
 
-/* ------------ helpers ------------ */
+/* ------------ helpers (JS) ------------ */
 function useDebounce(value, delayMs = 300) {
     const [v, setV] = useState(value);
     useEffect(() => {
@@ -501,8 +543,39 @@ function useDebounce(value, delayMs = 300) {
     }, [value, delayMs]);
     return v;
 }
+
 function toNumberOrNull(x) {
     if (x === "" || x == null) return null;
     const n = Number(x);
     return Number.isFinite(n) ? n : null;
+}
+
+function fmt(n) {
+    const x = Number(n ?? 0);
+    return x.toFixed(2);
+}
+
+function fmtPct(n) {
+    if (n == null) return "";
+    const s = (Number(n).toFixed(2)).replace(/\.00$/, "");
+    return `${s}%`;
+}
+
+/** Rate summary under description */
+function rateSummary(selected) {
+    if (!selected) return "";
+    const category = String(selected?.category || "").toUpperCase();
+    const avDec = toNumberOrNull(selected?.advalorem);
+    const sp = toNumberOrNull(selected?.specificperunit);
+    const unit = selected?.unitname || "unit";
+
+    if (category === "AD_VALOREM" && avDec != null) return `${fmtPct(avDec * 100)} ad valorem`;
+    if (category === "SPECIFIC_PER_UNIT" && sp != null) return `$${fmt(sp)} per ${unit}`;
+    if (category === "COMPOSITE") {
+        const parts = [];
+        if (avDec != null) parts.push(`${fmtPct(avDec * 100)} ad valorem`);
+        if (sp != null) parts.push(`$${fmt(sp)} per ${unit}`);
+        return parts.join(" + ");
+    }
+    return "";
 }
