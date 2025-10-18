@@ -14,5 +14,7 @@ public record CalculateDutyRequest(
     
     @Schema(description = "Quantity of goods for specific duty calculations", 
             example = "500.00", required = true)
-    BigDecimal quantity
+    BigDecimal quantity,
+
+    Boolean save //whether to save the current transaction or not
 ){}

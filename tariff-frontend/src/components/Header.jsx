@@ -52,6 +52,7 @@ export default function Header() {
     { label: "Calculator", path: "/calculator" },
     { label: "Dashboard", path: "/dashboard" },
     { label: "Historical Explorer", path: "/historical" },
+    { label: "Calculation History", path: "/calc-history" }
   ]
 
   return (

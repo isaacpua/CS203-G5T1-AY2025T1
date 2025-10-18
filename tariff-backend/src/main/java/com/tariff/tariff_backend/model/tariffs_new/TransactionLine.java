@@ -1,6 +1,10 @@
 package com.tariff.tariff_backend.model.tariffs_new;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+
+import org.hibernate.annotations.CreationTimestamp;
+
 import com.tariff.tariff_backend.model.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
@@ -35,4 +39,9 @@ public class TransactionLine {
     @Column(name = "value", nullable = false)
     @Schema(description = "Calculated duty amount in the applicable currency", example = "1250.75", required = true)
     private BigDecimal calculatedValue;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
+    @Schema(description =  "Time Tariff was created")
+    private Instant created_at;
 }

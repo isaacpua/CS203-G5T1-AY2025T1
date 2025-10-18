@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Search, Calculator } from "lucide-react";
 import { Relogin } from "@/components/Relogin";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const NONE = "none";
 
@@ -48,6 +49,7 @@ export default function TariffCalc() {
     const [computing, setComputing] = useState(false);
     const [computeError, setComputeError] = useState("");
     const [computeRes, setComputeRes] = useState(null); // we use only the total for the last line
+    const [saveResult, setSaveResult] = useState(false);
 
     // Workings visibility (no toggle; just show after compute)
     const [showWorkings, setShowWorkings] = useState(false);
@@ -232,6 +234,7 @@ export default function TariffCalc() {
                 tariffId: selected.id,
                 customsValue: toNumberOrNull(declaredValue),
                 quantity: toNumberOrNull(quantity),
+                save: saveResult,
             };
             const { data } = await calculateTariff(payload);
             setComputeRes(data);     // we will use its total for the last line
@@ -467,7 +470,14 @@ export default function TariffCalc() {
                                         </div>
                                     )}
                                 </div>
-
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="saveResult"
+                                        checked={saveResult}
+                                        onCheckedChange={(checked) => setSaveResult(!!checked)}
+                                    />
+                                    <Label htmlFor="saveResult">Save this calculation</Label>
+                                </div>
                                 <Button
                                     className="w-full"
                                     onClick={onCompute}

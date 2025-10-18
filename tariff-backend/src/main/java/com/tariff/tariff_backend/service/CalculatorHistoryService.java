@@ -1,0 +1,58 @@
+package com.tariff.tariff_backend.service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
+import com.tariff.tariff_backend.dto.CalculationDTO.TransactionLineDTO;
+import com.tariff.tariff_backend.model.User;
+import com.tariff.tariff_backend.model.tariffs_new.Tariff;
+import com.tariff.tariff_backend.model.tariffs_new.TransactionLine;
+import com.tariff.tariff_backend.repository.TransactionLineRepo;
+import com.tariff.tariff_backend.repository.UserRepo;
+
+@Service
+
+public class CalculatorHistoryService {
+
+    private final TransactionLineRepo txRepo;
+    private final UserRepo userRepo;
+
+    public CalculatorHistoryService(TransactionLineRepo txRepo, UserRepo userRepo) {
+        this.txRepo = txRepo;
+        this.userRepo = userRepo;
+    }
+
+    public List<TransactionLineDTO> viewHistory() {
+        List<TransactionLineDTO> result = new ArrayList<>();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = null;
+        if (auth != null) {
+            username = auth.getName();
+        }
+        if (username == null) {
+            throw new IllegalArgumentException("No authenticated user");
+        }
+
+        User user = null; // getting user
+        try {
+            user = userRepo.findByUsername(username).get();
+        } catch (NoSuchElementException e) {
+            throw new IllegalArgumentException("User not found: " + username);
+        }
+        List<TransactionLine> transactionLines = txRepo.findByUser(user);
+
+        for (TransactionLine tx : transactionLines){
+            Tariff t = tx.getTariff();
+            String description = t.getDescriptionwcountry();
+
+            result.add(new TransactionLineDTO(t.getTariffId(), tx.getCalculatedValue(), tx.getCreated_at(), description ));
+        }
+
+        return result;
+    }
+}

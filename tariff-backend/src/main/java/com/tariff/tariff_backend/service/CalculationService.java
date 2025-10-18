@@ -101,14 +101,16 @@ public class CalculationService {
         if (price == null) {
             throw new IllegalArgumentException("price not calculated");
         }
+        if (request.save() == true) {
+            TransactionLine tx = new TransactionLine();
+            tx.setUser(user);
+            tx.setTariff(tariff);
+            tx.setCalculatedValue(price);
+            tx = txRepo.save(tx);
+            return new CalculateDutyResponse(tx.getTransactionId(), tariff.getTariffId(), price); 
+        } 
+        return new CalculateDutyResponse(null, tariff.getTariffId(), price); 
 
-        TransactionLine tx = new TransactionLine();
-        tx.setUser(user);
-        tx.setTariff(tariff);
-        tx.setCalculatedValue(price);
-        tx = txRepo.save(tx);
-
-        return new CalculateDutyResponse(tx.getTransactionId(), tariff.getTariffId(), price);
     }
 
     private static boolean isWholeNumber(BigDecimal n) {

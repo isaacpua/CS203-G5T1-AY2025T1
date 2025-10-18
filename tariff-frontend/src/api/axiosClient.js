@@ -124,4 +124,8 @@ export const deleteUserByID = async (userID) => {
   return await axiosClient.delete(`/users/${userID.toString()}`);
 };
 
+export const getTransactionHistory = async() => {
+  return await axiosClient.get("/tariffs/transactionHistory")
+};
+
 export default axiosClient;
