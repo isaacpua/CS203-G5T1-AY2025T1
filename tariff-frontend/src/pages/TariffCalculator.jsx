@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import {calculateTariff,getAllPartnerCountries,getAllReporterCountries,getPartnersByTo,getReportersFrom,searchTariff,} from "@/api/axiosClient";
+import { calculateTariff, getAllPartnerCountries, getAllReporterCountries, getPartnersByTo, getReportersFrom, searchTariff, } from "@/api/axiosClient";
 import { Button } from "@/components/ui/button";
-import {Card,CardContent,CardFooter,CardHeader,CardTitle,CardDescription,} from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription, } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue,} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Search, Calculator } from "lucide-react";
 import { Relogin } from "@/components/Relogin";
@@ -38,7 +38,7 @@ export default function TariffCalc() {
     const [size, setSize] = useState(10);
     const [searching, setSearching] = useState(false);
     const [searchError, setSearchError] = useState("");
-    const [results, setResults] = useState({ content: [], totalPages: 0, number: 0, size: 10,last: null,});
+    const [results, setResults] = useState({ content: [], totalPages: 0, number: 0, size: 10, last: null, });
     const [searchTick, setSearchTick] = useState(0);
 
     // Selection + compute
@@ -237,9 +237,18 @@ export default function TariffCalc() {
             setComputeRes(data);     // we will use its total for the last line
             setShowWorkings(true);   // reveal workings block
         } catch (e) {
-            if (e?.response?.status === 401) { setShowRelogin(true); return; }
-            setComputeError("Compute failed. Check /api/v1/tariffs/calc.");
-            console.error(e);
+            if (e?.response?.status === 401) {
+                setShowRelogin(true);
+                return;
+            }
+
+            const msg =
+                e?.response?.data?.message ||
+                e?.response?.data?.error ||
+                e?.response?.data ||
+                "Compute failed. Check /api/v1/tariffs/calc.";
+            setComputeError(String(msg));
+            console.error("Compute error:", e);
         } finally {
             setComputing(false);
         }
