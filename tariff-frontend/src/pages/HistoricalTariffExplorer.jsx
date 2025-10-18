@@ -4,7 +4,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../components/ui/select";
-import axiosClient from "../api/axiosClient";
+import { getTariffHistory, getTariffRecommendations } from "../api/axiosClient";
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { Relogin } from "@/components/Relogin";
 
@@ -42,7 +42,7 @@ export default function HistoricalTariffExplorer() {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await axiosClient.get("/tariffs/recommendations");
+        const { data } = await getTariffRecommendations();
         setSuggestions(data || []);
       } catch (e) {
         if (e.response?.status === 401) {
@@ -59,9 +59,7 @@ export default function HistoricalTariffExplorer() {
     try {
       setLoading(true);
       setError("");
-      const { data } = await axiosClient.get("/tariffs/history", {
-        params,
-      });
+      const { data } = await getTariffHistory(params);
       setSeries(data);
     } catch (e) {
       if (e.response?.status === 401) {

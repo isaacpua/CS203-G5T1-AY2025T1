@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Shield, Hash, Edit } from "lucide-react";
-import axiosClient from "@/api/axiosClient";
+import { getUserData, updatePassword, updateUsername } from "@/api/axiosClient";
 import { getUserInitials } from "@/utils/AvatarHelpers";
 import { toast } from "sonner";
 import { logout } from "@/utils/logout";
@@ -45,11 +45,9 @@ export default function Profile() {
   }, [user, navigate]);
 
   useEffect(() => {
-    const getUserData = async () => {
+    const fetchUserData = async () => {
       try {
-        const { data } = await axiosClient.get(
-          `/users/${userDetails.username}`
-        );
+        const { data } = await getUserData(userDetails.username);
         if (!data.user) throw new Error("User data missing");
         setUserDetails(data.user);
       } catch (err) {
@@ -59,7 +57,7 @@ export default function Profile() {
     };
 
     if (userDetails.username !== "NULL") {
-      getUserData();
+      fetchUserData();
     }
   }, [userDetails.username]);
 
@@ -187,10 +185,7 @@ function EditProfileDialog({ userDetails, setUser }) {
     setIsLoading(true);
     try {
       const usernameUpdateDTO = { username: editUsername.trim() };
-      await axiosClient.put(
-        `/users/${userDetails.id}/username`,
-        usernameUpdateDTO
-      );
+      await updateUsername(userDetails.id, usernameUpdateDTO);
       toast.success("Username updated successfully");
       logout(setUser);
     } catch (err) {
@@ -280,9 +275,7 @@ function ChangePasswordDialog({ userDetails, setUser }) {
 
     setIsLoading(true);
     try {
-      await axiosClient.put(`/users/${userDetails.id}/password`, {
-        password: newPassword.trim(),
-      });
+      await updatePassword(userDetails.id, newPassword);
 
       toast.success("Password updated successfully. Please log in again.");
       logout(setUser);
