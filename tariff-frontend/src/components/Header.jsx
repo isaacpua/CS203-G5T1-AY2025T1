@@ -17,6 +17,7 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -26,14 +27,16 @@ import { ModeToggle } from "./mode-toggle"
 import { logout } from "@/utils/logout"
 import { useAuth } from "@/utils/AuthContext"
 import { cn } from "@/lib/utils"
+import AdminPanel from "@/components/AdminPanel"
 
 export default function Header() {
-  const { user, setUser } = useAuth();
-  const navigate = useNavigate()
-  const [isOpen, setIsOpen] = useState(false)
+  const { user, setUser, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
 
   const handleProfileClick = () => {
-    navigate("/profile")
+    navigate("/profile");
   }
 
   const handleLogout = () => {
@@ -41,8 +44,8 @@ export default function Header() {
   }
 
   const handleNavigate = (path) => {
-    navigate(path)
-    setIsOpen(false)
+    navigate(path);
+    setIsOpen(false);
   }
 
   const navigationItems = [
@@ -79,8 +82,14 @@ export default function Header() {
           )}
         </div>
 
-        {/* Right-side group: Mobile menu + Avatar (if user exists) + ModeToggle */}
+        {/* Right-side group: AdminPanel + Mobile menu + Avatar + ModeToggle */}
         <div className="flex items-center space-x-2">
+          {user && isAdmin && (
+            <div className="hidden md:block">
+              <AdminPanel open={adminPanelOpen} onOpenChange={setAdminPanelOpen} />
+            </div>
+          )}
+
           {/* Mobile Navigation Menu */}
           {user && (
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -95,8 +104,8 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-72">
-                <div className="flex flex-col space-y-4 mt-8">
-                  <div className="text-lg font-semibold mb-4">Navigation</div>
+                <SheetTitle>Navigation</SheetTitle>
+                <div className="flex flex-col space-y-4 mt-4">
                   {navigationItems.map((item) => (
                     <Button
                       key={item.path}
@@ -107,7 +116,19 @@ export default function Header() {
                       {item.label}
                     </Button>
                   ))}
-                  
+                  {/* Admin Panel (mobile version) */}
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      className="justify-start text-left"
+                      onClick={() => {
+                        setIsOpen(false);
+                        setAdminPanelOpen(true);
+                      }}
+                    >
+                      Admin Panel
+                    </Button>
+                  )}
                   {/* Mobile Profile and Logout */}
                   <div className="border-t pt-4 mt-4">
                     <div className="text-sm font-medium mb-2 text-muted-foreground">Account</div>
@@ -115,8 +136,8 @@ export default function Header() {
                       variant="ghost"
                       className="justify-start text-left w-full"
                       onClick={() => {
-                        handleProfileClick()
-                        setIsOpen(false)
+                        handleProfileClick();
+                        setIsOpen(false);
                       }}
                     >
                       Profile
@@ -125,8 +146,8 @@ export default function Header() {
                       variant="ghost"
                       className="justify-start text-left w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                       onClick={() => {
-                        handleLogout()
-                        setIsOpen(false)
+                        handleLogout();
+                        setIsOpen(false);
                       }}
                     >
                       Logout

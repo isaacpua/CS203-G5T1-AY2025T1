@@ -1,14 +1,3 @@
-/**
- * Simple JWT decoder for frontend use
- * Extracts payload without signature verification
- */
-
-/**
- * Decodes a JWT token and returns the payload
- * @param {string} token - The JWT token to decode
- * @returns {Object} The decoded payload
- * @throws {Error} If token is invalid or malformed
- */
 export function decodeJWT(token) {
   if (!token || typeof token !== 'string') {
     throw new Error('Invalid token: Token must be a non-empty string');
@@ -38,11 +27,6 @@ export function decodeJWT(token) {
   }
 }
 
-/**
- * Decodes JWT header (optional utility)
- * @param {string} token - The JWT token
- * @returns {Object} The decoded header
- */
 export function decodeJWTHeader(token) {
   if (!token || typeof token !== 'string') {
     throw new Error('Invalid token: Token must be a non-empty string');
@@ -63,11 +47,6 @@ export function decodeJWTHeader(token) {
   }
 }
 
-/**
- * Checks if token is expired based on 'exp' claim
- * @param {Object} payload - The decoded payload
- * @returns {boolean} True if token is expired
- */
 export function isTokenExpired(payload) {
   if (!payload.exp) {
     return false; // No expiration claim
@@ -77,15 +56,46 @@ export function isTokenExpired(payload) {
   return payload.exp < currentTime;
 }
 
-/**
- * Gets token expiration date
- * @param {Object} payload - The decoded payload
- * @returns {Date|null} Expiration date or null if no exp claim
- */
 export function getTokenExpiration(payload) {
   if (!payload.exp) {
     return null;
   }
   
   return new Date(payload.exp * 1000);
+}
+
+export function getRoleFromToken(token) {
+  if (!token) return null;
+  
+  try {
+    const payload = decodeJWT(token);
+    return payload.roles || null;
+  } catch (error) {
+    console.error('Error decoding token for role:', error);
+    return null;
+  }
+}
+
+export function isAdmin(user) {
+  if (!user || !user.accessToken) return false;
+  
+  try {
+    const role = getRoleFromToken(user.accessToken);
+    return role === 'admin';
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+}
+
+export function hasRole(user, requiredRole) {
+  if (!user || !user.accessToken || !requiredRole) return false;
+  
+  try {
+    const role = getRoleFromToken(user.accessToken);
+    return role === requiredRole;
+  } catch (error) {
+    console.error('Error checking role:', error);
+    return false;
+  }
 }
