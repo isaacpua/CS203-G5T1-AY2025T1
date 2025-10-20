@@ -416,6 +416,10 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
             <Input id="unitname" value={form.unitname || ""} onChange={(e) => setForm((f) => ({ ...f, unitname: e.target.value }))} placeholder="e.g., kg" />
           </div>
 
+          <div className="col-span-2 text-sm text-muted-foreground">
+            <span className="text-red-500">*</span>
+            <span> Starred fields are mandatory</span>
+          </div>
         </div>
 
         {error && <div className="p-3 bg-red-50 border border-red-200 rounded-md"><p className="text-sm text-red-600">{error}</p></div>}
