@@ -451,7 +451,7 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
 
   const hasChanges = JSON.stringify(form) !== JSON.stringify(initialData || {});
 
-  const categories = ["COMPOSITE", "SPECIFIC_PER_UNIT", "AD_VALOREM", "FOOD_BEVERAGE", "MINERAL", "CHEMICAL", "PLASTIC", "TEXTILE", "WOOD", "PAPER"];
+  const categories = ["COMPOSITE", "SPECIFIC_PER_UNIT", "AD_VALOREM"];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
