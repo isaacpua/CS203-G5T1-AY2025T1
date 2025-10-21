@@ -2,8 +2,11 @@ package com.tariff.tariff_backend.model.tariffs_new;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Map;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import com.tariff.tariff_backend.model.User;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -44,4 +47,9 @@ public class TransactionLine {
     @Column(name = "created_at", nullable = false)
     @Schema(description =  "Time Tariff was created")
     private Instant created_at;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "snapshot", columnDefinition = "jsonb")
+    @Schema(description = "Snapshot of the tariff calculation at the time of transaction")
+    private Map<String,Object> snapshot;
 }

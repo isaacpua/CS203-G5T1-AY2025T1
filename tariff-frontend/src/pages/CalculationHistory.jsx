@@ -1,4 +1,3 @@
-// src/pages/CalculationHistory.jsx
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,18 +11,60 @@ import Papa from "papaparse";
 import { toast } from "sonner";
 import { Relogin } from "@/components/Relogin";
 
-// API: returns List<TransactionLineDTO>
 import { getTransactionHistory } from "@/api/axiosClient";
+
+/* ---------- helpers ---------- */
+function to2(n) {
+  const x = Number(n);
+  return Number.isFinite(x) ? x.toFixed(2) : n;
+}
+
+function fmtRate(rowOrSnap) {
+  if (!rowOrSnap) return "—";
+  const adv = toNum(rowOrSnap.adValorem ?? rowOrSnap.advalorem);
+  const spec = toNum(rowOrSnap.specificPerUnit ?? rowOrSnap.specificperunit);
+  const parts = [];
+  if (adv != null) parts.push(`${(adv * 100).toFixed(2).replace(/\.00$/, "")}% ad valorem`);
+  if (spec != null) parts.push(`$${to2(spec)} per Unit`);
+  return parts.length ? parts.join(" + ") : "—";
+}
+
+function toNum(x) {
+  if (x == null || x === "") return null;
+  const n = Number(x);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** ALWAYS prefer snapshot values (time-of-creation); fall back to table if missing */
+function getTariffId(row) {
+  return row?.snapshot?.tariffId ?? row?.tariffId ?? null;
+}
+function getDescription(row) {
+  return row?.snapshot?.descriptionwcountry ?? row?.description ?? "—";
+}
+
+/* text search uses snapshot-backed getters */
+function filterItems(items, q) {
+  const t = q.trim().toLowerCase();
+  if (!t) return items;
+  return items.filter((r) => {
+    const fields = [
+      getDescription(r),
+      getTariffId(r) != null ? String(getTariffId(r)) : "",
+      r.snapshot?.category ?? r.category ?? "",
+    ];
+    return fields.some((f) => f.toLowerCase().includes(t));
+  });
+}
 
 export default function CalculationHistory() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState("");
-  const [items, setItems] = useState([]);              // ← simple list from backend
+  const [items, setItems] = useState([]);
   const [showRelogin, setShowRelogin] = useState(false);
-
-  const [q, setQ] = useState("");                      // local search
+  const [q, setQ] = useState("");
   const [viewRow, setViewRow] = useState(null);
 
   const load = async (asRefresh = false) => {
@@ -33,14 +74,21 @@ export default function CalculationHistory() {
       const { data } = await getTransactionHistory();
       const arr = Array.isArray(data) ? data : [];
 
-      // normalize keys to what UI will use
-      const mapped = arr.map((r, idx) => ({
-        id: idx,                                      // no ID in DTO, use index
-        tariffId: r.tariffId ?? null,
-        total: r.total ?? null,
-        createdAt: r.created_at ?? r.createdAt ?? null, // handle snake or camel just in case
-        description: r.description ?? "",
-      }));
+      const mapped = arr.map((r, idx) => {
+        const raw = r.snapshot ?? r.snapshotJson; // object or string
+        let snap = raw;
+        if (typeof raw === "string") {
+          try { snap = JSON.parse(raw); } catch { snap = null; }
+        }
+        return {
+          id: idx,
+          tariffId: r.tariffId ?? null,                // table value (fallback only)
+          total: r.total ?? null,
+          createdAt: r.created_at ?? r.createdAt ?? null,
+          description: r.description ?? "",            // table value (fallback only)
+          snapshot: snap,                              // preferred source
+        };
+      });
 
       setItems(mapped);
       if (asRefresh) toast.success(`Loaded ${mapped.length} records`);
@@ -55,7 +103,6 @@ export default function CalculationHistory() {
   };
 
   useEffect(() => { load(false); }, []);
-
   const filtered = filterItems(items, q);
 
   const exportCSV = async () => {
@@ -63,8 +110,10 @@ export default function CalculationHistory() {
       setIsExporting(true);
       const rows = filtered.map((r) => ({
         "Time": r.createdAt ? new Date(r.createdAt).toISOString() : "",
-        "Tariff ID": r.tariffId ?? "",
-        "Description": r.description ?? "",
+        "Tariff ID": getTariffId(r) ?? "",
+        "Description": getDescription(r),
+        "Category": r.snapshot?.category ?? "",
+        "Rate (pretty)": fmtRate(r.snapshot),
         "Total Duty": r.total != null ? String(r.total) : "",
       }));
       const csv = Papa.unparse(rows, { header: true, skipEmptyLines: true });
@@ -85,26 +134,42 @@ export default function CalculationHistory() {
     }
   };
 
-  const Row = ({ row }) => (
-    <div className="p-3 rounded-lg border bg-card">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <Badge variant="secondary" className="font-mono">#{row.tariffId ?? "—"}</Badge>
-          <span className="text-xs text-muted-foreground">
-            {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
-          </span>
+  const Row = ({ row }) => {
+    const rate = fmtRate(row.snapshot);
+    const category = row.snapshot?.category ?? "—";
+    const titleId = getTariffId(row);
+    return (
+      <div className="p-3 rounded-lg border bg-card">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="font-mono">#{titleId ?? "—"}</Badge>
+            <span className="text-xs text-muted-foreground">
+              {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
+            </span>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => setViewRow(row)}>
+            <Eye className="h-4 w-4" />
+          </Button>
         </div>
-        <Button size="sm" variant="ghost" onClick={() => setViewRow(row)}>
-          <Eye className="h-4 w-4" />
-        </Button>
+
+        <div className="mt-2 text-sm">{getDescription(row)}</div>
+
+        <div className="mt-1 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Rate:</span>{" "}
+          {rate}
+          {category !== "—" && <span className="ml-2">• <span className="uppercase">{category}</span></span>}
+        </div>
+
+        <div className="mt-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Total:</span>{" "}
+          {row.total != null ? `$${to2(row.total)}` : "—"}
+        </div>
       </div>
-      <div className="mt-2 text-sm">{row.description || "—"}</div>
-      <div className="mt-2 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">Total:</span>{" "}
-        {row.total != null ? `$${Number(row.total).toFixed(2)}` : "—"}
-      </div>
-    </div>
-  );
+    );
+  };
+
+  const snap = viewRow?.snapshot ?? null;
+  const ratePretty = fmtRate(snap);
 
   return (
     <TooltipProvider>
@@ -142,7 +207,6 @@ export default function CalculationHistory() {
 
         <CardContent className="px-0 pt-4 md:pt-6 pb-6 md:pb-8">
           <div className="px-4 md:px-6">
-            {/* simple client-side search */}
             <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-xl border mb-6">
               <Label>Search</Label>
               <div className="relative">
@@ -167,7 +231,6 @@ export default function CalculationHistory() {
             </div>
           </div>
 
-          {/* body */}
           {error ? (
             <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-destructive/10 border border-destructive/20 rounded-xl">
               <div className="text-center">
@@ -211,19 +274,51 @@ export default function CalculationHistory() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Badge variant="secondary" className="font-mono">#{viewRow?.tariffId ?? "—"}</Badge>
+              <Badge variant="secondary" className="font-mono">#{getTariffId(viewRow) ?? "—"}</Badge>
               <span>Calculation Details</span>
             </DialogTitle>
           </DialogHeader>
+
           <div className="grid grid-cols-2 gap-4 py-4 text-sm">
-            <div><span className="text-muted-foreground">Time:</span> {viewRow?.createdAt ? new Date(viewRow.createdAt).toLocaleString() : "—"}</div>
-            <div><span className="text-muted-foreground">Tariff ID:</span> {viewRow?.tariffId ?? "—"}</div>
+            <div>
+              <span className="text-muted-foreground">Time:</span>{" "}
+              {viewRow?.createdAt ? new Date(viewRow.createdAt).toLocaleString() : "—"}
+            </div>
+            <div>
+              <span className="text-muted-foreground">Tariff ID:</span>{" "}
+              {getTariffId(viewRow) ?? "—"}
+            </div>
+
             <div className="col-span-2">
               <span className="text-muted-foreground">Description:</span>
-              <div className="mt-1 bg-muted/40 rounded p-2">{viewRow?.description || "—"}</div>
+              <div className="mt-1 bg-muted/40 rounded p-2">
+                {getDescription(viewRow)}
+              </div>
             </div>
-            <div className="col-span-2"><span className="text-muted-foreground">Total Duty:</span> {viewRow?.total != null ? `$${Number(viewRow.total).toFixed(2)}` : "—"}</div>
+
+            {/* Rate */}
+            <div className="col-span-2">
+              <div className="font-medium mb-1">Rate</div>
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
+                <div><span className="text-muted-foreground">Category:</span> {snap?.category ?? "—"}</div>
+                <div><span className="text-muted-foreground">Details:</span> {ratePretty}</div>
+              </div>
+            </div>
+
+            {/* Workings */}
+            <div className="col-span-2">
+              <div className="font-medium mb-1">Workings</div>
+              <pre className="rounded-lg border bg-black/20 p-3 text-xs leading-5 overflow-auto whitespace-pre-wrap">
+                {snap ? renderWorkingsFromSnap(snap) : "—"}
+              </pre>
+            </div>
+
+            <div className="col-span-2">
+              <span className="text-muted-foreground">Total Duty:</span>{" "}
+              {viewRow?.total != null ? `$${to2(viewRow.total)}` : "—"}
+            </div>
           </div>
+
           <DialogFooter>
             <Button onClick={() => setViewRow(null)}>Close</Button>
           </DialogFooter>
@@ -233,15 +328,42 @@ export default function CalculationHistory() {
   );
 }
 
-/* ---------- helpers ---------- */
-function filterItems(items, q) {
-  const t = q.trim().toLowerCase();
-  if (!t) return items;
-  return items.filter((r) => {
-    const fields = [
-      r.description ?? "",
-      r.tariffId != null ? String(r.tariffId) : "",
-    ];
-    return fields.some((f) => f.toLowerCase().includes(t));
-  });
+function renderWorkingsFromSnap(snap) {
+  if (!snap) return "—";
+  const cat = (snap.category || "").toUpperCase();
+
+  const adval = toNum(snap.adValorem ?? snap.advalorem);
+  const spec = toNum(snap.specificPerUnit ?? snap.specificperunit);
+  const qty = toNum(snap.quantity ?? snap.inputs?.quantity);
+  const val = toNum(snap.customsValue ?? snap.inputs?.customsValue);
+  const total = toNum(snap.total ?? snap.result?.total);
+  const unit = snap.unitname ?? snap.unitName ?? "unit";
+
+  const fmt = (x) => Number.isFinite(x) ? x.toFixed(2) : "—";
+  const fmtPct = (x) => Number.isFinite(x) ? `${(x * 100).toFixed(2).replace(/\.00$/, "")}%` : "—";
+  const avMult = adval != null ? 1 + adval : null;
+
+  const lines = [];
+  lines.push(`Category: ${cat}`);
+
+  if (cat === "AD_VALOREM" && adval != null && val != null) {
+    lines.push(`Ad Valorem Rate: ${fmtPct(adval)} (multiplier = ${fmt(avMult)})`);
+    lines.push(`Total = Declared Value × (1 + rate)`);
+    lines.push(`= $${fmt(val)} × ${fmt(avMult)} = $${fmt(total)}`);
+  } else if (cat === "SPECIFIC_PER_UNIT" && spec != null && qty != null) {
+    lines.push(`Specific Rate: $${fmt(spec)} per ${unit}`);
+    lines.push(`Total = Quantity × Rate`);
+    lines.push(`= ${fmt(qty)} × $${fmt(spec)} = $${fmt(total)}`);
+  } else if (cat === "COMPOSITE" && adval != null && spec != null && qty != null) {
+    const specificPart = qty * spec;
+    const multiplier = 1 + adval;
+    lines.push(`Specific Rate: $${fmt(spec)} per ${unit}`);
+    lines.push(`Ad Valorem Rate: ${fmtPct(adval)} (multiplier = ${fmt(multiplier)})`);
+    lines.push(`Step 1 — Specific Part = ${fmt(qty)} × $${fmt(spec)} = $${fmt(specificPart)}`);
+    lines.push(`Step 2 — Apply Ad Valorem: $${fmt(specificPart)} × ${fmt(multiplier)} = $${fmt(total ?? specificPart * multiplier)}`);
+  } else {
+    lines.push("— No sufficient data for workings —");
+  }
+
+  return lines.join("\n");
 }

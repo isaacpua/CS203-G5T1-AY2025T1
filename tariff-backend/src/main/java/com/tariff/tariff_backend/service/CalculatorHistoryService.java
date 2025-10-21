@@ -50,7 +50,7 @@ public class CalculatorHistoryService {
             Tariff t = tx.getTariff();
             String description = t.getDescriptionwcountry();
 
-            result.add(new TransactionLineDTO(t.getTariffId(), tx.getCalculatedValue(), tx.getCreated_at(), description ));
+            result.add(new TransactionLineDTO(t.getTariffId(), tx.getCalculatedValue(), tx.getCreated_at(), description, tx.getSnapshot() ));
         }
 
         return result;

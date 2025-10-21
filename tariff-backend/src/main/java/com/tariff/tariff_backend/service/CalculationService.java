@@ -1,6 +1,8 @@
 package com.tariff.tariff_backend.service;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.springframework.security.core.Authentication;
@@ -45,8 +47,7 @@ public class CalculationService {
             throw new IllegalArgumentException("Tariff not found: " + request.tariffId());
         }
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication(); // getting username because my
-                                                                                      // frontend not sending
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication(); // getting username because my frontend not sending
         String username = null;
         if (auth != null) {
             username = auth.getName();
@@ -106,6 +107,24 @@ public class CalculationService {
             tx.setUser(user);
             tx.setTariff(tariff);
             tx.setCalculatedValue(price);
+            try {
+                Map<String, Object> snap = new LinkedHashMap<>();
+                snap.put("tariffId", tariff.getTariffId());
+                snap.put("descriptionwcountry", tariff.getDescriptionwcountry());
+                snap.put("partnerCountry", tariff.getPartnerCountry().getName());
+                snap.put("reporterCountry", tariff.getReporterCountry().getName());
+                snap.put("unitname", tariff.getUnitname());
+                snap.put("category", tariff.getCategory());
+                snap.put("adValorem", tariff.getAdValorem());
+                snap.put("specificPerUnit", tariff.getSpecificPerUnit());
+                snap.put("quantity", request.quantity());
+                snap.put("customsValue", request.customsValue());
+                snap.put("total", price);
+                tx.setSnapshot(snap);
+
+            } catch (Exception e){
+                System.err.println("Failed to serialize JSON: " + e.getMessage());
+            }
             tx = txRepo.save(tx);
             return new CalculateDutyResponse(tx.getTransactionId(), tariff.getTariffId(), price); 
         } 
