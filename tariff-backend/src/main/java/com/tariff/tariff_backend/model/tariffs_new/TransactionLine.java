@@ -1,6 +1,5 @@
 package com.tariff.tariff_backend.model.tariffs_new;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 
@@ -33,15 +32,6 @@ public class TransactionLine {
     @JoinColumn(name = "userid", nullable = false)
     @Schema(description = "User who performed the calculation", required = true)
     private User user;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "tariffid", nullable = false)
-    @Schema(description = "Tariff used in the calculation", required = true)
-    private Tariff tariff;
-
-    @Column(name = "value", nullable = false)
-    @Schema(description = "Calculated duty amount in the applicable currency", example = "1250.75", required = true)
-    private BigDecimal calculatedValue;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)

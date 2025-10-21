@@ -105,8 +105,6 @@ public class CalculationService {
         if (request.save() == true) {
             TransactionLine tx = new TransactionLine();
             tx.setUser(user);
-            tx.setTariff(tariff);
-            tx.setCalculatedValue(price);
             try {
                 Map<String, Object> snap = new LinkedHashMap<>();
                 snap.put("tariffId", tariff.getTariffId());

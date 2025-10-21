@@ -2,6 +2,7 @@ package com.tariff.tariff_backend.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.springframework.security.core.Authentication;
@@ -10,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import com.tariff.tariff_backend.dto.CalculationDTO.TransactionLineDTO;
 import com.tariff.tariff_backend.model.User;
-import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 import com.tariff.tariff_backend.model.tariffs_new.TransactionLine;
 import com.tariff.tariff_backend.repository.TransactionLineRepo;
 import com.tariff.tariff_backend.repository.UserRepo;
@@ -47,10 +47,8 @@ public class CalculatorHistoryService {
         List<TransactionLine> transactionLines = txRepo.findByUser(user);
 
         for (TransactionLine tx : transactionLines){
-            Tariff t = tx.getTariff();
-            String description = t.getDescriptionwcountry();
-
-            result.add(new TransactionLineDTO(t.getTariffId(), tx.getCalculatedValue(), tx.getCreated_at(), description, tx.getSnapshot() ));
+            Map<String, Object> snap = tx.getSnapshot();
+            result.add(new TransactionLineDTO(tx.getCreated_at(), snap));
         }
 
         return result;

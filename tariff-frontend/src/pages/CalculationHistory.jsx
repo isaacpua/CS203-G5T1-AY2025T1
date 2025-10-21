@@ -13,50 +13,6 @@ import { Relogin } from "@/components/Relogin";
 
 import { getTransactionHistory } from "@/api/axiosClient";
 
-/* ---------- helpers ---------- */
-function to2(n) {
-  const x = Number(n);
-  return Number.isFinite(x) ? x.toFixed(2) : n;
-}
-
-function fmtRate(rowOrSnap) {
-  if (!rowOrSnap) return "—";
-  const adv = toNum(rowOrSnap.adValorem ?? rowOrSnap.advalorem);
-  const spec = toNum(rowOrSnap.specificPerUnit ?? rowOrSnap.specificperunit);
-  const parts = [];
-  if (adv != null) parts.push(`${(adv * 100).toFixed(2).replace(/\.00$/, "")}% ad valorem`);
-  if (spec != null) parts.push(`$${to2(spec)} per Unit`);
-  return parts.length ? parts.join(" + ") : "—";
-}
-
-function toNum(x) {
-  if (x == null || x === "") return null;
-  const n = Number(x);
-  return Number.isFinite(n) ? n : null;
-}
-
-/** ALWAYS prefer snapshot values (time-of-creation); fall back to table if missing */
-function getTariffId(row) {
-  return row?.snapshot?.tariffId ?? row?.tariffId ?? null;
-}
-function getDescription(row) {
-  return row?.snapshot?.descriptionwcountry ?? row?.description ?? "—";
-}
-
-/* text search uses snapshot-backed getters */
-function filterItems(items, q) {
-  const t = q.trim().toLowerCase();
-  if (!t) return items;
-  return items.filter((r) => {
-    const fields = [
-      getDescription(r),
-      getTariffId(r) != null ? String(getTariffId(r)) : "",
-      r.snapshot?.category ?? r.category ?? "",
-    ];
-    return fields.some((f) => f.toLowerCase().includes(t));
-  });
-}
-
 export default function CalculationHistory() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -114,7 +70,7 @@ export default function CalculationHistory() {
         "Description": getDescription(r),
         "Category": r.snapshot?.category ?? "",
         "Rate (pretty)": fmtRate(r.snapshot),
-        "Total Duty": r.total != null ? String(r.total) : "",
+        "Total Duty": getTotal(r) != null ? String(getTotal(r)) : "",
       }));
       const csv = Papa.unparse(rows, { header: true, skipEmptyLines: true });
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -162,7 +118,7 @@ export default function CalculationHistory() {
 
         <div className="mt-2 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">Total:</span>{" "}
-          {row.total != null ? `$${to2(row.total)}` : "—"}
+          {getTotal(row) != null ? `$${to2(getTotal(row))}` : "—"}
         </div>
       </div>
     );
@@ -315,7 +271,7 @@ export default function CalculationHistory() {
 
             <div className="col-span-2">
               <span className="text-muted-foreground">Total Duty:</span>{" "}
-              {viewRow?.total != null ? `$${to2(viewRow.total)}` : "—"}
+              {getTotal(viewRow) != null ? `$${to2(getTotal(viewRow))}` : "—"}
             </div>
           </div>
 
@@ -326,6 +282,50 @@ export default function CalculationHistory() {
       </Dialog>
     </TooltipProvider>
   );
+}
+
+/* ---------- helpers ---------- */
+function to2(n) {
+  const x = Number(n);
+  return Number.isFinite(x) ? x.toFixed(2) : n;
+}
+
+function fmtRate(rowOrSnap) {
+  if (!rowOrSnap) return "—";
+  const adv = toNum(rowOrSnap.adValorem ?? rowOrSnap.advalorem);
+  const spec = toNum(rowOrSnap.specificPerUnit ?? rowOrSnap.specificperunit);
+  const parts = [];
+  if (adv != null) parts.push(`${(adv * 100).toFixed(2).replace(/\.00$/, "")}% ad valorem`);
+  if (spec != null) parts.push(`$${to2(spec)} per Unit`);
+  return parts.length ? parts.join(" + ") : "—";
+}
+
+function toNum(x) {
+  if (x == null || x === "") return null;
+  const n = Number(x);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** ALWAYS prefer snapshot values (time-of-creation); fall back to table if missing */
+function getTariffId(row) {
+  return row?.snapshot?.tariffId ?? row?.tariffId ?? null;
+}
+function getDescription(row) {
+  return row?.snapshot?.descriptionwcountry ?? row?.description ?? "—";
+}
+
+/* text search uses snapshot-backed getters */
+function filterItems(items, q) {
+  const t = q.trim().toLowerCase();
+  if (!t) return items;
+  return items.filter((r) => {
+    const fields = [
+      getDescription(r),
+      getTariffId(r) != null ? String(getTariffId(r)) : "",
+      r.snapshot?.category ?? r.category ?? "",
+    ];
+    return fields.some((f) => f.toLowerCase().includes(t));
+  });
 }
 
 function renderWorkingsFromSnap(snap) {
@@ -366,4 +366,11 @@ function renderWorkingsFromSnap(snap) {
   }
 
   return lines.join("\n");
+}
+
+function getTotal(row) {
+  const s = row?.snapshot;
+  // support either shape: { total } or { result: { total } }
+  const t = s?.total ?? s?.result?.total ?? row?.total;
+  return t == null ? null : Number(t);
 }
