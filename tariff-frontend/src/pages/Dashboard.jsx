@@ -152,12 +152,27 @@ const CategoryCell = ({ row, column, grid }) => {
   );
 };
 
-const CountryCell = ({ row, column, grid }) => {
+const CountryCell = ({ row, column, grid, countryMap }) => {
   const value = grid.api.columnField(column, row);
+  const iso2 = countryMap?.get(value); // Look up the iso2 code
+
   return (
     <div className="flex items-center px-3 py-2">
       <div className="flex items-center space-x-2">
-        <div className="w-4 h-3 bg-gray-300 dark:bg-gray-700 rounded-sm flex-shrink-0" />
+        {iso2 ? (
+          <img
+            src={`https://flagcdn.com/w20/${iso2.toLowerCase()}.png`}
+            srcSet={`https://flagcdn.com/w40/${iso2.toLowerCase()}.png 2x`}
+            alt={`${value} flag`}
+            width="16" // w-4
+            height="12" // h-3
+            className="rounded-sm object-contain flex-shrink-0"
+            onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'block'; }}
+          />
+        ) : (
+          // Fallback gray dot
+          <div className="w-4 h-3 bg-gray-300 dark:bg-gray-700 rounded-sm flex-shrink-0" />
+        )}
         <span className="text-sm font-medium">{value || "—"}</span>
       </div>
     </div>
@@ -263,19 +278,19 @@ const StaticHeader = ({ column }) => (
 //
 // Change StaticHeader to SortableHeader to enable sorting
 //
-function TariffGrid({ userRole, data, onEdit, onDelete, onView, isMobile }) {
+function TariffGrid({ userRole, data, onEdit, onDelete, onView, isMobile, countryMap }) {
   const columns = useMemo(
     () => [
       { id: "tariffid", name: "Tariff ID", width: 120, resizable: true, cellRenderer: TariffIdCell, headerRenderer: StaticHeader },
       { id: "category", name: "Category", width: 180, resizable: true, cellRenderer: CategoryCell, headerRenderer: StaticHeader },
       { id: "descriptionwcountry", name: "Description", width: 500, resizable: true, cellRenderer: (props) => <DescriptionCell {...props} onView={onView} />, headerRenderer: StaticHeader },
-      { id: "partnerCountry", name: "Partner Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: StaticHeader },
-      { id: "reporterCountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: StaticHeader },
+      { id: "partnerCountry", name: "Partner Country", width: 160, resizable: true, cellRenderer: (props) => <CountryCell {...props} countryMap={countryMap} />, headerRenderer: StaticHeader },
+      { id: "reporterCountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: (props) => <CountryCell {...props} countryMap={countryMap} />, headerRenderer: StaticHeader },
       { id: "adValorem", name: "Ad Valorem", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader },
       { id: "specificPerUnit", name: "Specific/Unit", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader },
       { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} userRole={userRole} onEdit={onEdit} onDelete={onDelete} onView={onView} />, headerRenderer: StaticHeader },
     ],
-    [onEdit, onDelete, onView, userRole]
+    [onEdit, onDelete, onView, userRole, countryMap]
   );
 
   // hook required by the grid library (mounted only when we have data)
@@ -642,15 +657,57 @@ export default function Dashboard() {
   const [showRelogin, setShowRelogin] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [countries, setCountries] = useState([]);
+  const [loadingCountries, setLoadingCountries] = useState(true);
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  const debouncedQuery = useDebounce(query);
+const debouncedQuery = useDebounce(query);
+
+  // Create a lookup map for country names to iso2 codes
+  const countryMap = useMemo(() => {
+    if (loadingCountries || countries.length === 0) return new Map();
+    return new Map(countries.map(c => [c.name, c.iso2]));
+  }, [countries, loadingCountries]);
 
   const userRole = JSON.parse(localStorage.getItem("user")).role;
 
   // Reset page when filters change
-  useEffect(() => { setPage(0); }, [debouncedQuery, mode]);
+  // Fetch countries for the grid flags
+  useEffect(() => {
+    setLoadingCountries(true);
+    fetch('/countries.csv')
+      .then(response => {
+         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+         return response.text();
+      })
+      .then(csvText => {
+        Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            const validCountries = results.data
+              .filter(row => row.countryid && row.iso2 && row.name)
+              .map(row => ({
+                iso2: row.iso2.trim(),
+                name: row.name.trim()
+              }));
+            setCountries(validCountries);
+            setLoadingCountries(false);
+          },
+          error: (error) => {
+            console.error("Error parsing CSV:", error);
+            setCountries([]);
+            setLoadingCountries(false);
+          }
+        });
+      })
+      .catch(error => {
+         console.error("Error fetching countries.csv:", error);
+         setCountries([]);
+         setLoadingCountries(false);
+      });
+  }, []); // Runs once on mount
 
   const fetchTariffs = useCallback(async (showRefreshLoader = false) => {
     if (showRefreshLoader) setIsRefreshing(true); else setLoading(true);
@@ -917,7 +974,15 @@ export default function Dashboard() {
               </div>
             </div>
           ) : results && results.content.length > 0 ? (
-            <TariffGrid userRole={userRole} data={results.content} onEdit={handleEdit} onDelete={handleDelete} onView={handleView} isMobile={isMobile} />
+              <TariffGrid 
+              userRole={userRole} 
+              data={results.content} 
+              onEdit={handleEdit} 
+              onDelete={handleDelete} 
+              onView={handleView} 
+              isMobile={isMobile}
+              countryMap={countryMap}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-muted/30 border rounded-xl">
               <div className="text-center">
