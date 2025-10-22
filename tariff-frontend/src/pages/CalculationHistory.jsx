@@ -6,12 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Loader2, Search, RefreshCw, Download, Eye, X, Trash2 } from "lucide-react";
+import { Loader2, Search, RefreshCw, Download, Eye, X, Trash2, Pencil } from "lucide-react";
 import Papa from "papaparse";
 import { toast } from "sonner";
 import { Relogin } from "@/components/Relogin";
 
-import { getTransactionHistory, deleteTransactionByID, bulkDeleteTransactions } from "@/api/axiosClient";
+import { getTransactionHistory, deleteTransactionByID, bulkDeleteTransactions, editTransactions } from "@/api/axiosClient";
 
 export default function CalculationHistory() {
   const [loading, setLoading] = useState(true);
@@ -27,6 +27,11 @@ export default function CalculationHistory() {
   const [deletingId, setDeletingId] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
 
+  // edit modal
+  const [editRow, setEditRow] = useState(null);
+  const [editSnap, setEditSnap] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const load = async (asRefresh = false) => {
     setError("");
     asRefresh ? setIsRefreshing(true) : setLoading(true);
@@ -41,7 +46,7 @@ export default function CalculationHistory() {
           try { snap = JSON.parse(raw); } catch { snap = null; }
         }
         return {
-          // REAL DB id (needed for delete)
+          // REAL DB id (needed for delete / edit)
           transactionId: r.transactionId ?? r.transactionid ?? snap?.transactionId ?? null,
 
           // existing fields
@@ -140,6 +145,72 @@ export default function CalculationHistory() {
     }
   };
 
+  // ---------- Edit flow ----------
+  const openEdit = (row) => {
+    const base = {
+      total: row?.snapshot?.total ?? "",
+      category: row?.snapshot?.category ?? "",
+      quantity: row?.snapshot?.quantity ?? "",
+      tariffId: row?.snapshot?.tariffId ?? "",
+      unitname: row?.snapshot?.unitname ?? "",
+      adValorem: row?.snapshot?.adValorem ?? row?.snapshot?.advalorem ?? "",
+      customsValue: row?.snapshot?.customsValue ?? "",
+      partnerCountry: row?.snapshot?.partnerCountry ?? "",
+      reporterCountry: row?.snapshot?.reporterCountry ?? "",
+      specificPerUnit: row?.snapshot?.specificPerUnit ?? row?.snapshot?.specificperunit ?? "",
+      descriptionwcountry: row?.snapshot?.descriptionwcountry ?? "",
+    };
+    setEditRow(row);
+    setEditSnap(base);
+  };
+
+  const updateField = (k, v) => setEditSnap((s) => ({ ...s, [k]: v }));
+
+  // convert numerics before sending; leave others as-is
+  const prepareBody = (snap) => ({
+    ...snap,
+    total: toNum(snap.total),
+    quantity: toNum(snap.quantity),
+    tariffId: toNum(snap.tariffId),
+    adValorem: toNum(snap.adValorem),
+    customsValue: toNum(snap.customsValue),
+    specificPerUnit: toNum(snap.specificPerUnit),
+  });
+
+  // local minimal PUT (self-contained)
+  const putSnapshot = async (transactionId, snapshot) => {
+    const { data } = await editTransactions(transactionId, snapshot);
+    return data;
+  };
+
+  const onSaveEdit = async () => {
+    if (!editRow?.transactionId) return;
+    setSavingEdit(true);
+    const id = editRow.transactionId;
+    const body = prepareBody(editSnap);
+    try {
+      const res = await putSnapshot(id, body);
+      const newSnap = res?.snapshot ?? body;
+
+      // optimistic list update
+      setItems((prev) =>
+        prev.map((r) =>
+          r.transactionId === id ? { ...r, snapshot: newSnap } : r
+        )
+      );
+
+      // if details modal is open for same row, reflect changes
+      setViewRow((prev) => (prev && prev.transactionId === id ? { ...prev, snapshot: newSnap } : prev));
+
+      toast.success("Snapshot updated");
+      setEditRow(null);
+    } catch (e) {
+      toast.error(e?.message ?? "Update failed");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const Row = ({ row }) => {
     const rate = fmtRate(row.snapshot);
     const category = row.snapshot?.category ?? "—";
@@ -164,8 +235,11 @@ export default function CalculationHistory() {
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <Button size="sm" variant="ghost" onClick={() => setViewRow(row)}>
+            <Button size="sm" variant="ghost" onClick={() => setViewRow(row)} aria-label="View">
               <Eye className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => openEdit(row)} aria-label="Edit">
+              <Pencil className="h-4 w-4" />
             </Button>
             <Button
               size="sm"
@@ -371,11 +445,87 @@ export default function CalculationHistory() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* edit modal */}
+      <Dialog open={!!editRow} onOpenChange={() => setEditRow(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Snapshot (Transaction #{editRow?.transactionId})</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-4 py-2">
+            <div className="col-span-1">
+              <Label>Total</Label>
+              <Input value={editSnap.total ?? ""} onChange={(e) => updateField("total", e.target.value)} />
+            </div>
+            <div className="col-span-1">
+              <Label>Category</Label>
+              <Input value={editSnap.category ?? ""} onChange={(e) => updateField("category", e.target.value)} />
+            </div>
+
+            <div className="col-span-1">
+              <Label>Quantity</Label>
+              <Input value={editSnap.quantity ?? ""} onChange={(e) => updateField("quantity", e.target.value)} />
+            </div>
+            <div className="col-span-1">
+              <Label>Tariff ID</Label>
+              <Input value={editSnap.tariffId ?? ""} onChange={(e) => updateField("tariffId", e.target.value)} />
+            </div>
+
+            <div className="col-span-1">
+              <Label>Unit Name</Label>
+              <Input value={editSnap.unitname ?? ""} onChange={(e) => updateField("unitname", e.target.value)} />
+            </div>
+            <div className="col-span-1">
+              <Label>Ad Valorem</Label>
+              <Input value={editSnap.adValorem ?? ""} onChange={(e) => updateField("adValorem", e.target.value)} />
+            </div>
+
+            <div className="col-span-1">
+              <Label>Customs Value</Label>
+              <Input value={editSnap.customsValue ?? ""} onChange={(e) => updateField("customsValue", e.target.value)} />
+            </div>
+            <div className="col-span-1">
+              <Label>Specific / Unit</Label>
+              <Input value={editSnap.specificPerUnit ?? ""} onChange={(e) => updateField("specificPerUnit", e.target.value)} />
+            </div>
+
+            <div className="col-span-1">
+              <Label>Partner Country</Label>
+              <Input value={editSnap.partnerCountry ?? ""} onChange={(e) => updateField("partnerCountry", e.target.value)} />
+            </div>
+            <div className="col-span-1">
+              <Label>Reporter Country</Label>
+              <Input value={editSnap.reporterCountry ?? ""} onChange={(e) => updateField("reporterCountry", e.target.value)} />
+            </div>
+
+            <div className="col-span-2">
+              <Label>Description (with country)</Label>
+              <Input
+                value={editSnap.descriptionwcountry ?? ""}
+                onChange={(e) => updateField("descriptionwcountry", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditRow(null)}>Cancel</Button>
+            <Button onClick={onSaveEdit} disabled={savingEdit}>
+              {savingEdit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }
 
 /* ---------- helpers ---------- */
+async function safeReadText(res) {
+  try { return await res.text(); } catch { return ""; }
+}
+
 function to2(n) {
   const x = Number(n);
   return Number.isFinite(x) ? x.toFixed(2) : n;

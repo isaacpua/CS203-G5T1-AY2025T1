@@ -26,6 +26,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
+
 
 
 @RestController
@@ -154,16 +158,25 @@ public class TariffBrowseController {
     
     @DeleteMapping("/transactionHistory")
     public ResponseEntity<Void> bulkDelete(@RequestParam("ids") String idsCsv, Authentication auth) {
-    if (auth == null || auth.getName() == null) return ResponseEntity.status(401).build();
+        if (auth == null || auth.getName() == null) return ResponseEntity.status(401).build();
 
-    for (String s : idsCsv.split(",")) {     // e.g. "12, 18, 25"
-        String t = s.trim();
-        if (!t.isEmpty()) {
-            try { calcHistService.deleteOwn(Integer.parseInt(t), auth); }
-            catch (NumberFormatException ignored) {}
+        for (String s : idsCsv.split(",")) {     // e.g. "12, 18, 25"
+            String t = s.trim();
+            if (!t.isEmpty()) {
+                try { calcHistService.deleteOwn(Integer.parseInt(t), auth); }
+                catch (NumberFormatException ignored) {}
+            }
         }
+        return ResponseEntity.noContent().build(); // 204
     }
-    return ResponseEntity.noContent().build(); // 204
+
+    @PutMapping("/transactionHistory/{transactionId}/snapshot")
+    public ResponseEntity<?> replaceSnapshot(@PathVariable Integer transactionId, @RequestBody Map<String,Object> snapshot, Authentication auth){
+        if (auth == null || auth.getName() == null) return ResponseEntity.status(401).build();
+
+        Map<String,Object> updated = calcHistService.editOwn(transactionId, snapshot, auth);
+
+        return ResponseEntity.ok(Map.of("transactionId", transactionId, "snapshot", updated));
     }
     
 }

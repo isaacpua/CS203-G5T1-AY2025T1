@@ -137,4 +137,8 @@ export const bulkDeleteTransactions = async (transactionIDs) => {
   return await axiosClient.delete(`/tariffs/transactionHistory`, { params:{ids: idsCsv}});
 };
 
+export const editTransactions = async(transactionID, snapshot) => {
+  return await axiosClient.put(`/tariffs/transactionHistory/${transactionID}/snapshot`, snapshot);
+};
+
 export default axiosClient;

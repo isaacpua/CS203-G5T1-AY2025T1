@@ -20,4 +20,5 @@ public interface TransactionLineRepo extends JpaRepository<TransactionLine, Inte
     @Transactional
     long deleteByTransactionIdAndUserId(Integer transactionId, UUID id);
 
+    Optional<TransactionLine> findByTransactionIdAndUserId(Integer transactionId, UUID id);
 }
