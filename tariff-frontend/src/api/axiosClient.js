@@ -128,4 +128,13 @@ export const getTransactionHistory = async() => {
   return await axiosClient.get("/tariffs/transactionHistory")
 };
 
+export const deleteTransactionByID = async(transactionID) => {
+  return await axiosClient.delete(`/tariffs/transactionHistory/${transactionID}`);
+};
+
+export const bulkDeleteTransactions = async (transactionIDs) => {
+  const idsCsv = transactionIDs.join(",");
+  return await axiosClient.delete(`/tariffs/transactionHistory`, { params:{ids: idsCsv}});
+};
+
 export default axiosClient;

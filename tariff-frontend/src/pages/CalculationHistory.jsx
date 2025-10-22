@@ -6,12 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Loader2, Search, RefreshCw, Download, Eye, X } from "lucide-react";
+import { Loader2, Search, RefreshCw, Download, Eye, X, Trash2 } from "lucide-react";
 import Papa from "papaparse";
 import { toast } from "sonner";
 import { Relogin } from "@/components/Relogin";
 
-import { getTransactionHistory } from "@/api/axiosClient";
+import { getTransactionHistory, deleteTransactionByID, bulkDeleteTransactions } from "@/api/axiosClient";
 
 export default function CalculationHistory() {
   const [loading, setLoading] = useState(true);
@@ -22,6 +22,10 @@ export default function CalculationHistory() {
   const [showRelogin, setShowRelogin] = useState(false);
   const [q, setQ] = useState("");
   const [viewRow, setViewRow] = useState(null);
+
+  // deletion + selection
+  const [deletingId, setDeletingId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const load = async (asRefresh = false) => {
     setError("");
@@ -37,16 +41,21 @@ export default function CalculationHistory() {
           try { snap = JSON.parse(raw); } catch { snap = null; }
         }
         return {
+          // REAL DB id (needed for delete)
+          transactionId: r.transactionId ?? r.transactionid ?? snap?.transactionId ?? null,
+
+          // existing fields
           id: idx,
-          tariffId: r.tariffId ?? null,                // table value (fallback only)
+          tariffId: r.tariffId ?? null,
           total: r.total ?? null,
           createdAt: r.created_at ?? r.createdAt ?? null,
-          description: r.description ?? "",            // table value (fallback only)
-          snapshot: snap,                              // preferred source
+          description: r.description ?? "",
+          snapshot: snap,
         };
       });
 
       setItems(mapped);
+      setSelectedIds([]);
       if (asRefresh) toast.success(`Loaded ${mapped.length} records`);
     } catch (e) {
       if (e?.response?.status === 401) { setShowRelogin(true); return; }
@@ -90,22 +99,84 @@ export default function CalculationHistory() {
     }
   };
 
+  // single delete
+  const handleDelete = async (row) => {
+    const id = row?.transactionId;
+    if (!id) { toast.error("Invalid record id"); return; }
+    if (!window.confirm("Delete this calculation? This cannot be undone.")) return;
+    try {
+      setDeletingId(id);
+      await deleteTransactionByID(id);
+      setItems((prev) => prev.filter((r) => r.transactionId !== id));
+      setSelectedIds((prev) => prev.filter((x) => x !== id));
+      toast.success("Deleted");
+    } catch (e) {
+      if (e?.response?.status === 401) { setShowRelogin(true); return; }
+      if (e?.response?.status === 404) toast.error("Not found or not yours");
+      else toast.error("Delete failed");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // select + bulk delete
+  const toggleSelect = (row) => {
+    const id = row?.transactionId;
+    if (!id) return;
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected item(s)? This cannot be undone.`)) return;
+    try {
+      await bulkDeleteTransactions(selectedIds); // calls DELETE /transactionHistory?ids=...
+      setItems((prev) => prev.filter((r) => !selectedIds.includes(r.transactionId)));
+      setSelectedIds([]);
+      toast.success("Deleted selected");
+    } catch (e) {
+      if (e?.response?.status === 401) { setShowRelogin(true); return; }
+      toast.error("Bulk delete failed");
+    }
+  };
+
   const Row = ({ row }) => {
     const rate = fmtRate(row.snapshot);
     const category = row.snapshot?.category ?? "—";
     const titleId = getTariffId(row);
+    const rid = row.transactionId;
+
     return (
       <div className="p-3 rounded-lg border bg-card">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={selectedIds.includes(rid)}
+              onChange={() => toggleSelect(row)}
+              disabled={!rid}
+              aria-label="Select row"
+            />
             <Badge variant="secondary" className="font-mono">#{titleId ?? "—"}</Badge>
             <span className="text-xs text-muted-foreground">
               {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
             </span>
           </div>
-          <Button size="sm" variant="ghost" onClick={() => setViewRow(row)}>
-            <Eye className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="ghost" onClick={() => setViewRow(row)}>
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleDelete(row)}
+              disabled={deletingId === rid || !rid}
+              aria-label="Delete"
+            >
+              <Trash2 className={`h-4 w-4 ${deletingId === rid ? "animate-pulse" : ""}`} />
+            </Button>
+          </div>
         </div>
 
         <div className="mt-2 text-sm">{getDescription(row)}</div>
@@ -163,7 +234,7 @@ export default function CalculationHistory() {
 
         <CardContent className="px-0 pt-4 md:pt-6 pb-6 md:pb-8">
           <div className="px-4 md:px-6">
-            <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-xl border mb-6">
+            <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-xl border mb-3">
               <Label>Search</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -185,6 +256,19 @@ export default function CalculationHistory() {
                 )}
               </div>
             </div>
+
+            {selectedIds.length > 0 && (
+              <div className="px-0 mb-4">
+                <div className="flex items-center gap-2">
+                  <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+                    Delete selected ({selectedIds.length})
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])}>
+                    Clear selection
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {error ? (
@@ -209,7 +293,9 @@ export default function CalculationHistory() {
             </div>
           ) : filtered.length > 0 ? (
             <div className="px-4 md:px-6 space-y-3">
-              {filtered.map((row) => <Row key={row.id} row={row} />)}
+              {filtered.map((row) => (
+                <Row key={row.transactionId ?? row.id} row={row} />
+              ))}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-muted/30 border rounded-xl mx-4 md:mx-6">
@@ -276,6 +362,11 @@ export default function CalculationHistory() {
           </div>
 
           <DialogFooter>
+            {viewRow?.transactionId && (
+              <Button variant="destructive" onClick={() => { handleDelete(viewRow); setViewRow(null); }}>
+                Delete
+              </Button>
+            )}
             <Button onClick={() => setViewRow(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
@@ -355,8 +446,8 @@ function renderWorkingsFromSnap(snap) {
     lines.push(`Total = Quantity × Rate`);
     lines.push(`= ${fmt(qty)} × $${fmt(spec)} = $${fmt(total)}`);
   } else if (cat === "COMPOSITE" && adval != null && spec != null && qty != null) {
-    const specificPart = qty * spec;
-    const multiplier = 1 + adval;
+    const specificPart = (qty ?? 0) * (spec ?? 0);
+    const multiplier = 1 + (adval ?? 0);
     lines.push(`Specific Rate: $${fmt(spec)} per ${unit}`);
     lines.push(`Ad Valorem Rate: ${fmtPct(adval)} (multiplier = ${fmt(multiplier)})`);
     lines.push(`Step 1 — Specific Part = ${fmt(qty)} × $${fmt(spec)} = $${fmt(specificPart)}`);
@@ -370,7 +461,6 @@ function renderWorkingsFromSnap(snap) {
 
 function getTotal(row) {
   const s = row?.snapshot;
-  // support either shape: { total } or { result: { total } }
   const t = s?.total ?? s?.result?.total ?? row?.total;
   return t == null ? null : Number(t);
 }

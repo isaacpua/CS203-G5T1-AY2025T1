@@ -6,6 +6,8 @@ import java.util.Map;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 public record TransactionLineDTO(
+    @Schema(description = "transaction ID")
+    Integer transactionId,
 
     @Schema(description =  "Time Tariff was created")
     Instant created_at,

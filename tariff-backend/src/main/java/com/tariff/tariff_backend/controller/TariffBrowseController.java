@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.tariff.tariff_backend.dto.CountryDTO;
@@ -25,6 +26,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 
 @RestController
 @RequestMapping("/api/v1/tariffs")
@@ -140,4 +142,28 @@ public class TariffBrowseController {
     public List<TransactionLineDTO> getHistory(){
         return calcHistService.viewHistory();
     }
+
+    @DeleteMapping("/transactionHistory/{transactionId}")
+    public ResponseEntity<Void> deleteTransaction(@PathVariable Integer transactionId, Authentication auth){
+        if (auth == null | auth.getName() == null){
+            return ResponseEntity.status(401).build();
+        }
+        calcHistService.deleteOwn(transactionId, auth);
+        return ResponseEntity.noContent().build();
+    }
+    
+    @DeleteMapping("/transactionHistory")
+    public ResponseEntity<Void> bulkDelete(@RequestParam("ids") String idsCsv, Authentication auth) {
+    if (auth == null || auth.getName() == null) return ResponseEntity.status(401).build();
+
+    for (String s : idsCsv.split(",")) {     // e.g. "12, 18, 25"
+        String t = s.trim();
+        if (!t.isEmpty()) {
+            try { calcHistService.deleteOwn(Integer.parseInt(t), auth); }
+            catch (NumberFormatException ignored) {}
+        }
+    }
+    return ResponseEntity.noContent().build(); // 204
+    }
+    
 }
