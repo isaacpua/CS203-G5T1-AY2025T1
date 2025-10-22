@@ -1,9 +1,8 @@
 # Load Data
 
-1. Create `input/` directory
-2. Put the unzipped `.txt` file into it
-3. Change the year and input file in `main.py`
-4. Run the script
+1. Change `YEAR` to be the desired year in `main.py`
+2. Add your `.env` credentials
+3. Run the script
 
 ## uv
 
