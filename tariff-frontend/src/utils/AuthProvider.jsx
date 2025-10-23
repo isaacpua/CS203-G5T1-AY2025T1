@@ -10,11 +10,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const savedToken = localStorage.getItem("accessToken");
-    
+
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
-    
+
     // Extract role from JWT token (single source of truth)
     if (savedToken) {
       const role = getRoleFromToken(savedToken);
@@ -24,12 +24,14 @@ export const AuthProvider = ({ children }) => {
 
   // Update role when user changes
   useEffect(() => {
-    const savedToken = localStorage.getItem("accessToken");
-    
-    if (user && savedToken) {
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
+      const savedToken = localStorage.getItem("accessToken");
       const role = getRoleFromToken(savedToken);
       setUserRole(role);
     } else {
+      localStorage.removeItem("user");
+      localStorage.removeItem("accessToken");
       setUserRole(null);
     }
   }, [user]);
