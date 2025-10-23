@@ -14,7 +14,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.tariff.tariff_backend.dto.CalculationDTO.TransactionLineDTO;
 import com.tariff.tariff_backend.model.User;
+import com.tariff.tariff_backend.model.tariffs_new.Country;
 import com.tariff.tariff_backend.model.tariffs_new.TransactionLine;
+import com.tariff.tariff_backend.repository.CountryRepo;
 import com.tariff.tariff_backend.repository.TransactionLineRepo;
 import com.tariff.tariff_backend.repository.UserRepo;
 
@@ -24,10 +26,12 @@ public class CalculatorHistoryService {
 
     private final TransactionLineRepo txRepo;
     private final UserRepo userRepo;
+    private final CountryRepo countryRepo;
 
-    public CalculatorHistoryService(TransactionLineRepo txRepo, UserRepo userRepo) {
+    public CalculatorHistoryService(TransactionLineRepo txRepo, UserRepo userRepo, CountryRepo countryRepo) {
         this.txRepo = txRepo;
         this.userRepo = userRepo;
+        this.countryRepo = countryRepo;
     }
 
     public List<TransactionLineDTO> viewHistory() {
@@ -102,6 +106,7 @@ public class CalculatorHistoryService {
             tx = txCheck.get();
         }
         formatNumbers(snapshotJson, "total", "quantity", "tariffId", "adValorem", "customsValue", "specificPerUnit");
+        resolveCountryIds(snapshotJson);
         tx.setSnapshot(snapshotJson);
         txRepo.save(tx);
         return tx.getSnapshot();
@@ -138,4 +143,19 @@ public class CalculatorHistoryService {
         }
     }
 
+    private void resolveCountryIds(Map<String, Object> snapshot) {
+        Object partnerName = snapshot.get("partnerCountry");
+        Object reporterName = snapshot.get("reporterCountry");
+
+        if (partnerName instanceof String){
+            List<Country> partner = countryRepo.findByName(partnerName.toString());
+            Integer partnerId = partner.get(0).getCountryId();
+            snapshot.put("partnerCountryId", partnerId);
+        }
+        if (reporterName instanceof String){
+            List<Country> reporter = countryRepo.findByName(reporterName.toString());
+            Integer reporterId = reporter.get(0).getCountryId();
+            snapshot.put("reporterCountrId", reporterId);
+        }
+    }
 }

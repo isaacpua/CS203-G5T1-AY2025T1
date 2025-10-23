@@ -1,19 +1,24 @@
 import { useEffect, useState } from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import {Card, CardHeader, CardTitle, CardDescription, CardContent} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Loader2, Search, RefreshCw, Download, Eye, X, Trash2, Pencil } from "lucide-react";
+import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter} from "@/components/ui/dialog";
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
+import {Loader2, Search, RefreshCw, Download, Eye, X, Trash2, Pencil} from "lucide-react";
 import Papa from "papaparse";
 import { toast } from "sonner";
 import { Relogin } from "@/components/Relogin";
 
-import { getTransactionHistory, deleteTransactionByID, bulkDeleteTransactions, editTransactions } from "@/api/axiosClient";
+import {getTransactionHistory,deleteTransactionByID, bulkDeleteTransactions,} from "@/api/axiosClient";
+
+const CALCULATOR_ROUTE = "/calculator";
 
 export default function CalculationHistory() {
+  const navigate = useNavigate();
+
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -23,14 +28,13 @@ export default function CalculationHistory() {
   const [q, setQ] = useState("");
   const [viewRow, setViewRow] = useState(null);
 
-  // deletion + selection
+  // deletion + selection (bulk delete preserved)
   const [deletingId, setDeletingId] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
 
-  // edit modal
+  // edit → popup that only allows DV/Qty (ID & countries read-only / not editable)
   const [editRow, setEditRow] = useState(null);
-  const [editSnap, setEditSnap] = useState({});
-  const [savingEdit, setSavingEdit] = useState(false);
+  const [editInputs, setEditInputs] = useState({ customsValue: "", quantity: "", saveAfterCompute: true });
 
   const load = async (asRefresh = false) => {
     setError("");
@@ -40,16 +44,13 @@ export default function CalculationHistory() {
       const arr = Array.isArray(data) ? data : [];
 
       const mapped = arr.map((r, idx) => {
-        const raw = r.snapshot ?? r.snapshotJson; // object or string
+        const raw = r.snapshot ?? r.snapshotJson;
         let snap = raw;
         if (typeof raw === "string") {
           try { snap = JSON.parse(raw); } catch { snap = null; }
         }
         return {
-          // REAL DB id (needed for delete / edit)
           transactionId: r.transactionId ?? r.transactionid ?? snap?.transactionId ?? null,
-
-          // existing fields
           id: idx,
           tariffId: r.tariffId ?? null,
           total: r.total ?? null,
@@ -135,7 +136,7 @@ export default function CalculationHistory() {
     if (selectedIds.length === 0) return;
     if (!window.confirm(`Delete ${selectedIds.length} selected item(s)? This cannot be undone.`)) return;
     try {
-      await bulkDeleteTransactions(selectedIds); // calls DELETE /transactionHistory?ids=...
+      await bulkDeleteTransactions(selectedIds);
       setItems((prev) => prev.filter((r) => !selectedIds.includes(r.transactionId)));
       setSelectedIds([]);
       toast.success("Deleted selected");
@@ -145,70 +146,40 @@ export default function CalculationHistory() {
     }
   };
 
-  // ---------- Edit flow ----------
+  // open edit (DV/Qty only). Countries & ID are shown as read-only text.
   const openEdit = (row) => {
-    const base = {
-      total: row?.snapshot?.total ?? "",
-      category: row?.snapshot?.category ?? "",
-      quantity: row?.snapshot?.quantity ?? "",
-      tariffId: row?.snapshot?.tariffId ?? "",
-      unitname: row?.snapshot?.unitname ?? "",
-      adValorem: row?.snapshot?.adValorem ?? row?.snapshot?.advalorem ?? "",
-      customsValue: row?.snapshot?.customsValue ?? "",
-      partnerCountry: row?.snapshot?.partnerCountry ?? "",
-      reporterCountry: row?.snapshot?.reporterCountry ?? "",
-      specificPerUnit: row?.snapshot?.specificPerUnit ?? row?.snapshot?.specificperunit ?? "",
-      descriptionwcountry: row?.snapshot?.descriptionwcountry ?? "",
-    };
+    const s = row?.snapshot ?? {};
     setEditRow(row);
-    setEditSnap(base);
+    setEditInputs({
+      customsValue: s.customsValue ?? "",
+      quantity: s.quantity ?? "",
+      saveAfterCompute: true,
+    });
   };
 
-  const updateField = (k, v) => setEditSnap((s) => ({ ...s, [k]: v }));
+  // continue: send to calculator via router state (no URL params)
+  const proceedToCalculator = () => {
+    if (!editRow) return;
+    const s = editRow.snapshot ?? {};
+    const category = (s.category || "").toUpperCase();
 
-  // convert numerics before sending; leave others as-is
-  const prepareBody = (snap) => ({
-    ...snap,
-    total: toNum(snap.total),
-    quantity: toNum(snap.quantity),
-    tariffId: toNum(snap.tariffId),
-    adValorem: toNum(snap.adValorem),
-    customsValue: toNum(snap.customsValue),
-    specificPerUnit: toNum(snap.specificPerUnit),
-  });
+    const payload = {
+      // locked context (not editable here, but passed for prefill)
+      tariffId: s.tariffId ?? null,
+      partnerCountry: s.partnerCountry ?? null,
+      reporterCountry: s.reporterCountry ?? null,
+      fromId: s.partnerCountryId ?? null,    
+      toId: s.reporterCountryId ?? null, 
+      // only the allowed inputs, depending on category
+      customsValue: category === "AD_VALOREM" ? toNum(editInputs.customsValue) : null,
+      quantity: (category === "SPECIFIC_PER_UNIT" || category === "COMPOSITE") ? toNum(editInputs.quantity) : null,
+      // downstream behavior
+      save: !!editInputs.saveAfterCompute,
+      _sourceTransactionId: editRow.transactionId ?? null,
+    };
 
-  // local minimal PUT (self-contained)
-  const putSnapshot = async (transactionId, snapshot) => {
-    const { data } = await editTransactions(transactionId, snapshot);
-    return data;
-  };
-
-  const onSaveEdit = async () => {
-    if (!editRow?.transactionId) return;
-    setSavingEdit(true);
-    const id = editRow.transactionId;
-    const body = prepareBody(editSnap);
-    try {
-      const res = await putSnapshot(id, body);
-      const newSnap = res?.snapshot ?? body;
-
-      // optimistic list update
-      setItems((prev) =>
-        prev.map((r) =>
-          r.transactionId === id ? { ...r, snapshot: newSnap } : r
-        )
-      );
-
-      // if details modal is open for same row, reflect changes
-      setViewRow((prev) => (prev && prev.transactionId === id ? { ...prev, snapshot: newSnap } : prev));
-
-      toast.success("Snapshot updated");
-      setEditRow(null);
-    } catch (e) {
-      toast.error(e?.message ?? "Update failed");
-    } finally {
-      setSavingEdit(false);
-    }
+    navigate(CALCULATOR_ROUTE, { state: { prefill: payload } });
+    setEditRow(null);
   };
 
   const Row = ({ row }) => {
@@ -238,7 +209,7 @@ export default function CalculationHistory() {
             <Button size="sm" variant="ghost" onClick={() => setViewRow(row)} aria-label="View">
               <Eye className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => openEdit(row)} aria-label="Edit">
+            <Button size="sm" variant="ghost" onClick={() => openEdit(row)} aria-label="Recalculate">
               <Pencil className="h-4 w-4" />
             </Button>
             <Button
@@ -271,6 +242,10 @@ export default function CalculationHistory() {
 
   const snap = viewRow?.snapshot ?? null;
   const ratePretty = fmtRate(snap);
+
+  const catForEdit = (editRow?.snapshot?.category || "").toUpperCase();
+  const showDV = catForEdit === "AD_VALOREM";
+  const showQty = catForEdit === "SPECIFIC_PER_UNIT" || catForEdit === "COMPOSITE";
 
   return (
     <TooltipProvider>
@@ -331,6 +306,7 @@ export default function CalculationHistory() {
               </div>
             </div>
 
+            {/* Bulk delete controls (unchanged) */}
             {selectedIds.length > 0 && (
               <div className="px-0 mb-4">
                 <div className="flex items-center gap-2">
@@ -436,83 +412,78 @@ export default function CalculationHistory() {
           </div>
 
           <DialogFooter>
-            {viewRow?.transactionId && (
-              <Button variant="destructive" onClick={() => { handleDelete(viewRow); setViewRow(null); }}>
-                Delete
-              </Button>
-            )}
             <Button onClick={() => setViewRow(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* edit modal */}
+      {/* EDIT dialog: only DV/Qty are editable; ID & countries are read-only */}
       <Dialog open={!!editRow} onOpenChange={() => setEditRow(null)}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Snapshot (Transaction #{editRow?.transactionId})</DialogTitle>
+            <DialogTitle>Recalculate with new inputs</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4 py-2">
-            <div className="col-span-1">
-              <Label>Total</Label>
-              <Input value={editSnap.total ?? ""} onChange={(e) => updateField("total", e.target.value)} />
-            </div>
-            <div className="col-span-1">
-              <Label>Category</Label>
-              <Input value={editSnap.category ?? ""} onChange={(e) => updateField("category", e.target.value)} />
-            </div>
+          {editRow && (
+            <div className="space-y-4 py-2 text-sm">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-muted-foreground">Tariff ID</div>
+                  <div className="mt-1 font-medium">{editRow.snapshot?.tariffId ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Category</div>
+                  <div className="mt-1 font-medium">{(editRow.snapshot?.category || "—").toString()}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">From (Partner)</div>
+                  <div className="mt-1 font-medium">{editRow.snapshot?.partnerCountry ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">To (Reporter)</div>
+                  <div className="mt-1 font-medium">{editRow.snapshot?.reporterCountry ?? "—"}</div>
+                </div>
+              </div>
 
-            <div className="col-span-1">
-              <Label>Quantity</Label>
-              <Input value={editSnap.quantity ?? ""} onChange={(e) => updateField("quantity", e.target.value)} />
-            </div>
-            <div className="col-span-1">
-              <Label>Tariff ID</Label>
-              <Input value={editSnap.tariffId ?? ""} onChange={(e) => updateField("tariffId", e.target.value)} />
-            </div>
+              {/* Only show allowed inputs based on category */}
+              <div className="grid grid-cols-2 gap-4">
+                {showDV && (
+                  <div className="col-span-2 sm:col-span-1">
+                    <Label>Declared Value ($)</Label>
+                    <Input
+                      value={editInputs.customsValue}
+                      onChange={(e) => setEditInputs((s) => ({ ...s, customsValue: e.target.value }))}
+                      placeholder="e.g. 1000"
+                      inputMode="decimal"
+                    />
+                  </div>
+                )}
+                {showQty && (
+                  <div className="col-span-2 sm:col-span-1">
+                    <Label>Quantity</Label>
+                    <Input
+                      value={editInputs.quantity}
+                      onChange={(e) => setEditInputs((s) => ({ ...s, quantity: e.target.value }))}
+                      placeholder="e.g. 10"
+                      inputMode="decimal"
+                    />
+                  </div>
+                )}
+              </div>
 
-            <div className="col-span-1">
-              <Label>Unit Name</Label>
-              <Input value={editSnap.unitname ?? ""} onChange={(e) => updateField("unitname", e.target.value)} />
             </div>
-            <div className="col-span-1">
-              <Label>Ad Valorem</Label>
-              <Input value={editSnap.adValorem ?? ""} onChange={(e) => updateField("adValorem", e.target.value)} />
-            </div>
-
-            <div className="col-span-1">
-              <Label>Customs Value</Label>
-              <Input value={editSnap.customsValue ?? ""} onChange={(e) => updateField("customsValue", e.target.value)} />
-            </div>
-            <div className="col-span-1">
-              <Label>Specific / Unit</Label>
-              <Input value={editSnap.specificPerUnit ?? ""} onChange={(e) => updateField("specificPerUnit", e.target.value)} />
-            </div>
-
-            <div className="col-span-1">
-              <Label>Partner Country</Label>
-              <Input value={editSnap.partnerCountry ?? ""} onChange={(e) => updateField("partnerCountry", e.target.value)} />
-            </div>
-            <div className="col-span-1">
-              <Label>Reporter Country</Label>
-              <Input value={editSnap.reporterCountry ?? ""} onChange={(e) => updateField("reporterCountry", e.target.value)} />
-            </div>
-
-            <div className="col-span-2">
-              <Label>Description (with country)</Label>
-              <Input
-                value={editSnap.descriptionwcountry ?? ""}
-                onChange={(e) => updateField("descriptionwcountry", e.target.value)}
-              />
-            </div>
-          </div>
+          )}
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditRow(null)}>Cancel</Button>
-            <Button onClick={onSaveEdit} disabled={savingEdit}>
-              {savingEdit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save
+            <Button
+              onClick={proceedToCalculator}
+              disabled={
+                (showDV && (toNum(editInputs.customsValue) == null || toNum(editInputs.customsValue) <= 0)) ||
+                (showQty && (toNum(editInputs.quantity) == null || toNum(editInputs.quantity) <= 0))
+              }
+            >
+              Continue to Calculator
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -522,15 +493,10 @@ export default function CalculationHistory() {
 }
 
 /* ---------- helpers ---------- */
-async function safeReadText(res) {
-  try { return await res.text(); } catch { return ""; }
-}
-
 function to2(n) {
   const x = Number(n);
   return Number.isFinite(x) ? x.toFixed(2) : n;
 }
-
 function fmtRate(rowOrSnap) {
   if (!rowOrSnap) return "—";
   const adv = toNum(rowOrSnap.adValorem ?? rowOrSnap.advalorem);
@@ -540,22 +506,17 @@ function fmtRate(rowOrSnap) {
   if (spec != null) parts.push(`$${to2(spec)} per Unit`);
   return parts.length ? parts.join(" + ") : "—";
 }
-
 function toNum(x) {
   if (x == null || x === "") return null;
   const n = Number(x);
   return Number.isFinite(n) ? n : null;
 }
-
-/** ALWAYS prefer snapshot values (time-of-creation); fall back to table if missing */
 function getTariffId(row) {
   return row?.snapshot?.tariffId ?? row?.tariffId ?? null;
 }
 function getDescription(row) {
   return row?.snapshot?.descriptionwcountry ?? row?.description ?? "—";
 }
-
-/* text search uses snapshot-backed getters */
 function filterItems(items, q) {
   const t = q.trim().toLowerCase();
   if (!t) return items;
@@ -568,25 +529,20 @@ function filterItems(items, q) {
     return fields.some((f) => f.toLowerCase().includes(t));
   });
 }
-
 function renderWorkingsFromSnap(snap) {
   if (!snap) return "—";
   const cat = (snap.category || "").toUpperCase();
-
   const adval = toNum(snap.adValorem ?? snap.advalorem);
   const spec = toNum(snap.specificPerUnit ?? snap.specificperunit);
   const qty = toNum(snap.quantity ?? snap.inputs?.quantity);
   const val = toNum(snap.customsValue ?? snap.inputs?.customsValue);
   const total = toNum(snap.total ?? snap.result?.total);
   const unit = snap.unitname ?? snap.unitName ?? "unit";
-
   const fmt = (x) => Number.isFinite(x) ? x.toFixed(2) : "—";
   const fmtPct = (x) => Number.isFinite(x) ? `${(x * 100).toFixed(2).replace(/\.00$/, "")}%` : "—";
   const avMult = adval != null ? 1 + adval : null;
-
   const lines = [];
   lines.push(`Category: ${cat}`);
-
   if (cat === "AD_VALOREM" && adval != null && val != null) {
     lines.push(`Ad Valorem Rate: ${fmtPct(adval)} (multiplier = ${fmt(avMult)})`);
     lines.push(`Total = Declared Value × (1 + rate)`);
@@ -605,10 +561,8 @@ function renderWorkingsFromSnap(snap) {
   } else {
     lines.push("— No sufficient data for workings —");
   }
-
   return lines.join("\n");
 }
-
 function getTotal(row) {
   const s = row?.snapshot;
   const t = s?.total ?? s?.result?.total ?? row?.total;

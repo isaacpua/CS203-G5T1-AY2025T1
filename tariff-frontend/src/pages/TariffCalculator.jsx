@@ -14,15 +14,22 @@ import { Checkbox } from "@/components/ui/checkbox";
 const NONE = "none";
 
 export default function TariffCalc() {
-    // Get tariffId from query string
+    // -------- Prefill from History (router state or querystring) --------
     const location = useLocation();
     const [autoSelectId, setAutoSelectId] = useState(null);
+    const prefillRef = useRef(null); // holds prefill once
+    const prefillAppliedRef = useRef(false);
+    const prefillInFlightRef = useRef(false); //to suppress resets while true
 
     useEffect(() => {
-        const params = new URLSearchParams(location.search);
-        const tid = params.get("tariffId");
-        setAutoSelectId(tid);
-    }, [location.search]);
+        const statePrefill = location.state?.prefill ?? null;
+        prefillRef.current = statePrefill || null;
+
+        // use only for auto-selecting the tariff
+        if (statePrefill?.tariffId != null) {
+            setAutoSelectId(String(statePrefill.tariffId));
+        }
+    }, [location.state]);
 
     const [showRelogin, setShowRelogin] = useState(false);
 
@@ -39,7 +46,13 @@ export default function TariffCalc() {
     const [size, setSize] = useState(10);
     const [searching, setSearching] = useState(false);
     const [searchError, setSearchError] = useState("");
-    const [results, setResults] = useState({ content: [], totalPages: 0, number: 0, size: 10, last: null, });
+    const [results, setResults] = useState({
+        content: [],
+        totalPages: 0,
+        number: 0,
+        size: 10,
+        last: null,
+    });
     const [searchTick, setSearchTick] = useState(0);
 
     // Selection + compute
@@ -65,9 +78,14 @@ export default function TariffCalc() {
             const { data } = await getAllPartnerCountries();
             setFromOptions(data || []);
         } catch (e) {
-            if (e?.response?.status === 401) { setShowRelogin(true); return; }
+            if (e?.response?.status === 401) {
+                setShowRelogin(true);
+                return;
+            }
             console.error(e);
-        } finally { setLoadingCountries(false); }
+        } finally {
+            setLoadingCountries(false);
+        }
     };
     const loadAllTo = async () => {
         setLoadingCountries(true);
@@ -75,9 +93,14 @@ export default function TariffCalc() {
             const { data } = await getAllReporterCountries();
             setToOptions(data || []);
         } catch (e) {
-            if (e?.response?.status === 401) { setShowRelogin(true); return; }
+            if (e?.response?.status === 401) {
+                setShowRelogin(true);
+                return;
+            }
             console.error(e);
-        } finally { setLoadingCountries(false); }
+        } finally {
+            setLoadingCountries(false);
+        }
     };
 
     /** Load both lists initially so either side can be chosen first */
@@ -86,6 +109,64 @@ export default function TariffCalc() {
         loadAllTo();
     }, []);
 
+    useEffect(() => {
+        if (prefillAppliedRef.current || prefillInFlightRef.current) return;
+        const pf = prefillRef.current;
+        if (!pf) return;
+
+        const haveGlobal = (fromOptions?.length ?? 0) > 0 && (toOptions?.length ?? 0) > 0;
+        if (!haveGlobal) return;
+
+        (async () => {
+            prefillInFlightRef.current = true;
+            try {
+                // 1) Resolve IDs (prefer provided IDs; else resolve by name/ISO2 from global lists)
+                const resolveIdByName = (list, target) => {
+                    if (!target) return null;
+                    const t = String(target).toLowerCase();
+                    const m = list.find(
+                        c =>
+                            String(c?.name || "").toLowerCase() === t ||
+                            String(c?.iso2 || "").toLowerCase() === t
+                    );
+                    return m?.countryId != null ? String(m.countryId) : null;
+                };
+
+                let resolvedToId = pf.toId != null ? String(pf.toId) : resolveIdByName(toOptions, pf.reporterCountry);
+                let resolvedFromId = pf.fromId != null ? String(pf.fromId) : resolveIdByName(fromOptions, pf.partnerCountry);
+
+                // 2) Choose a consistent order. Example: fix TO first, then FROM based on TO
+                if (resolvedToId) {
+                    setToId(resolvedToId);
+                    // fetch FROM options valid for that TO
+                    try {
+                        setLoadingCountries(true);
+                        const { data } = await getPartnersByTo(resolvedToId);
+                        setFromOptions(data || []);
+                    } finally {
+                        setLoadingCountries(false);
+                    }
+                }
+
+                // If we didn’t have fromId yet (or the list changed), try to resolve again against the TO-filtered fromOptions
+                if (!resolvedFromId && pf.partnerCountry) {
+                    resolvedFromId = resolveIdByName(fromOptions, pf.partnerCountry);
+                }
+                if (resolvedFromId) setFromId(resolvedFromId);
+
+                // 3) Apply inputs and flags
+                if (pf.customsValue != null) setDeclaredValue(String(pf.customsValue));
+                if (pf.quantity != null) setQuantity(String(pf.quantity));
+                if (typeof pf.save === "boolean") setSaveResult(pf.save);
+
+                prefillAppliedRef.current = true;
+            } catch (e) {
+                console.error("Prefill apply failed:", e);
+            } finally {
+                prefillInFlightRef.current = false;
+            }
+        })();
+    }, [fromOptions, toOptions]);
     /** When FROM changes */
     useEffect(() => {
         setSelected(null);
@@ -93,8 +174,12 @@ export default function TariffCalc() {
         setComputeError("");
         setComputeRes(null);
         setShowWorkings(false);
-        setDeclaredValue("");
-        setQuantity("");
+
+        // ⛔ do not clear inputs if we are in the middle of applying prefill
+        if (!prefillInFlightRef.current && !prefillAppliedRef.current) {
+            setDeclaredValue("");
+            setQuantity("");
+        }
         setPage(0);
 
         if (!fromId || fromId === NONE) { loadAllTo(); return; }
@@ -119,8 +204,11 @@ export default function TariffCalc() {
         setComputeError("");
         setComputeRes(null);
         setShowWorkings(false);
-        setDeclaredValue("");
-        setQuantity("");
+
+        if (!prefillInFlightRef.current && !prefillAppliedRef.current) {
+            setDeclaredValue("");
+            setQuantity("");
+        }
         setPage(0);
 
         if (!toId || toId === NONE) { loadAllFrom(); return; }
@@ -184,28 +272,43 @@ export default function TariffCalc() {
 
                 setResults(normalized);
 
-                // auto-select by query param
+                // auto-select by query param or router-state prefill
                 if (autoSelectId && normalized.content.length > 0) {
                     const found = normalized.content.find(
-                        (row) => String(row.id ?? row.tariffId ?? row.tariffid) === String(autoSelectId)
+                        (row) =>
+                            String(row.id ?? row.tariffId ?? row.tariffid) === String(autoSelectId)
                     );
                     if (found) {
                         const normalizedTariff = {
                             id: found.id ?? found.tariffId ?? found.tariffid,
-                            descriptionwcountry: found.descriptionwcountry ?? found.descriptionWCountry ?? found.description,
+                            descriptionwcountry:
+                                found.descriptionwcountry ?? found.descriptionWCountry ?? found.description,
                             category: found.category,
                             advalorem: found.advalorem ?? found.adValorem,
                             specificperunit: found.specificperunit ?? found.specificPerUnit,
                             unitname: found.unitname ?? found.unitName,
                         };
                         setSelected(normalizedTariff);
+
+                        // If we had prefilled inputs, keep them (already set earlier)
+                        const pf = prefillRef.current;
+                        if (pf) {
+                            if (pf.customsValue != null) setDeclaredValue(String(pf.customsValue));
+                            if (pf.quantity != null) setQuantity(String(pf.quantity));
+                            if (typeof pf.save === "boolean") setSaveResult(pf.save);
+                        }
                     }
                 }
             } catch (e) {
-                if (e?.response?.status === 401) { setShowRelogin(true); return; }
+                if (e?.response?.status === 401) {
+                    setShowRelogin(true);
+                    return;
+                }
                 setSearchError("Search failed. Check /api/v1/tariffs/search and params.");
                 console.error(e);
-            } finally { setSearching(false); }
+            } finally {
+                setSearching(false);
+            }
         };
 
         fetchPage();
@@ -214,8 +317,12 @@ export default function TariffCalc() {
     /** Reset inputs when selecting a new row */
     useEffect(() => {
         if (!selected) return;
-        setDeclaredValue("");
-        setQuantity("");
+        // if there was prefill, we keep values; otherwise reset for new selection
+        const pf = prefillRef.current;
+        if (!pf || (pf && String(pf.tariffId) !== String(selected.id))) {
+            setDeclaredValue("");
+            setQuantity("");
+        }
         setComputeError("");
         setComputeRes(null);
         setShowWorkings(false);
@@ -237,8 +344,8 @@ export default function TariffCalc() {
                 save: saveResult,
             };
             const { data } = await calculateTariff(payload);
-            setComputeRes(data);     // we will use its total for the last line
-            setShowWorkings(true);   // reveal workings block
+            setComputeRes(data); // we will use its total for the last line
+            setShowWorkings(true); // reveal workings block
         } catch (e) {
             if (e?.response?.status === 401) {
                 setShowRelogin(true);
@@ -269,9 +376,9 @@ export default function TariffCalc() {
     const canNext = results?.last === false || pageIdx + 1 < totalPages;
 
     // numbers for rendering (only for the lines; final number is backend)
-    const avDec = toNumberOrNull(selected?.advalorem);   // e.g. 0.05
-    const avPct = avDec != null ? avDec * 100 : null;    // 5
-    const avMult = avDec != null ? 1 + avDec : null;     // 1.05
+    const avDec = toNumberOrNull(selected?.advalorem); // e.g. 0.05
+    const avPct = avDec != null ? avDec * 100 : null; // 5
+    const avMult = avDec != null ? 1 + avDec : null; // 1.05
     const sp = toNumberOrNull(selected?.specificperunit);
     const unit = selected?.unitname || "unit";
     const dvNum = toNumberOrNull(declaredValue);
@@ -285,7 +392,7 @@ export default function TariffCalc() {
 
     // backend total (for last line only)
     const backendTotal = Number(
-        (computeRes?.total ?? computeRes?.totalDuty ?? computeRes?.calculatedValue)
+        computeRes?.total ?? computeRes?.totalDuty ?? computeRes?.calculatedValue
     );
     const hasBackendTotal = Number.isFinite(backendTotal);
 
@@ -310,34 +417,54 @@ export default function TariffCalc() {
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label>From Country (origin)</Label>
-                                <Select value={String(fromId)} onValueChange={(v) => { setFromId(v); setPage(0); }}>
+                                <Select
+                                    value={String(fromId)}
+                                    onValueChange={(v) => {
+                                        setFromId(v);
+                                        setPage(0);
+                                    }}
+                                >
                                     <SelectTrigger>
-                                        <SelectValue placeholder={loadingCountries ? "Loading…" : "Select country"} />
+                                        <SelectValue
+                                            placeholder={loadingCountries ? "Loading…" : "Select country"}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value={NONE}>None</SelectItem>
-                                        {fromOptions.filter((c) => c?.countryId != null).map((c) => (
-                                            <SelectItem key={c.countryId} value={String(c.countryId)}>
-                                                {c.name} ({c.iso2})
-                                            </SelectItem>
-                                        ))}
+                                        {fromOptions
+                                            .filter((c) => c?.countryId != null)
+                                            .map((c) => (
+                                                <SelectItem key={c.countryId} value={String(c.countryId)}>
+                                                    {c.name} ({c.iso2})
+                                                </SelectItem>
+                                            ))}
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             <div className="space-y-2">
                                 <Label>To Country (destination)</Label>
-                                <Select value={String(toId)} onValueChange={(v) => { setToId(v); setPage(0); }}>
+                                <Select
+                                    value={String(toId)}
+                                    onValueChange={(v) => {
+                                        setToId(v);
+                                        setPage(0);
+                                    }}
+                                >
                                     <SelectTrigger>
-                                        <SelectValue placeholder={loadingCountries ? "Loading…" : "Select country"} />
+                                        <SelectValue
+                                            placeholder={loadingCountries ? "Loading…" : "Select country"}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value={NONE}>None</SelectItem>
-                                        {toOptions.filter((c) => c?.countryId != null).map((c) => (
-                                            <SelectItem key={c.countryId} value={String(c.countryId)}>
-                                                {c.name} ({c.iso2})
-                                            </SelectItem>
-                                        ))}
+                                        {toOptions
+                                            .filter((c) => c?.countryId != null)
+                                            .map((c) => (
+                                                <SelectItem key={c.countryId} value={String(c.countryId)}>
+                                                    {c.name} ({c.iso2})
+                                                </SelectItem>
+                                            ))}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -347,12 +474,24 @@ export default function TariffCalc() {
                         <div className="grid grid-cols-12 gap-4 items-end">
                             <div className="col-span-7">
                                 <Label>Search by description / ID</Label>
-                                <Input placeholder="e.g., Electronics" value={q} onChange={(e) => setQ(e.target.value)} />
+                                <Input
+                                    placeholder="e.g., Electronics"
+                                    value={q}
+                                    onChange={(e) => setQ(e.target.value)}
+                                />
                             </div>
                             <div className="col-span-2">
                                 <Label>Page size</Label>
-                                <Select value={String(size)} onValueChange={(v) => { setSize(Number(v)); setPage(0); }}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                <Select
+                                    value={String(size)}
+                                    onValueChange={(v) => {
+                                        setSize(Number(v));
+                                        setPage(0);
+                                    }}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="10">10</SelectItem>
                                         <SelectItem value="20">20</SelectItem>
@@ -361,8 +500,18 @@ export default function TariffCalc() {
                                 </Select>
                             </div>
                             <div className="col-span-3 flex items-end justify-end">
-                                <Button className="w-full" onClick={() => setSearchTick((n) => n + 1)} disabled={searching}>
-                                    {searching ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Searching…</>) : "Search"}
+                                <Button
+                                    className="w-full"
+                                    onClick={() => setSearchTick((n) => n + 1)}
+                                    disabled={searching}
+                                >
+                                    {searching ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Searching…
+                                        </>
+                                    ) : (
+                                        "Search"
+                                    )}
                                 </Button>
                             </div>
                         </div>
@@ -376,7 +525,8 @@ export default function TariffCalc() {
                                 const id = row.id ?? row.tariffId ?? row.tariffid;
                                 const normalized = {
                                     id,
-                                    descriptionwcountry: row.descriptionwcountry ?? row.descriptionWCountry ?? row.description,
+                                    descriptionwcountry:
+                                        row.descriptionwcountry ?? row.descriptionWCountry ?? row.description,
                                     category: row.category,
                                     advalorem: row.advalorem ?? row.adValorem,
                                     specificperunit: row.specificperunit ?? row.specificPerUnit,
@@ -385,14 +535,19 @@ export default function TariffCalc() {
                                 return (
                                     <button
                                         key={id}
-                                        className={`w-full text-left p-3 hover:bg-muted/50 ${selected?.id === id ? "bg-muted/70" : ""}`}
+                                        className={`w-full text-left p-3 hover:bg-muted/50 ${selected?.id === id ? "bg-muted/70" : ""
+                                            }`}
                                         onClick={() => setSelected(normalized)}
                                     >
                                         <div className="flex justify-between">
                                             <div className="font-medium">ID: {id}</div>
-                                            <div className="text-xs">{(normalized.category || "").toString()}</div>
+                                            <div className="text-xs">
+                                                {(normalized.category || "").toString()}
+                                            </div>
                                         </div>
-                                        <div className="text-sm text-muted-foreground">{normalized.descriptionwcountry}</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            {normalized.descriptionwcountry}
+                                        </div>
                                     </button>
                                 );
                             })}
@@ -400,11 +555,21 @@ export default function TariffCalc() {
 
                         {/* Pagination */}
                         <div className="flex justify-between items-center">
-                            <Button variant="outline" disabled={!canPrev} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                            <Button
+                                variant="outline"
+                                disabled={!canPrev}
+                                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                            >
                                 Prev
                             </Button>
-                            <div className="text-sm">Page {pageIdx + 1} / {totalPages}</div>
-                            <Button variant="outline" disabled={!canNext} onClick={() => setPage((p) => p + 1)}>
+                            <div className="text-sm">
+                                Page {pageIdx + 1} / {totalPages}
+                            </div>
+                            <Button
+                                variant="outline"
+                                disabled={!canNext}
+                                onClick={() => setPage((p) => p + 1)}
+                            >
                                 Next
                             </Button>
                         </div>
@@ -425,20 +590,27 @@ export default function TariffCalc() {
                             <Calculator className="h-5 w-5" />
                             Compute Duty
                         </CardTitle>
-                        <CardDescription>Select a tariff on the left, then enter required inputs.</CardDescription>
+                        <CardDescription>
+                            Select a tariff on the left, then enter required inputs.
+                        </CardDescription>
                     </CardHeader>
 
                     <CardContent className="space-y-4">
                         {!selected ? (
-                            <div className="text-sm text-muted-foreground">Select a tariff from search results.</div>
+                            <div className="text-sm text-muted-foreground">
+                                Select a tariff from search results.
+                            </div>
                         ) : (
                             <>
                                 <div className="text-sm">
                                     <div className="font-medium">ID: {selected.id}</div>
-                                    <div className="text-muted-foreground">{selected.descriptionwcountry}</div>
+                                    <div className="text-muted-foreground">
+                                        {selected.descriptionwcountry}
+                                    </div>
                                     {/* Rate summary (shows before compute) */}
                                     <div className="mt-1 text-xs text-muted-foreground">
-                                        <span className="font-medium">Rate:</span> {rateSummary(selected) || "—"}
+                                        <span className="font-medium">Rate:</span>{" "}
+                                        {rateSummary(selected) || "—"}
                                     </div>
                                 </div>
 
@@ -456,16 +628,19 @@ export default function TariffCalc() {
                                     )}
                                     {needsQty && (
                                         <div className="col-span-1">
-                                            <Label>Quantity{selected.unitname ? ` (${selected.unitname})` : ""}</Label>
+                                            <Label>
+                                                Quantity{selected.unitname ? ` (${selected.unitname})` : ""}
+                                            </Label>
                                             <Input
                                                 type="number"
                                                 step={isUnitCount(selected) ? 1 : "any"}
                                                 inputMode={isUnitCount(selected) ? "numeric" : "decimal"}
-                                                pattern={isUnitCount(selected) ? "\\d*" : "[0-9]*[.,]?[0-9]*"}
+                                                pattern={
+                                                    isUnitCount(selected) ? "\\d*" : "[0-9]*[.,]?[0-9]*"
+                                                }
                                                 value={quantity}
                                                 onChange={(e) => setQuantity(e.target.value)}
                                                 placeholder={isUnitCount(selected) ? "e.g. 10" : "e.g. 1.25"}
-                                                
                                             />
                                         </div>
                                     )}
@@ -483,11 +658,23 @@ export default function TariffCalc() {
                                     onClick={onCompute}
                                     disabled={
                                         computing ||
-                                        (needsDV && (toNumberOrNull(declaredValue) == null ||toNumberOrNull(declaredValue) <= 0)) ||
-                                        (needsQty && (toNumberOrNull(quantity) == null ||toNumberOrNull(quantity) <= 0 ||(isUnitCount(selected) && !Number.isInteger(Number(quantity)))))
+                                        (needsDV &&
+                                            (toNumberOrNull(declaredValue) == null ||
+                                                toNumberOrNull(declaredValue) <= 0)) ||
+                                        (needsQty &&
+                                            (toNumberOrNull(quantity) == null ||
+                                                toNumberOrNull(quantity) <= 0 ||
+                                                (isUnitCount(selected) &&
+                                                    !Number.isInteger(Number(quantity)))))
                                     }
                                 >
-                                    {computing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Computing…</>) : ("Compute Duty")}
+                                    {computing ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Computing…
+                                        </>
+                                    ) : (
+                                        "Compute Duty"
+                                    )}
                                 </Button>
 
                                 {/* WORKINGS — final number comes from backendTotal */}
@@ -499,7 +686,10 @@ export default function TariffCalc() {
                                         {/* AD_VALOREM (backend: total = DeclaredValue × (1 + rate)) */}
                                         {cat === "AD_VALOREM" && avDec != null && dvNum != null && (
                                             <>
-                                                <div>Ad Valorem Rate: {fmtPct(avPct)} (multiplier = 1 + {fmt(avDec)} = {fmt(avMult)})</div>
+                                                <div>
+                                                    Ad Valorem Rate: {fmtPct(avPct)} (multiplier = 1 +{" "}
+                                                    {fmt(avDec)} = {fmt(avMult)})
+                                                </div>
                                                 <div> </div>
                                                 <div>Total = Declared Value × (1 + rate)</div>
                                                 <div>= ${fmt(dvNum)} × {fmt(avMult)}</div>
@@ -510,34 +700,52 @@ export default function TariffCalc() {
                                         {/* SPECIFIC_PER_UNIT (backend: total = Quantity × Rate per unit) */}
                                         {cat === "SPECIFIC_PER_UNIT" && sp != null && qtyNum != null && (
                                             <>
-                                                <div>Specific Rate: ${fmt(sp)} per {unit}</div>
+                                                <div>
+                                                    Specific Rate: ${fmt(sp)} per {unit}
+                                                </div>
                                                 <div> </div>
                                                 <div>Total = Quantity × Rate per {unit}</div>
-                                                <div>= {fmt(qtyNum)} × ${fmt(sp)} / {unit}</div>
+                                                <div>
+                                                    = {fmt(qtyNum)} × ${fmt(sp)} / {unit}
+                                                </div>
                                                 <div>= {hasBackendTotal ? `$${fmt(backendTotal)}` : "—"}</div>
                                             </>
                                         )}
 
                                         {/* COMPOSITE (backend: total = (Quantity × Rate) × (1 + rate)) */}
-                                        {cat === "COMPOSITE" && sp != null && qtyNum != null && avDec != null && (
-                                            <>
-                                                <div>Specific Rate: ${fmt(sp)} per {unit}</div>
-                                                <div>Ad Valorem Rate: {fmtPct(avPct)} (multiplier = 1 + {fmt(avDec)} = {fmt(avMult)})</div>
-                                                <div> </div>
+                                        {cat === "COMPOSITE" &&
+                                            sp != null &&
+                                            qtyNum != null &&
+                                            avDec != null && (
+                                                <>
+                                                    <div>
+                                                        Specific Rate: ${fmt(sp)} per {unit}
+                                                    </div>
+                                                    <div>
+                                                        Ad Valorem Rate: {fmtPct(avPct)} (multiplier = 1 +{" "}
+                                                        {fmt(avDec)} = {fmt(avMult)})
+                                                    </div>
+                                                    <div> </div>
 
-                                                {/* Step 1 — show the computed specific part number */}
-                                                <div>Step 1 — Specific Part = Quantity × Rate per {unit}</div>
-                                                <div>= {fmt(qtyNum)} × ${fmt(sp)} / {unit}</div>
-                                                <div>= ${fmt(specPart)}</div>
-                                                <div> </div>
+                                                    {/* Step 1 — show the computed specific part number */}
+                                                    <div>
+                                                        Step 1 — Specific Part = Quantity × Rate per {unit}
+                                                    </div>
+                                                    <div>
+                                                        = {fmt(qtyNum)} × ${fmt(sp)} / {unit}
+                                                    </div>
+                                                    <div>= ${fmt(specPart)}</div>
+                                                    <div> </div>
 
-                                                {/* Step 2 — show the multiplication with the multiplier, then the backend total */}
-                                                <div>Step 2 — Apply Ad Valorem Multiplier</div>
-                                                <div>Total = Specific Part × (1 + rate)</div>
-                                                <div>= ${fmt(specPart)} × {fmt(avMult)}</div>
-                                                <div>= {hasBackendTotal ? `$${fmt(backendTotal)}` : "—"}</div>
-                                            </>
-                                        )}
+                                                    {/* Step 2 — show the multiplication with the multiplier, then the backend total */}
+                                                    <div>Step 2 — Apply Ad Valorem Multiplier</div>
+                                                    <div>Total = Specific Part × (1 + rate)</div>
+                                                    <div>
+                                                        = ${fmt(specPart)} × {fmt(avMult)}
+                                                    </div>
+                                                    <div>= {hasBackendTotal ? `$${fmt(backendTotal)}` : "—"}</div>
+                                                </>
+                                            )}
                                     </div>
                                 )}
 
@@ -580,7 +788,7 @@ function fmt(n) {
 
 function fmtPct(n) {
     if (n == null) return "";
-    const s = (Number(n).toFixed(2)).replace(/\.00$/, "");
+    const s = Number(n).toFixed(2).replace(/\.00$/, "");
     return `${s}%`;
 }
 
@@ -592,8 +800,10 @@ function rateSummary(selected) {
     const sp = toNumberOrNull(selected?.specificperunit);
     const unit = selected?.unitname || "unit";
 
-    if (category === "AD_VALOREM" && avDec != null) return `${fmtPct(avDec * 100)} ad valorem`;
-    if (category === "SPECIFIC_PER_UNIT" && sp != null) return `$${fmt(sp)} per ${unit}`;
+    if (category === "AD_VALOREM" && avDec != null)
+        return `${fmtPct(avDec * 100)} ad valorem`;
+    if (category === "SPECIFIC_PER_UNIT" && sp != null)
+        return `$${fmt(sp)} per ${unit}`;
     if (category === "COMPOSITE") {
         const parts = [];
         if (avDec != null) parts.push(`${fmtPct(avDec * 100)} ad valorem`);
@@ -604,10 +814,6 @@ function rateSummary(selected) {
 }
 
 function isUnitCount(selected) {
-  const unit = (selected?.unitname || "").toLowerCase();
-  return (
-    unit.includes("unit") ||
-    unit.includes("piece") ||
-    unit.includes("item")
-  );
+    const unit = (selected?.unitname || "").toLowerCase();
+    return unit.includes("unit") || unit.includes("piece") || unit.includes("item");
 }
