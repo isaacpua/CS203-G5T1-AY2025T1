@@ -65,7 +65,6 @@ async def startup_event():
     tools = await app_state.mcp_client.get_tools()
     app_state.graph = build_graph(tools=tools, access_token=app_state.msgraph_access_token)
     print("Jarvis Agent initialized successfully!")
-    print(f"Available tools: {[tool.name for tool in tools]}")
 
 from routes.routes import router
 app.include_router(router)

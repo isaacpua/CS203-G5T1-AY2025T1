@@ -12,6 +12,14 @@
             "url": "https://mcpbackenddev-e7f3cpdddnh9ajbv.canadacentral-01.azurewebsites.net/data_analysis/mcp/",
             "transport": "streamable_http"
         },
+        "pptx": {
+            "url": "http://127.0.0.1:8000/pptx/mcp",
+            "transport": "streamable_http"
+        },
+        "present_pptx": {
+            "url": "http://127.0.0.1:8000/present_pptx/mcp",
+            "transport": "streamable_http"
+        },
         "desktop_automation": {
             "url": "http://127.0.0.1:8000/desktop_automation/mcp",
             "transport": "streamable_http"

@@ -1,3 +1,9 @@
+# dexnew_backend
+
+This project is a FastAPI backend server that provides various services, including scraping, presentation generation, and other helpful utilities.
+
+---
+
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
@@ -56,4 +62,6 @@ This is because frontend is hardcoded to connect to port 8001
 
 
 ## Available Tools
-Tools will be pulled from MCP Server
+Tools will be pulled from https://github.com/DrLukeTan/mcp_backend_dev
+
+
