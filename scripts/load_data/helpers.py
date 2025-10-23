@@ -28,6 +28,59 @@ class Tariff(Base):
     datasource = Column(Text)
 
 
+# Country mappings for special program codes
+PROGRAM_COUNTRIES = {
+    # GSP - Generalized System of Preferences (A, A+, A*)
+    'A': {'AR', 'BD', 'BO', 'BR', 'BW', 'KH', 'CM', 'CV', 'TD', 'CO', 'KM', 'CG', 'CD', 
+          'CR', 'CI', 'DJ', 'DO', 'EC', 'EG', 'GQ', 'ER', 'ET', 'FJ', 'GA', 'GM', 'GE', 
+          'GH', 'GD', 'GT', 'GN', 'GW', 'GY', 'HT', 'HN', 'IN', 'ID', 'IQ', 'JM', 'JO', 
+          'KZ', 'KE', 'KI', 'KG', 'LB', 'LS', 'MW', 'ML', 'MR', 'MU', 'MD', 'MN', 'MZ', 
+          'NA', 'NP', 'NE', 'NG', 'OM', 'PK', 'PA', 'PG', 'PY', 'PH', 'RO', 'RU', 'RW', 
+          'WS', 'ST', 'SN', 'RS', 'SC', 'SL', 'SB', 'SO', 'ZA', 'LK', 'SR', 'SZ', 'TZ', 
+          'TH', 'TG', 'TO', 'TT', 'TN', 'TR', 'TV', 'UG', 'UY', 'UZ', 'VU', 'VE', 'YE', 
+          'ZM', 'ZW'},
+    
+    # GSP Least Developed (A+)
+    'A+': {'AF', 'AO', 'BD', 'BJ', 'BT', 'BF', 'BI', 'KH', 'CV', 'CF', 'TD', 'KM', 'CD', 
+           'DJ', 'GQ', 'ER', 'ET', 'GM', 'GN', 'GW', 'HT', 'KI', 'LS', 'MW', 'ML', 'MR', 
+           'MZ', 'NP', 'NE', 'RW', 'WS', 'ST', 'SL', 'SB', 'SO', 'TZ', 'TG', 'TV', 'UG', 
+           'VU', 'YE', 'ZM'},
+    
+    # FTA Countries
+    'AU': {'AU'},  # Australia
+    'CA': {'CA'},  # Canada (NAFTA)
+    'MX': {'MX'},  # Mexico (NAFTA)
+    'CL': {'CL'},  # Chile
+    'IL': {'IL'},  # Israel
+    'JO': {'JO'},  # Jordan
+    'MA': {'MA'},  # Morocco
+    'SG': {'SG'},  # Singapore
+    
+    # African Growth and Opportunity Act (D)
+    'D': {'AO', 'BJ', 'BW', 'BF', 'BI', 'CM', 'CV', 'CF', 'TD', 'KM', 'CG', 'CD', 'CI', 
+          'DJ', 'GQ', 'ER', 'ET', 'GA', 'GM', 'GH', 'GN', 'GW', 'KE', 'LS', 'LR', 'MG', 
+          'MW', 'ML', 'MR', 'MU', 'MZ', 'NA', 'NE', 'NG', 'RW', 'ST', 'SN', 'SC', 'SL', 
+          'SO', 'ZA', 'TZ', 'TG', 'UG', 'ZM'},
+    
+    # Caribbean Basin Economic Recovery Act (E, E*)
+    'E': {'AG', 'AW', 'BS', 'BB', 'BZ', 'CR', 'DM', 'DO', 'GD', 'GT', 'GY', 'HT', 'HN', 
+          'JM', 'MS', 'AN', 'NI', 'PA', 'KN', 'LC', 'VC', 'TT', 'VG'},
+    
+    # Andean Trade Preference Act (J, J+)
+    'J': {'BO', 'CO', 'EC', 'PE'},
+    
+    # CAFTA-DR (P, P+)
+    'P': {'CR', 'DO', 'SV', 'GT', 'HN', 'NI'},
+    
+    # Caribbean Basin Trade Partnership Act (R)
+    'R': {'AG', 'AW', 'BS', 'BB', 'BZ', 'DM', 'GD', 'GY', 'JM', 'MS', 'AN', 'KN', 'LC', 
+          'VC', 'TT', 'VG'},
+    
+    # Automotive Products Trade Act (B) - Canada only
+    'B': {'CA'},
+}
+
+
 def get_csv_from_usitc(year: int) -> pd.DataFrame:
     """
     Download and extract tariff data from USITC for a specific year.
@@ -93,37 +146,59 @@ def clean_text_encoding(text):
     """
     Clean up common encoding issues in text fields.
     """
-    # if pd.isna(text) or not isinstance(text, str):
-    #     return text
+    if pd.isna(text) or not isinstance(text, str):
+        return text
     
-    # # Common encoding issues and their fixes
-    # replacements = {
-    #     'Ã‚Â¢': '¢',
-    #     'Ã¢': '¢',
-    #     'â€¢': '•',
-    #     'â€"': '–',
-    #     'â€™': "'",
-    #     'Â': '',  # Remove stray Â characters
-    # }
+    # Common encoding issues and their fixes
+    replacements = {
+        'Ã‚Â¢': '¢',
+        'Ã¢': '¢',
+        'â€¢': '•',
+        'â€"': '–',
+        'â€™': "'",
+        'Â': '',  # Remove stray Â characters
+    }
     
-    # for bad, good in replacements.items():
-    #     text = text.replace(bad, good)
+    for bad, good in replacements.items():
+        text = text.replace(bad, good)
     
     return text
 
 
-def process_csv(df: pd.DataFrame, year: int) -> pd.DataFrame:
+def process_csv(df: pd.DataFrame, year: int, 
+                filter_agricultural: bool = True,
+                include_extended_ag: bool = False,
+                specific_chapters: list = None) -> pd.DataFrame:
     """
     Processes the csv from USITC and expands rows by partner country.
     Each tariff line is duplicated for each partner country with appropriate rates.
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Raw dataframe from USITC
+    year : int
+        Year for tariff data (used in tariffid generation)
+    filter_agricultural : bool, default=True
+        If True, filters to only agricultural products (chapters 1-24)
+        If False, processes all products
+    include_extended_ag : bool, default=False
+        If True, includes fertilizers (ch 31), hides/skins (ch 41,43), 
+        wood/cork/straw (ch 44-46), and natural fibers (ch 50-53)
+        Only applies if filter_agricultural=True
+    specific_chapters : list, optional
+        If provided, filter to only these specific chapter codes (e.g., ['01', '07', '10'])
+        Overrides filter_agricultural and include_extended_ag parameters
+    
+    Returns:
+    --------
+    pd.DataFrame
+        Processed dataframe with partner countries expanded
     """
-    original_num_rows = len(df)
-    # All possible partner country codes (expand as needed)
-    ALL_COUNTRIES = {
-        'A', 'A+', 'A*', 'AU', 'B', 'BH', 'CA', 'CL', 'CO', 'D', 'E', 'IL', 
-        'J', 'JO', 'JB', 'KR', 'MA', 'MX', 'OM', 'P', 'P+', 'PA', 'PE', 'R', 
-        'SG', 'ET'
-    }
+    # Get all unique countries from all programs
+    ALL_COUNTRIES = set()
+    for countries in PROGRAM_COUNTRIES.values():
+        ALL_COUNTRIES.update(countries)
     
     columns_to_keep = {
         'hts8': 'tariffid',
@@ -139,6 +214,39 @@ def process_csv(df: pd.DataFrame, year: int) -> pd.DataFrame:
     
     # Keep only selected columns and rename them
     df = df[list(columns_to_keep.keys())].rename(columns=columns_to_keep)
+    
+    # AGRICULTURAL FILTERING (if enabled)
+    if specific_chapters:
+        # Filter to specific chapters
+        df['chapter'] = df['tariffid'].astype(str).str[:2]
+        chapters_to_include = [ch.zfill(2) for ch in specific_chapters]
+        df = df[df['chapter'].isin(chapters_to_include)].copy()
+        df = df.drop(columns=['chapter'])
+        print(f"Filtered to specific chapters {chapters_to_include}: {len(df)} products")
+    elif filter_agricultural:
+        # Define agricultural chapters
+        core_ag_chapters = [
+            '01', '02', '03', '04', '05',  # Live animals and animal products
+            '06', '07', '08', '09', '10', '11', '12', '13', '14',  # Vegetable products
+            '15',  # Fats and oils
+            '16', '17', '18', '19', '20', '21', '22', '23', '24',  # Prepared foods
+        ]
+        
+        extended_ag_chapters = core_ag_chapters + [
+            '31',  # Fertilizers
+            '41', '43',  # Hides, skins, furs
+            '44', '45', '46',  # Wood, cork, straw
+            '50', '51', '52', '53',  # Natural textile fibers
+        ]
+        
+        # Extract chapter and filter
+        df['chapter'] = df['tariffid'].astype(str).str[:2]
+        chapters_to_include = extended_ag_chapters if include_extended_ag else core_ag_chapters
+        df = df[df['chapter'].isin(chapters_to_include)].copy()
+        df = df.drop(columns=['chapter'])
+        
+        ag_type = "extended agricultural" if include_extended_ag else "core agricultural"
+        print(f"Filtered to {ag_type} products (chapters {min(chapters_to_include)}-{max(chapters_to_include)}): {len(df)} products")
     
     # Clean encoding issues in text columns
     text_columns = ['descriptionwcountry', 'unitname', 'category', 'col1_special_text']
@@ -161,8 +269,8 @@ def process_csv(df: pd.DataFrame, year: int) -> pd.DataFrame:
             rows_to_keep.append(idx)
     
     df = df.loc[rows_to_keep].copy()
-    print(f"Filtered to {len(df)} unique HTS6 codes from {original_num_rows} total codes.")
-    
+    print(f"Filtered to {len(df)} unique HTS6 codes from {len(visited_hts6)} total codes.")
+    df.to_csv("intermediate.csv")
     # Convert dates
     df['effectivedate'] = pd.to_datetime(df['effectivedate'], errors='coerce').dt.strftime('%Y-%m-%d')
     df['expirydate'] = pd.to_datetime(df['expirydate'], errors='coerce').dt.strftime('%Y-%m-%d')
@@ -181,27 +289,35 @@ def process_csv(df: pd.DataFrame, year: int) -> pd.DataFrame:
         # Extract special rate countries and their rates
         special_countries = {}
         
-        # Pattern to match rate followed by countries in parentheses
+        # Pattern to match rate followed by countries/programs in parentheses
         pattern = r'([^()]+?)\s*\(([A-Z+*,\s]+)\)(?!\s*\()'
         matches = re.findall(pattern, col1_text)
         
-        for rate, countries_str in matches:
+        for rate, codes_str in matches:
             rate = rate.strip()
             
             # Skip patterns that look like references
             if rate.lower().startswith('see ') or 'heading' in rate.lower() or 'note' in rate.lower():
                 continue
             
-            # Split countries by comma and clean whitespace
-            countries = [c.strip() for c in countries_str.split(',') if c.strip()]
+            # Split codes by comma and clean whitespace
+            codes = [c.strip() for c in codes_str.split(',') if c.strip()]
             
-            # Filter to only valid country codes
-            countries = [c for c in countries if c in ALL_COUNTRIES]
+            # Expand program codes to actual countries
+            expanded_countries = set()
+            for code in codes:
+                if code in PROGRAM_COUNTRIES:
+                    # It's a program code - expand to all countries in that program
+                    expanded_countries.update(PROGRAM_COUNTRIES[code])
+                elif code in ALL_COUNTRIES:
+                    # It's an individual country code
+                    expanded_countries.add(code)
             
-            for country in countries:
+            # Assign this rate to all expanded countries
+            for country in expanded_countries:
                 special_countries[country] = rate
         
-        # If no special countries were found, create rows for all countries (except reporter) with MFN rate
+        # If no special countries were found, create rows for all countries with MFN rate
         if not special_countries:
             for country in ALL_COUNTRIES:
                 # Skip if country is the reporter country
@@ -235,6 +351,10 @@ def process_csv(df: pd.DataFrame, year: int) -> pd.DataFrame:
             mfn_countries = ALL_COUNTRIES - countries_with_special
             
             for country in mfn_countries:
+                # Skip if country is the reporter country
+                if country == row['reportercountry']:
+                    continue
+                    
                 new_row = row.copy()
                 new_row['partnercountry'] = country
                 # Create tariffid: <hts6><reporter><partner><year>
