@@ -13,13 +13,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/utils/AuthContext";
-import { decodeJWT } from "@/utils/jwtDecoder";
+import { decodeJWT, getRoleFromToken } from "@/utils/jwtDecoder";
 import { Loader2 } from "lucide-react"; import { AlertCircle, X } from "lucide-react";
 import { useState } from "react";
 import {useLocation, useNavigate} from "react-router-dom";
 
 const Login = () => {
-  const { setUser } = useAuth();
+  const { setUser, setUserRole } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState("");
@@ -52,20 +52,13 @@ const Login = () => {
       const response = await loginUser(credentials);
       if (response.status == 200) {
         localStorage.setItem("accessToken", response.data.accessToken);
+        const role = getRoleFromToken(response.data.accessToken);
+        setUserRole(role);
         const decodedJWT = decodeJWT(response.data.accessToken);
         const { data } = await getUserData(decodedJWT.sub);
-        console.log(decodedJWT)
+        localStorage.setItem("user", JSON.stringify(data.user));
         setUser(data.user);
-        return navigate(from, { replace: true }); // go to original page that required login
-
-        // CODE FOR TESTING TOKEN EXISTENCE
-        // const accessToken = localStorage.getItem("accessToken");
-        // const isValid = await axiosClient.post("/auth/verifyJWT", {}, {
-        //   headers: {
-        //     Authorization: `Bearer ${accessToken}`,
-        //   },
-        // });
-        // console.log(isValid.data);
+        return navigate(from, { replace: true });
       }
     } catch (err) {
       if (err === "BLANK") {

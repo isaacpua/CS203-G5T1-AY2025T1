@@ -6,40 +6,26 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
 
-  // Restore user on initial load
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const savedToken = localStorage.getItem("accessToken");
-
-    if (savedUser) {
+    // Must have both to be authenticated
+    if (savedUser && savedToken) {
       setUser(JSON.parse(savedUser));
-    }
-
-    // Extract role from JWT token (single source of truth)
-    if (savedToken) {
-      const role = getRoleFromToken(savedToken);
-      setUserRole(role);
-    }
-  }, []);
-
-  // Update role when user changes
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-      const savedToken = localStorage.getItem("accessToken");
       const role = getRoleFromToken(savedToken);
       setUserRole(role);
     } else {
+      // If we don't have any, the user shouldn't be logged in
       localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      setUserRole(null);
+      localStorage.removeItem("accessToken")
     }
-  }, [user]);
+  }, []);
 
   const value = {
     user,
     setUser,
     userRole,
+    setUserRole,
     isAdmin: userRole === 'admin',
   };
 
