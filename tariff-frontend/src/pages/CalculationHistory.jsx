@@ -59,7 +59,11 @@ export default function CalculationHistory() {
           snapshot: snap,
         };
       });
-
+      mapped.sort((a, b) => {
+        const ta = new Date(a.createdAt || 0).getTime();
+        const tb = new Date(b.createdAt || 0).getTime();
+        return tb - ta; // descending
+      });
       setItems(mapped);
       setSelectedIds([]);
       if (asRefresh) toast.success(`Loaded ${mapped.length} records`);
