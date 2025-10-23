@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import Papa from 'papaparse';
+import CountrySelector from "@/components/CountrySelector";
 import { useNavigate } from "react-router-dom";
 
 function useDebounce(value, delayMs = 500) {
@@ -151,12 +152,27 @@ const CategoryCell = ({ row, column, grid }) => {
   );
 };
 
-const CountryCell = ({ row, column, grid }) => {
+const CountryCell = ({ row, column, grid, countryMap }) => {
   const value = grid.api.columnField(column, row);
+  const iso2 = countryMap?.get(value); // Look up the iso2 code
+
   return (
     <div className="flex items-center px-3 py-2">
       <div className="flex items-center space-x-2">
-        <div className="w-4 h-3 bg-gray-300 dark:bg-gray-700 rounded-sm flex-shrink-0" />
+        {iso2 ? (
+          <img
+            src={`https://flagcdn.com/w20/${iso2.toLowerCase()}.png`}
+            srcSet={`https://flagcdn.com/w40/${iso2.toLowerCase()}.png 2x`}
+            alt={`${value} flag`}
+            width="16" // w-4
+            height="12" // h-3
+            className="rounded-sm object-contain flex-shrink-0"
+            onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'block'; }}
+          />
+        ) : (
+          // Fallback gray dot
+          <div className="w-4 h-3 bg-gray-300 dark:bg-gray-700 rounded-sm flex-shrink-0" />
+        )}
         <span className="text-sm font-medium">{value || "—"}</span>
       </div>
     </div>
@@ -262,19 +278,19 @@ const StaticHeader = ({ column }) => (
 //
 // Change StaticHeader to SortableHeader to enable sorting
 //
-function TariffGrid({ userRole, data, onEdit, onDelete, onView, isMobile }) {
+function TariffGrid({ userRole, data, onEdit, onDelete, onView, isMobile, countryMap }) {
   const columns = useMemo(
     () => [
       { id: "tariffid", name: "Tariff ID", width: 120, resizable: true, cellRenderer: TariffIdCell, headerRenderer: StaticHeader },
       { id: "category", name: "Category", width: 180, resizable: true, cellRenderer: CategoryCell, headerRenderer: StaticHeader },
       { id: "descriptionwcountry", name: "Description", width: 500, resizable: true, cellRenderer: (props) => <DescriptionCell {...props} onView={onView} />, headerRenderer: StaticHeader },
-      { id: "partnerCountry", name: "Partner Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: StaticHeader },
-      { id: "reporterCountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: CountryCell, headerRenderer: StaticHeader },
+      { id: "partnerCountry", name: "Partner Country", width: 160, resizable: true, cellRenderer: (props) => <CountryCell {...props} countryMap={countryMap} />, headerRenderer: StaticHeader },
+      { id: "reporterCountry", name: "Reporter Country", width: 160, resizable: true, cellRenderer: (props) => <CountryCell {...props} countryMap={countryMap} />, headerRenderer: StaticHeader },
       { id: "adValorem", name: "Ad Valorem", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader },
       { id: "specificPerUnit", name: "Specific/Unit", width: 120, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader },
       { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} userRole={userRole} onEdit={onEdit} onDelete={onDelete} onView={onView} />, headerRenderer: StaticHeader },
     ],
-    [onEdit, onDelete, onView, userRole]
+    [onEdit, onDelete, onView, userRole, countryMap]
   );
 
   // hook required by the grid library (mounted only when we have data)
@@ -342,13 +358,85 @@ const validateTariffForm = (form) => {
 
 /* ---------------- modals ---------------- */
 const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoading, error }) => {
-  const [form, setForm] = useState(initialData || {});
+  const [form, setForm] = useState({});
   const [errors, setErrors] = useState({});
+  const [countries, setCountries] = useState([]);
+  const [loadingCountries, setLoadingCountries] = useState(true);
 
+  // Fetch and parse country data when the modal might open
   useEffect(() => {
-    if (initialData) setForm(initialData);
-    setErrors({});
-  }, [initialData, isOpen]);
+    if (isOpen && countries.length === 0) { // Only fetch if needed and not already loaded
+      setLoadingCountries(true);
+      fetch('/countries.csv') // Fetches from the public folder
+        .then(response => {
+           if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+           }
+           return response.text();
+        })
+        .then(csvText => {
+          Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+              const validCountries = results.data
+                .filter(row => row.countryid && row.iso2 && row.name) // Basic validation
+                .map(row => ({
+                  iso2: row.iso2.trim(),
+                  name: row.name.trim() // Keep the exact name
+                }))
+                .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
+              setCountries(validCountries);
+              setLoadingCountries(false);
+            },
+            error: (error) => {
+              console.error("Error parsing CSV:", error);
+              setCountries([]); // Clear countries on error
+              setLoadingCountries(false);
+              // Optionally set an error state to show in the UI
+            }
+          });
+        })
+        .catch(error => {
+           console.error("Error fetching countries.csv:", error);
+           setCountries([]);
+           setLoadingCountries(false);
+           // Optionally set an error state
+        });
+    }
+  }, [isOpen]); // Re-run if isOpen changes
+
+  // Update form state when initialData changes (for editing)
+  useEffect(() => {
+    if (initialData) {
+      setForm(initialData);
+    } else {
+      // Reset form for creation
+      setForm({ category: "", descriptionwcountry: "", partnerCountry: "", reporterCountry: "", adValorem: "", specificPerUnit: "", unitname: "" });
+    }
+    setErrors({}); // Clear errors when data changes
+  }, [initialData, isOpen]); // Also depend on isOpen to reset on re-open
+
+
+  // *** IMPORTANT: Update your validation logic ***
+  const validateTariffForm = (formData) => {
+    const errors = {};
+    if (!formData.category || formData.category.trim() === "") errors.category = "Category is required";
+    if (!formData.descriptionwcountry || formData.descriptionwcountry.trim() === "") errors.descriptionwcountry = "Description is required";
+
+    // Validate country selections - ensure they are exact matches from the loaded list
+    if (!formData.partnerCountry || !countries.some(c => c.name === formData.partnerCountry)) {
+      errors.partnerCountry = "Partner Country is required and must be selected from the list";
+    }
+    if (!formData.reporterCountry || !countries.some(c => c.name === formData.reporterCountry)) {
+      errors.reporterCountry = "Reporter Country is required and must be selected from the list";
+    }
+    // Keep number validations if needed
+    if (formData.adValorem && isNaN(parseFloat(formData.adValorem))) errors.adValorem = "Ad Valorem must be a valid number";
+    if (formData.specificPerUnit && isNaN(parseFloat(formData.specificPerUnit))) errors.specificPerUnit = "Specific per unit must be a valid number";
+    return errors;
+  };
+
 
   const handleSubmit = () => {
     const validationErrors = validateTariffForm(form);
@@ -357,12 +445,13 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
       return;
     }
     setErrors({});
+    // The form state already contains the exact country name (case-sensitive)
     onSubmit(form);
   };
 
-  const hasChanges = JSON.stringify(form) !== JSON.stringify(initialData);
+  const hasChanges = JSON.stringify(form) !== JSON.stringify(initialData || {});
 
-  const categories = ["COMPOSITE", "SPECIFIC_PER_UNIT", "AD_VALOREM", "FOOD_BEVERAGE", "MINERAL", "CHEMICAL", "PLASTIC", "TEXTILE", "WOOD", "PAPER"];
+  const categories = ["COMPOSITE", "SPECIFIC_PER_UNIT", "AD_VALOREM"];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -371,54 +460,78 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
           <DialogTitle className="text-xl font-semibold">{isEditing ? "Edit Tariff Entry" : "Create New Tariff Entry"}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-6 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 py-6"> {/* Adjusted grid layout */}
+          {/* Category */}
           <div className="space-y-2">
             <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
             <Select value={form.category || ""} onValueChange={(value) => setForm((f) => ({ ...f, category: value }))}>
-              <SelectTrigger className={errors.category ? "border-red-500" : ""}><SelectValue placeholder="Select category" /></SelectTrigger>
+              <SelectTrigger id="category" className={errors.category ? "border-red-500" : ""}><SelectValue placeholder="Select category" /></SelectTrigger>
               <SelectContent>{categories.map((cat) => <SelectItem key={cat} value={cat}>{cat.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
             </Select>
             {errors.category && <p className="text-sm text-red-500">{errors.category}</p>}
           </div>
 
-          <div className="col-span-2 space-y-2">
+          {/* Description - Spanning full width */}
+          <div className="md:col-span-2 space-y-2"> {/* Use md:col-span-2 */}
             <Label htmlFor="descriptionwcountry">Description <span className="text-red-500">*</span></Label>
             <Input id="descriptionwcountry" value={form.descriptionwcountry || ""} onChange={(e) => setForm((f) => ({ ...f, descriptionwcountry: e.target.value }))} className={errors.descriptionwcountry ? "border-red-500" : ""} placeholder="e.g., Industrial Machinery" />
             {errors.descriptionwcountry && <p className="text-sm text-red-500">{errors.descriptionwcountry}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="partnerCountry">Partner Country <span className="text-red-500">*</span></Label>
-            <Input id="partnerCountry" value={form.partnerCountry || ""} onChange={(e) => setForm((f) => ({ ...f, partnerCountry: e.target.value }))} className={errors.partnerCountry ? "border-red-500" : ""} placeholder="e.g., Singapore (Case Sensitive)" />
-            {errors.partnerCountry && <p className="text-sm text-red-500">{errors.partnerCountry}</p>}
-          </div>
+          {/* Partner Country */}
+          <CountrySelector
+            id="partnerCountry"
+            label="Partner Country"
+            value={form.partnerCountry || ""} // Bind to form.partnerCountry
+            onChange={(countryName) => setForm((f) => ({ ...f, partnerCountry: countryName }))} // Update form.partnerCountry
+            countries={countries}
+            error={errors.partnerCountry}
+            placeholder={loadingCountries ? "Loading..." : "Select partner country"}
+            required={true}
+            disabled={loadingCountries}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="reporterCountry">Reporter Country <span className="text-red-500">*</span></Label>
-            <Input id="reporterCountry" value={form.reporterCountry || ""} onChange={(e) => setForm((f) => ({ ...f, reporterCountry: e.target.value }))} className={errors.reporterCountry ? "border-red-500" : ""} placeholder="e.g., China (Case Sensitive)" />
-            {errors.reporterCountry && <p className="text-sm text-red-500">{errors.reporterCountry}</p>}
-          </div>
+          {/* Reporter Country */}
+          <CountrySelector
+            id="reporterCountry"
+            label="Reporter Country"
+            value={form.reporterCountry || ""} // Bind to form.reporterCountry
+            onChange={(countryName) => setForm((f) => ({ ...f, reporterCountry: countryName }))} // Update form.reporterCountry
+            countries={countries}
+            error={errors.reporterCountry}
+            placeholder={loadingCountries ? "Loading..." : "Select reporter country"}
+            required={true}
+            disabled={loadingCountries}
+          />
 
+          {/* Ad Valorem Rate */}
           <div className="space-y-2">
-            <Label htmlFor="adValorem">Ad Valorem Rate</Label>
-            <Input id="adValorem" type="number" step="0.01" min="0" value={form.adValorem || ""} onChange={(e) => setForm((f) => ({ ...f, adValorem: e.target.value }))} className={errors.adValorem ? "border-red-500" : ""} placeholder="e.g., 5.5" />
+            <Label htmlFor="adValorem">Ad Valorem Rate (%)</Label>
+            <Input id="adValorem" type="number" step="0.01" min="0" value={form.adValorem || ""} onChange={(e) => setForm((f) => ({ ...f, adValorem: e.target.value }))} className={errors.adValorem ? "border-red-500" : ""} placeholder="e.g., 5.5 (represents 5.5%)" />
             {errors.adValorem && <p className="text-sm text-red-500">{errors.adValorem}</p>}
           </div>
 
+          {/* Specific per Unit */}
           <div className="space-y-2">
-            <Label htmlFor="specificPerUnit">Specific per Unit</Label>
+            <Label htmlFor="specificPerUnit">Specific per Unit ($)</Label>
             <Input id="specificPerUnit" type="number" step="0.01" min="0" value={form.specificPerUnit || ""} onChange={(e) => setForm((f) => ({ ...f, specificPerUnit: e.target.value }))} className={errors.specificPerUnit ? "border-red-500" : ""} placeholder="e.g., 12.50" />
             {errors.specificPerUnit && <p className="text-sm text-red-500">{errors.specificPerUnit}</p>}
           </div>
 
-          <div className="col-span-2 space-y-2">
+          {/* Unit Name - Spanning full width */}
+          <div className="md:col-span-2 space-y-2"> {/* Use md:col-span-2 */}
             <Label htmlFor="unitname">Unit Name</Label>
-            <Input id="unitname" value={form.unitname || ""} onChange={(e) => setForm((f) => ({ ...f, unitname: e.target.value }))} placeholder="e.g., kg" />
+            <Input id="unitname" value={form.unitname || ""} onChange={(e) => setForm((f) => ({ ...f, unitname: e.target.value }))} placeholder="e.g., kg, liter, piece" />
           </div>
 
+          {/* Mandatory Fields Note - Spanning full width */}
+          <div className="md:col-span-2 text-sm text-muted-foreground mt-2"> {/* Use md:col-span-2 */}
+            <span className="text-red-500 mr-1">*</span>
+            <span>Starred fields are mandatory</span>
+         </div>
         </div>
 
-        {error && <div className="p-3 bg-red-50 border border-red-200 rounded-md"><p className="text-sm text-red-600">{error}</p></div>}
+        {error && <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md mb-4"><p className="text-sm text-red-600 dark:text-red-400">{error}</p></div>}
 
         <DialogFooter className="flex gap-3">
           <Button variant="outline" onClick={onClose} disabled={isLoading}>Cancel</Button>
@@ -544,15 +657,57 @@ export default function Dashboard() {
   const [showRelogin, setShowRelogin] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [countries, setCountries] = useState([]);
+  const [loadingCountries, setLoadingCountries] = useState(true);
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  const debouncedQuery = useDebounce(query);
+const debouncedQuery = useDebounce(query);
+
+  // Create a lookup map for country names to iso2 codes
+  const countryMap = useMemo(() => {
+    if (loadingCountries || countries.length === 0) return new Map();
+    return new Map(countries.map(c => [c.name, c.iso2]));
+  }, [countries, loadingCountries]);
 
   const userRole = JSON.parse(localStorage.getItem("user")).role;
 
   // Reset page when filters change
-  useEffect(() => { setPage(0); }, [debouncedQuery, mode]);
+  // Fetch countries for the grid flags
+  useEffect(() => {
+    setLoadingCountries(true);
+    fetch('/countries.csv')
+      .then(response => {
+         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+         return response.text();
+      })
+      .then(csvText => {
+        Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            const validCountries = results.data
+              .filter(row => row.countryid && row.iso2 && row.name)
+              .map(row => ({
+                iso2: row.iso2.trim(),
+                name: row.name.trim()
+              }));
+            setCountries(validCountries);
+            setLoadingCountries(false);
+          },
+          error: (error) => {
+            console.error("Error parsing CSV:", error);
+            setCountries([]);
+            setLoadingCountries(false);
+          }
+        });
+      })
+      .catch(error => {
+         console.error("Error fetching countries.csv:", error);
+         setCountries([]);
+         setLoadingCountries(false);
+      });
+  }, []); // Runs once on mount
 
   const fetchTariffs = useCallback(async (showRefreshLoader = false) => {
     if (showRefreshLoader) setIsRefreshing(true); else setLoading(true);
@@ -819,7 +974,15 @@ export default function Dashboard() {
               </div>
             </div>
           ) : results && results.content.length > 0 ? (
-            <TariffGrid userRole={userRole} data={results.content} onEdit={handleEdit} onDelete={handleDelete} onView={handleView} isMobile={isMobile} />
+              <TariffGrid 
+              userRole={userRole} 
+              data={results.content} 
+              onEdit={handleEdit} 
+              onDelete={handleDelete} 
+              onView={handleView} 
+              isMobile={isMobile}
+              countryMap={countryMap}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-muted/30 border rounded-xl">
               <div className="text-center">
