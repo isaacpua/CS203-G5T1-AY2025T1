@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {Card, CardHeader, CardTitle, CardDescription, CardContent} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter} from "@/components/ui/dialog";
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
-import {Loader2, Search, RefreshCw, Download, Eye, X, Trash2, Pencil} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Loader2, Search, RefreshCw, Download, Eye, X, Trash2, Pencil } from "lucide-react";
 import Papa from "papaparse";
 import { toast } from "sonner";
 import { Relogin } from "@/components/Relogin";
 
-import {getTransactionHistory,deleteTransactionByID, bulkDeleteTransactions,} from "@/api/axiosClient";
+import { getTransactionHistory, deleteTransactionByID, bulkDeleteTransactions, } from "@/api/axiosClient";
 
 const CALCULATOR_ROUTE = "/calculator";
 
@@ -172,8 +172,8 @@ export default function CalculationHistory() {
       tariffId: s.tariffId ?? null,
       partnerCountry: s.partnerCountry ?? null,
       reporterCountry: s.reporterCountry ?? null,
-      fromId: s.partnerCountryId ?? null,    
-      toId: s.reporterCountryId ?? null, 
+      fromId: s.partnerCountryId ?? null,
+      toId: s.reporterCountryId ?? null,
       // only the allowed inputs, depending on category
       customsValue: category === "AD_VALOREM" ? toNum(editInputs.customsValue) : null,
       quantity: (category === "SPECIFIC_PER_UNIT" || category === "COMPOSITE") ? toNum(editInputs.quantity) : null,
@@ -193,56 +193,89 @@ export default function CalculationHistory() {
     const rid = row.transactionId;
 
     return (
-      <div className="p-3 rounded-lg border bg-card">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              className="h-4 w-4"
-              checked={selectedIds.includes(rid)}
-              onChange={() => toggleSelect(row)}
-              disabled={!rid}
-              aria-label="Select row"
+      <div className="p-3 rounded-lg border bg-card hover:bg-muted/40 transition-colors flex items-start justify-between">
+        {/* Left side: checkbox + main info */}
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          {/* Checkbox */}
+          <input
+            type="checkbox"
+            className="h-4 w-4 mt-1 shrink-0"
+            checked={selectedIds.includes(rid)}
+            onChange={() => toggleSelect(row)}
+            disabled={!rid}
+            aria-label="Select row"
+          />
+
+          {/* Text content */}
+          <div className="flex-1 min-w-0">
+            {/* Title (description) */}
+            <div className="font-semibold text-sm text-foreground truncate">
+              {getDescription(row)}
+            </div>
+
+            {/* Meta line */}
+            <div className="text-[12px] text-muted-foreground mt-0.5 truncate">
+              Tariff ID: <span className="font-mono">{titleId ?? "—"}</span>
+              {row.createdAt && (
+                <span className="ml-2">
+                  • {new Date(row.createdAt).toLocaleString()}
+                </span>
+              )}
+            </div>
+
+            {/* Rate + total (single compact block) */}
+            <div className="mt-0.5 text-[12px] text-muted-foreground leading-relaxed">
+              <div>
+                <span className="font-medium text-foreground">Rate:</span> {rate}
+                {category !== "—" && (
+                  <span className="ml-2">
+                    • <span className="uppercase">{category}</span>
+                  </span>
+                )}
+              </div>
+              <div>
+                <span className="font-medium text-foreground">Total:</span>{" "}
+                {getTotal(row) != null ? `$${to2(getTotal(row))}` : "—"}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right side: icons in one horizontal row */}
+        <div className="flex items-center gap-1 ml-3 shrink-0">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setViewRow(row)}
+            aria-label="View"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => openEdit(row)}
+            aria-label="Edit"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleDelete(row)}
+            disabled={deletingId === rid || !rid}
+            aria-label="Delete"
+          >
+            <Trash2
+              className={`h-4 w-4 ${deletingId === rid ? "animate-pulse" : ""
+                }`}
             />
-            <Badge variant="secondary" className="font-mono">#{titleId ?? "—"}</Badge>
-            <span className="text-xs text-muted-foreground">
-              {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button size="sm" variant="ghost" onClick={() => setViewRow(row)} aria-label="View">
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => openEdit(row)} aria-label="Recalculate">
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleDelete(row)}
-              disabled={deletingId === rid || !rid}
-              aria-label="Delete"
-            >
-              <Trash2 className={`h-4 w-4 ${deletingId === rid ? "animate-pulse" : ""}`} />
-            </Button>
-          </div>
-        </div>
-
-        <div className="mt-2 text-sm">{getDescription(row)}</div>
-
-        <div className="mt-1 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Rate:</span>{" "}
-          {rate}
-          {category !== "—" && <span className="ml-2">• <span className="uppercase">{category}</span></span>}
-        </div>
-
-        <div className="mt-2 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Total:</span>{" "}
-          {getTotal(row) != null ? `$${to2(getTotal(row))}` : "—"}
+          </Button>
         </div>
       </div>
     );
   };
+
 
   const snap = viewRow?.snapshot ?? null;
   const ratePretty = fmtRate(snap);
