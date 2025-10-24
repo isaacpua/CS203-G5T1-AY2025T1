@@ -3,4 +3,5 @@ export function logout(setUser) {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("user");
   window.location.reload();
+  window.location.href = "/login";
 }

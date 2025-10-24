@@ -11,10 +11,6 @@ axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-    // Debug log for troubleshooting JWT Bearer issues
-    console.log("[axios] Authorization header:", config.headers.Authorization);
-  } else {
-    console.log("[axios] No accessToken found in localStorage");
   }
   return config;
 });
@@ -129,6 +125,23 @@ export const updateUsernameAndRole = async (userID, newUsername, newRole) => {
 
 export const deleteUserByID = async (userID) => {
   return await axiosClient.delete(`/users/${userID.toString()}`);
+};
+
+export const getTransactionHistory = async() => {
+  return await axiosClient.get("/tariffs/transactionHistory")
+};
+
+export const deleteTransactionByID = async(transactionID) => {
+  return await axiosClient.delete(`/tariffs/transactionHistory/${transactionID}`);
+};
+
+export const bulkDeleteTransactions = async (transactionIDs) => {
+  const idsCsv = transactionIDs.join(",");
+  return await axiosClient.delete(`/tariffs/transactionHistory`, { params:{ids: idsCsv}});
+};
+
+export const editTransactions = async(transactionID, snapshot) => {
+  return await axiosClient.put(`/tariffs/transactionHistory/${transactionID}/snapshot`, snapshot);
 };
 
 export default axiosClient;

@@ -52,14 +52,14 @@ export default function Header() {
     { label: "Calculator", path: "/calculator" },
     { label: "Dashboard", path: "/dashboard" },
     { label: "Historical Explorer", path: "/historical" },
-    { label: "Chatbot", path: "/chatbot" },
+    { label: "Calculation History", path: "/calc-history" }
   ]
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center justify-between px-4">
         <div className="flex items-center space-x-6">
-          <a className="flex items-center space-x-2" href="/">
+          <a className="flex items-center space-x-2" href="#" onClick={() => { navigate("/") }}>
             <span className="font-bold">TARIFIC</span>
           </a>
 

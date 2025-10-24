@@ -1,13 +1,15 @@
 package com.tariff.tariff_backend.repository;
 
 import com.tariff.tariff_backend.model.tariffs_new.TransactionLine;
+
+import jakarta.transaction.Transactional;
+
 import com.tariff.tariff_backend.model.User;
-import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface TransactionLineRepo extends JpaRepository<TransactionLine, Integer> {
 
@@ -15,12 +17,8 @@ public interface TransactionLineRepo extends JpaRepository<TransactionLine, Inte
 
     List<TransactionLine> findByUser(User user);
 
-    List<TransactionLine> findByTariff(Tariff tariff);
+    @Transactional
+    long deleteByTransactionIdAndUserId(Integer transactionId, UUID id);
 
-    List<TransactionLine> findByCalculatedValue(BigDecimal calculatedValue);
-
-    // Range queries
-    List<TransactionLine> findByCalculatedValueGreaterThan(BigDecimal minValue);
-
-    List<TransactionLine> findByCalculatedValueBetween(BigDecimal minValue, BigDecimal maxValue);
+    Optional<TransactionLine> findByTransactionIdAndUserId(Integer transactionId, UUID id);
 }
