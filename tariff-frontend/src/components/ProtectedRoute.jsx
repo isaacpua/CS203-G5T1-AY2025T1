@@ -1,41 +1,33 @@
 import { useEffect, useState } from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { verifyJWT } from "../api/axiosClient";
 import { Spinner } from "./ui/shadcn-io/spinner";
 import { useAuth } from "@/utils/AuthContext";
+import { logout } from "@/utils/logout";
 
 export default function ProtectedRoute() {
     const { setUser } = useAuth();
-    const location = useLocation();
-    const [authState, setAuthState] = useState("loading");
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const verifyToken = async () => {
             try {
                 const token = localStorage.getItem("accessToken");
                 if (!token) {
-                    setUser(null);
-                    console.log("No token found");
-                    setAuthState("unauthenticated");
-                    return;
+                    throw new Error("No token");
                 }
 
-                console.log("Token found, verifying...");
                 await verifyJWT(token);
-                console.log("Token is valid");
-                setAuthState("authenticated");
-            } catch (error) {
-                localStorage.removeItem("accessToken");
-                setUser(null);
-                console.log("Token is invalid or error occurred", error);
-                setAuthState("unauthenticated");
+                setIsLoading(false);
+            } catch {
+                logout(setUser);
             }
         };
 
         verifyToken();
     }, []);
 
-    if (authState === "loading") {
+    if (isLoading) {
         return (
             <div
                 className="flex flex-col items-center justify-center gap-4 mt-30 p-10"
@@ -48,10 +40,5 @@ export default function ProtectedRoute() {
         );
     }
 
-    if (authState === "unauthenticated") {
-        return <Navigate to="/login" replace state={{ from: location }} />;
-    }
-
-    // Render nested routes
     return <Outlet />;
 }
