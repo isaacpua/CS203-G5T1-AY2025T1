@@ -1,23 +1,18 @@
-# test.py
 import asyncio
 from fastmcp import Client
 
-# The full URL to the specific MCP server you want to test
-# This is defined by how you mount it in your main.py
-GREET_SERVER_URL = "http://127.0.0.1:8000/mcp"
+MCP_SERVER_URL = "http://127.0.0.1:8000/mcp/"
 
 async def main():
     """
     Connects to the running MCP server, lists available tools,
     and calls the 'greet' tool.
     """
-    print(f"Attempting to connect to the server at: {GREET_SERVER_URL}")
+    print(f"Attempting to connect to the server at: {MCP_SERVER_URL}")
 
     try:
-        # Create a client for the specific server endpoint
-        client = Client(GREET_SERVER_URL)
+        client = Client(MCP_SERVER_URL)
 
-        # The 'async with' block handles connecting and disconnecting
         async with client:
             print("✅ Successfully connected to the server!")
 
@@ -30,7 +25,7 @@ async def main():
             if "greet" in tool_names:
                 print("\n📞 Calling the 'greet' tool with name='World'...")
                 result = await client.call_tool("greet", {"name": "World"})
-
+                print("result Type:", type(result))
                 # The result is a list of outputs; we'll take the first one
                 if result and hasattr(result[0], 'text'):
                     print(f"🎉 Success! Server responded: '{result[0].text}'")
@@ -44,7 +39,6 @@ async def main():
         print(f"   Error details: {e}")
 
 if __name__ == "__main__":
-    # Ensure your FastAPI server is running before executing this script
     print("--- Running MCP Tool Test Script ---")
     asyncio.run(main())
     print("\n--- Test complete ---")

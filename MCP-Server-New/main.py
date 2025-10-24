@@ -1,9 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-
-
 from mcp_server import mcp as mcp_server
-
 
 mcp_app = mcp_server.http_app()
 
@@ -13,10 +10,11 @@ async def lifespan(app: FastAPI):
     async with mcp_app.lifespan(app):
         yield
 
+
 app = FastAPI(lifespan=lifespan)
 
-
 app.mount("/", mcp_app)
+
 
 if __name__ == "__main__":
     import uvicorn
