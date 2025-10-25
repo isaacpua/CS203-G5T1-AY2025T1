@@ -260,9 +260,7 @@ def process_csv(df: pd.DataFrame, year: int) -> pd.DataFrame:
             rows_to_keep.append(idx)
 
     df = df.loc[rows_to_keep].copy()
-    print(
-        f"Filtered to {len(df)} unique HTS6 codes from {len(visited_hts6)} total codes.")
-    df.to_csv("intermediate.csv")
+    # df.to_csv("intermediate.csv")
 
     # Convert dates
     df['effectivedate'] = pd.to_datetime(
@@ -360,12 +358,11 @@ def process_csv(df: pd.DataFrame, year: int) -> pd.DataFrame:
     # Create new dataframe from expanded rows
     result_df = pd.DataFrame(expanded_rows)
 
-    # Drop the temporary hts6 column
-    result_df = result_df.drop(columns=['hts6'])
+    result_df = result_df.drop(columns=['hts6', 'col1_special_text'])
 
     print(
         f"Successfully processed the USITC csv. Expanded from {len(df)} to {len(result_df)} rows.")
-    result_df.to_csv("output.csv")
+    result_df.to_csv(f"output_{year}.csv")
     return result_df
 
 
