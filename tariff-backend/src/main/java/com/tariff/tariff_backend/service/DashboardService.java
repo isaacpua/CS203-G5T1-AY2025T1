@@ -49,6 +49,9 @@ public class DashboardService {
                     .category(newTariffDTO.getCategory())
                     .adValorem(newTariffDTO.getAdValorem())
                     .specificPerUnit(newTariffDTO.getSpecificPerUnit())
+                    .effectivedate(newTariffDTO.getEffectivedate())
+                    .expirydate(newTariffDTO.getExpirydate())
+                    .datasource(newTariffDTO.getDatasource())
                     .build();
 
             Tariff savedTariff = tariffRepo.save(newTariff);
@@ -104,6 +107,11 @@ public class DashboardService {
             if (patchDTO.getSpecificPerUnit() != null) {
                 existingTariff.setSpecificPerUnit(patchDTO.getSpecificPerUnit());
             }
+            existingTariff.setEffectivedate(patchDTO.getEffectivedate());
+            existingTariff.setExpirydate(patchDTO.getExpirydate());
+            if (patchDTO.getDatasource() != null) { // Datasource might be nullable in DB
+                existingTariff.setDatasource(patchDTO.getDatasource());
+            }
 
             tariffRepo.save(existingTariff);
 
@@ -153,7 +161,10 @@ public class DashboardService {
                         tariff.getUnitname(),
                         tariff.getCategory(),
                         tariff.getAdValorem(),
-                        tariff.getSpecificPerUnit()))
+                        tariff.getSpecificPerUnit(),
+                        tariff.getEffectivedate(),
+                        tariff.getExpirydate(),
+                        tariff.getDatasource()))
                 .toList();
 
         return new DashboardMetrics(
@@ -174,7 +185,10 @@ public class DashboardService {
                         tariff.getUnitname(),
                         tariff.getCategory(),
                         tariff.getAdValorem(),
-                        tariff.getSpecificPerUnit()))
+                        tariff.getSpecificPerUnit(),
+                        tariff.getEffectivedate(),
+                        tariff.getExpirydate(),
+                        tariff.getDatasource()))
                 .toList();
     }
 }
