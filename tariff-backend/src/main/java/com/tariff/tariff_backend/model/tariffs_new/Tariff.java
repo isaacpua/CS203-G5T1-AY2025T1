@@ -1,8 +1,18 @@
 package com.tariff.tariff_backend.model.tariffs_new;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -54,4 +64,16 @@ public class Tariff {
     @Column (name = "specificperunit")
     @Schema(description = "Specific tariff rate per unit", example = "0.75")
     private BigDecimal specificPerUnit;
+
+    @Column(name = "effectivedate") 
+    @Schema(description = "Date when the tariff becomes effective", example = "2024-01-01")
+    private LocalDate effectivedate;
+
+    @Column(name = "expirydate") 
+    @Schema(description = "Date when the tariff expires", example = "2024-12-31")
+    private LocalDate expirydate;
+
+    @Column(name = "datasource")
+    @Schema(description = "Source of the tariff data", example = "Government Gazette")
+    private String datasource;
 }
