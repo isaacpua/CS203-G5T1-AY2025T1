@@ -1,8 +1,16 @@
+import os
 from fastmcp import FastMCP
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
+from tools import newsletter_scrape, single_URL_scrape, forecast_tariffs
 
-from tools import newsletter_scrape, single_URL_scrape
+load_dotenv()
+DB_CONFIG = {
+    "DB_URL": os.getenv("DB_URL"),
+    "DB_USERNAME": os.getenv("DB_USERNAME"),
+    "DB_PASSWORD": os.getenv("DB_PASSWORD"),
+}
 
 mcp = FastMCP(
     name="DexiaMCP",
@@ -51,6 +59,11 @@ async def scrape_single_article(url: str) -> dict:
         the scraped information
     """
     return await single_URL_scrape(url)
+
+
+@mcp.tool(name="forecast_tariffs")
+async def generate_tariff_forecasts() -> dict:
+    return await forecast_tariffs(DB_CONFIG)
 
 
 if __name__ == "__main__":
