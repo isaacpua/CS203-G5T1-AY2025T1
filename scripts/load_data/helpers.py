@@ -362,7 +362,7 @@ def process_csv(df: pd.DataFrame, year: int) -> pd.DataFrame:
 
     print(
         f"Successfully processed the USITC csv. Expanded from {len(df)} to {len(result_df)} rows.")
-    result_df.to_csv(f"output_{year}.csv")
+    # result_df.to_csv(f"output_{year}.csv")
     return result_df
 
 
@@ -435,7 +435,6 @@ def load_into_db(input_df: pd.DataFrame, db_connection_string: str, year: int):
         'category': Text,
         'advalorem': Float,
         'specificperunit': Float,
-        'col1_special_text': Text,
         'effectivedate': Date,
         'expirydate': Date,
         'partnercountry': Text,
