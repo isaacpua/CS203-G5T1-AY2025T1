@@ -139,9 +139,12 @@ class TariffForecaster:
 
         model_ad.fit(X, y_advalorem)
         model_sp.fit(X, y_specific)
-
-        results['forecast_advalorem'] = model_ad.predict(future_years).tolist()
-        results['forecast_specific'] = model_sp.predict(future_years).tolist()
+        forecast_ad = model_ad.predict(future_years)
+        forecast_sp = model_sp.predict(future_years)
+        forecast_ad = np.maximum(forecast_ad, 0)
+        forecast_sp = np.maximum(forecast_sp, 0)
+        results['forecast_advalorem'] = forecast_ad.tolist()
+        results['forecast_specific'] = forecast_sp.tolist()
 
         return results
 
@@ -176,6 +179,7 @@ class TariffForecaster:
                 forecast_years=forecast_years,
                 method=method
             )
+            
             if result:
                 forecasts.append(result)
 
