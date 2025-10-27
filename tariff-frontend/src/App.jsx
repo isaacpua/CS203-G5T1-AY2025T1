@@ -11,6 +11,7 @@ import Header from './components/Header';
 import LandingPage from './pages/LandingPage';
 import { AuthProvider } from './utils/AuthProvider';
 import ChatbotPage from './pages/Chatbot';
+import Forecast from './pages/Forecast';
 
 function AppContent() {
 
@@ -27,7 +28,7 @@ function AppContent() {
                   <Login />
                 </section>
               } />
-            
+
               {/* PROTECTED ROUTES */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<LandingPage />} />
@@ -47,13 +48,17 @@ function AppContent() {
                   </section>
                 } />
                 <Route path="/calc-history" element={
-                <section className="container mx-auto py-8 md:py-12 lg:py-24">
+                  <section className="container mx-auto py-8 md:py-12 lg:py-24">
                     <CalculationHistory />
-                </section>
+                  </section>
                 } />
 
                 <Route path="/user-management" element={<UserManagement />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/forecast" element={
+                  <section className="container mx-auto py-8 md:py-12 lg:py-24">
+                    <Forecast />
+                  </section>} />
               </Route>
               <Route path="*" element={<Navigate replace to="/" />} />
             </Routes>

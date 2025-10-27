@@ -22,6 +22,13 @@ const chatbotAxiosClient = axios.create({
   },
 });
 
+const mcpAxiosClient = axios.create({
+  baseURL: "/mcp/api/v1",
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 export const verifyJWT = async (token) => {
   await axiosClient.post("/auth/verifyJWT", {}, {
     headers: {
@@ -142,6 +149,14 @@ export const bulkDeleteTransactions = async (transactionIDs) => {
 
 export const editTransactions = async(transactionID, snapshot) => {
   return await axiosClient.put(`/tariffs/transactionHistory/${transactionID}/snapshot`, snapshot);
+};
+
+export const getForecast = async () => {
+  return await mcpAxiosClient.get(`/forecast`);
+};
+
+export const updateForecast = async () => {
+  return await mcpAxiosClient.post(`/forecast`);
 };
 
 export default axiosClient;
