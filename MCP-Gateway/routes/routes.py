@@ -72,3 +72,18 @@ async def forecast_tariffs():
     except Exception as e:
         logging.error(f"Error details: {e}")
         return {"error": e}
+    
+
+@router.get("/newsletter")
+async def get_newsletter():
+    try:
+        async with client:
+            logging.info(f"Calling newsletter tool on {MCP_SERVER_URL} ...")
+            response = await client.call_tool("newsletter_scrape")
+            logging.info(f"Successfully called newsletter tool!")
+            print(response)
+            return response
+        
+    except Exception as e:
+        logging.error(f"Error details: {e}")
+        return {"error": e}

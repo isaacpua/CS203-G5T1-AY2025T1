@@ -19,7 +19,7 @@ class TariffForecaster:
     def _connect_to_db(self):
         """Establish database connection"""
         try:
-            connection_string = f"postgresql://{self.db_config["DB_USERNAME"]}:{self.db_config["DB_PASSWORD"]}@{self.db_config["DB_URL"]}"
+            connection_string = f'postgresql://{self.db_config["DB_USERNAME"]}:{self.db_config["DB_PASSWORD"]}@{self.db_config["DB_URL"]}'
             self.engine = create_engine(connection_string)
             print(f"Connected to database")
         except Exception as e:
