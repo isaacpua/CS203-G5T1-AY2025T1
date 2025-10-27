@@ -6,13 +6,14 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import com.tariff.tariff_backend.model.tariffs_new.Country;
-import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 import com.tariff.tariff_backend.model.dashboard.DashboardMetrics;
 import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
 import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
+import com.tariff.tariff_backend.model.tariffs_new.Country;
+import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 import com.tariff.tariff_backend.repository.CountryRepo;
 import com.tariff.tariff_backend.repository.TariffRepo;
 
@@ -48,6 +49,9 @@ public class DashboardService {
                     .category(newTariffDTO.getCategory())
                     .adValorem(newTariffDTO.getAdValorem())
                     .specificPerUnit(newTariffDTO.getSpecificPerUnit())
+                    .effectivedate(newTariffDTO.getEffectivedate())
+                    .expirydate(newTariffDTO.getExpirydate())
+                    .datasource(newTariffDTO.getDatasource())
                     .build();
 
             Tariff savedTariff = tariffRepo.save(newTariff);
@@ -103,6 +107,11 @@ public class DashboardService {
             if (patchDTO.getSpecificPerUnit() != null) {
                 existingTariff.setSpecificPerUnit(patchDTO.getSpecificPerUnit());
             }
+            existingTariff.setEffectivedate(patchDTO.getEffectivedate());
+            existingTariff.setExpirydate(patchDTO.getExpirydate());
+            if (patchDTO.getDatasource() != null) { // Datasource might be nullable in DB
+                existingTariff.setDatasource(patchDTO.getDatasource());
+            }
 
             tariffRepo.save(existingTariff);
 
@@ -152,7 +161,10 @@ public class DashboardService {
                         tariff.getUnitname(),
                         tariff.getCategory(),
                         tariff.getAdValorem(),
-                        tariff.getSpecificPerUnit()))
+                        tariff.getSpecificPerUnit(),
+                        tariff.getEffectivedate(),
+                        tariff.getExpirydate(),
+                        tariff.getDatasource()))
                 .toList();
 
         return new DashboardMetrics(
@@ -163,7 +175,8 @@ public class DashboardService {
     }
 
     public List<TariffPatchDTO> getAllTariffs() {
-        return tariffRepo.findAll().stream()
+        Sort sort = Sort.by(Sort.Direction.ASC, "tariffId");
+        return tariffRepo.findAll(sort).stream()
                 .map(tariff -> new TariffPatchDTO(
                         tariff.getTariffId(),
                         tariff.getDescriptionwcountry(),
@@ -172,7 +185,10 @@ public class DashboardService {
                         tariff.getUnitname(),
                         tariff.getCategory(),
                         tariff.getAdValorem(),
-                        tariff.getSpecificPerUnit()))
+                        tariff.getSpecificPerUnit(),
+                        tariff.getEffectivedate(),
+                        tariff.getExpirydate(),
+                        tariff.getDatasource()))
                 .toList();
     }
 }

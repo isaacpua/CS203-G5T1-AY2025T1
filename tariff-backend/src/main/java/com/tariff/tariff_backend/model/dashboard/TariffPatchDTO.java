@@ -1,6 +1,8 @@
 package com.tariff.tariff_backend.model.dashboard;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -35,4 +37,13 @@ public class TariffPatchDTO {
     
     @Schema(description = "Specific tariff rate per unit", example = "0.75")
     private BigDecimal specificPerUnit;
+
+    @Schema(description = "Effective date", example = "2024-01-01")
+    private LocalDate effectivedate;
+
+    @Schema(description = "Expiry date", example = "2024-12-31")
+    private LocalDate expirydate;
+
+    @Schema(description = "Data source", example = "Government Gazette")
+    private String datasource;
 }
