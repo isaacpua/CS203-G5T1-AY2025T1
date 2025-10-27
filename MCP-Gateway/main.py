@@ -1,7 +1,11 @@
+# Load .env before importing routes because the routes file needs it
+from dotenv import load_dotenv
+load_dotenv()
+
 import warnings
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from routes import router
+
 warnings.filterwarnings('ignore')
 
 app = FastAPI()
