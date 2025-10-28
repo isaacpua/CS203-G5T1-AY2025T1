@@ -1,0 +1,8 @@
+{
+    "mcpServers": {
+        "dexia_mcp": {
+            "url": "http://127.0.0.1:8000/mcp/",
+            "transport": "streamable_http"
+        }
+    }
+}
