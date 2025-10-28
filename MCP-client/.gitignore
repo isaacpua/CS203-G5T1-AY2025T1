@@ -1,0 +1,7 @@
+__pycache__/
+.python-version
+.venv/
+.env
+venv/
+src/token_cache.bin
+.vs

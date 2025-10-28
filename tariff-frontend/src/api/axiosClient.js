@@ -15,6 +15,20 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
+const chatbotAxiosClient = axios.create({
+  baseURL: 'http://localhost:5000', // Default Flask port
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+const mcpAxiosClient = axios.create({
+  baseURL: "/mcp/api/v1",
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 export const verifyJWT = async (token) => {
   await axiosClient.post("/auth/verifyJWT", {}, {
     headers: {
@@ -135,6 +149,14 @@ export const bulkDeleteTransactions = async (transactionIDs) => {
 
 export const editTransactions = async(transactionID, snapshot) => {
   return await axiosClient.put(`/tariffs/transactionHistory/${transactionID}/snapshot`, snapshot);
+};
+
+export const getForecast = async () => {
+  return await mcpAxiosClient.get(`/forecast`);
+};
+
+export const updateForecast = async () => {
+  return await mcpAxiosClient.post(`/forecast`);
 };
 
 export default axiosClient;

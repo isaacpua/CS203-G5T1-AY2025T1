@@ -29,6 +29,14 @@ import { useAuth } from "@/utils/AuthContext"
 import { cn } from "@/lib/utils"
 import AdminPanel from "@/components/AdminPanel"
 
+const navigationItems = [
+  { label: "Calculator", path: "/calculator" },
+  { label: "Dashboard", path: "/dashboard" },
+  { label: "Historical Explorer", path: "/historical" },
+  { label: "Forecasts", path: "/forecast" },
+  { label: "Calculation History", path: "/calc-history" }
+]
+
 export default function Header() {
   const { user, setUser, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -47,13 +55,6 @@ export default function Header() {
     navigate(path);
     setIsOpen(false);
   }
-
-  const navigationItems = [
-    { label: "Calculator", path: "/calculator" },
-    { label: "Dashboard", path: "/dashboard" },
-    { label: "Historical Explorer", path: "/historical" },
-    { label: "Calculation History", path: "/calc-history" }
-  ]
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

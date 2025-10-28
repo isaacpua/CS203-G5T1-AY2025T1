@@ -1,6 +1,3 @@
-.vscode
-.DS_STORE
-
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -14,5 +11,3 @@ wheels/
 
 # Environment Variable
 .env
-
-.python-version
