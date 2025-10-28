@@ -2,6 +2,7 @@ import requests
 import zipfile
 import tempfile
 import pandas as pd
+import numpy as np
 from pathlib import Path
 from sqlalchemy import create_engine, Column, Text, Float, Date, Integer
 from sqlalchemy.ext.declarative import declarative_base
@@ -362,6 +363,43 @@ def process_csv(df: pd.DataFrame, year: int) -> pd.DataFrame:
 
     print(
         f"Successfully processed the USITC csv. Expanded from {len(df)} to {len(result_df)} rows.")
+
+    # Transform category column based on advalorem and specificperunit values
+    def categorize_tariff(row):
+        adval = row['advalorem']
+        specific = row['specificperunit']
+
+        # Check if values are empty (null) or zero
+        adval_empty = pd.isna(adval) or adval == 0
+        specific_empty = pd.isna(specific) or specific == 0
+
+        if adval_empty and specific_empty:
+            return 'FREE'
+        elif not adval_empty and specific_empty:
+            return 'AD_VALOREM'
+        elif adval_empty and not specific_empty:
+            return 'SPECIFIC_PER_UNIT'
+        else:  # both present
+            return 'COMPOSITE'
+
+    result_df['category'] = result_df.apply(categorize_tariff, axis=1)
+
+    # Transform unitname column
+    def transform_unitname(unit):
+        if pd.isna(unit):
+            return unit
+        unit_str = str(unit).strip()
+        if unit_str == 'KG':
+            return 'Kilogram'
+        elif unit_str == 'L':
+            return 'Litre'
+        else:
+            return unit
+
+    result_df['unitname'] = result_df['unitname'].apply(transform_unitname)
+
+    print(
+        f"Successfully processed the USITC csv. Expanded from {len(df)} to {len(result_df)} rows.")
     # result_df.to_csv(f"output_{year}.csv")
     return result_df
 
@@ -390,7 +428,7 @@ def parse_rate(rate_str: str) -> tuple:
     # Extract percentage (ad valorem) rate
     pct_match = re.search(r'([\d.]+)\s*%', rate_str)
     if pct_match:
-        advalorem = float(pct_match.group(1))
+        advalorem = float(pct_match.group(1)) / 100
 
     # Extract specific rate (dollars or cents per unit)
 
@@ -404,7 +442,15 @@ def parse_rate(rate_str: str) -> tuple:
     if cents_match and not dollar_match:
         specificperunit = float(cents_match.group(1)) / 100
 
-    return (advalorem, specificperunit)
+    final_advalorem = advalorem
+    if (advalorem is not None):
+        final_advalorem = np.round(advalorem, 4)
+
+    final_specificperunit = specificperunit
+    if (specificperunit is not None):
+        final_specificperunit = np.round(specificperunit, 4)
+
+    return (final_advalorem, final_specificperunit)
 
 
 def load_into_db(input_df: pd.DataFrame, db_connection_string: str, year: int):
