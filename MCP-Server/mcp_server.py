@@ -17,6 +17,7 @@ mcp = FastMCP(
     instructions="""
         This server provides tools.
     """,
+    stateless_http=True
 )
 
 
@@ -59,18 +60,3 @@ async def scrape_single_article(url: str) -> dict:
         the scraped information
     """
     return await single_URL_scrape(url)
-
-
-@mcp.tool(name="forecast_tariffs")
-async def generate_tariff_forecasts() -> dict:
-    return await forecast_tariffs(DB_CONFIG)
-
-
-if __name__ == "__main__":
-    mcp.run(
-        transport="streamable-http",
-        host="127.0.0.1",
-        port=4200,
-        path="/mcp",
-        log_level="debug",
-    )

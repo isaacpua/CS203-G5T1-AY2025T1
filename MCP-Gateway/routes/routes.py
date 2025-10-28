@@ -1,13 +1,14 @@
 import os
 import json
 import logging
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastmcp import Client
 import pandas as pd
 from sqlalchemy import create_engine
 
 logging.basicConfig(level=logging.INFO)
-MCP_SERVER_URL = "http://127.0.0.1:8000/mcp/"
+BASE_URL = "http://127.0.0.1:8000"
+MCP_SERVER_URL = f"{BASE_URL}/mcp/"
 DB_CONFIG = {
     "DB_URL": os.getenv("DB_URL"),
     "DB_USERNAME": os.getenv("DB_USERNAME"),
@@ -28,14 +29,14 @@ async def greet(name: str):
 
             if response and hasattr(response, "content") and hasattr(response.content[0], "text"):
                 result = response.content[0].text
-                return response
+                return result
             else:
                 raise Exception(
-                    f"Tool executed, but returned an unexpected result: {result}")
+                    f"Tool executed, but returned an unexpected result: {response}")
 
     except Exception as e:
         logging.error(f"Error details: {e}")
-        return {"error": e}
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.get("/forecast")
@@ -50,7 +51,7 @@ async def get_forecast():
 
     except Exception as e:
         logging.error(f"Error details: {e}")
-        return {"error": e}
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/forecast")
@@ -64,14 +65,14 @@ async def forecast_tariffs():
 
             if response and hasattr(response, "content") and hasattr(response.content[0], "text"):
                 result = response.content[0].text
-                return response
+                return result
             else:
                 raise Exception(
-                    f"Tool executed, but returned an unexpected result: {result}")
+                    f"Tool executed, but returned an unexpected result: {response}")
 
     except Exception as e:
         logging.error(f"Error details: {e}")
-        return {"error": e}
+        raise HTTPException(status_code=404, detail=str(e))
     
 
 @router.get("/newsletter")
