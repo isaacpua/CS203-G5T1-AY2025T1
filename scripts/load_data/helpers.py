@@ -4,7 +4,7 @@ import tempfile
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from sqlalchemy import create_engine, Column, Text, Float, Date, Integer
+from sqlalchemy import create_engine, Column, Text, Float, Date, text
 from sqlalchemy.ext.declarative import declarative_base
 import re
 
@@ -15,8 +15,8 @@ class Tariff(Base):
     __tablename__ = 'tariff_htsYYYY'
     __table_args__ = {"extend_existing": True, "schema": "tariffs"}
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    tariffid = Column(Text, nullable=False)
+    # id = Column(Integer, autoincrement=True)
+    tariffid = Column(Text, primary_key=True, nullable=False)
     descriptionwcountry = Column(Text)
     unitname = Column(Text)
     category = Column(Text)
@@ -499,6 +499,11 @@ def load_into_db(input_df: pd.DataFrame, db_connection_string: str, year: int):
         method='multi',
         chunksize=1000
     )
+
+    with engine.connect() as conn:
+        query = f'ALTER TABLE {schema}.{table_name} ADD PRIMARY KEY (tariffid);'
+        conn.execute(text(query))
+        conn.commit()
 
     print(
         f"Successfully loaded {len(input_df)} rows into table '{schema}.{table_name}'.")
