@@ -26,7 +26,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -169,14 +168,4 @@ public class TariffBrowseController {
         }
         return ResponseEntity.noContent().build(); // 204
     }
-
-    @PutMapping("/transactionHistory/{transactionId}/snapshot")
-    public ResponseEntity<?> replaceSnapshot(@PathVariable Integer transactionId, @RequestBody Map<String,Object> snapshot, Authentication auth){
-        if (auth == null || auth.getName() == null) return ResponseEntity.status(401).build();
-
-        Map<String,Object> updated = calcHistService.editOwn(transactionId, snapshot, auth);
-
-        return ResponseEntity.ok(Map.of("transactionId", transactionId, "snapshot", updated));
-    }
-    
 }
