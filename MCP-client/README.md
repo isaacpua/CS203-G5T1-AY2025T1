@@ -38,10 +38,19 @@ Follow these steps to set up the project and install the necessary dependencies.
     ```bash
     pip install -r requirements.txt
     ```
-
+    
+```
+python run_client.py
+```
 ---
 
-## Running the Development Server
+
+
+
+
+
+
+## Running the Development Server (OLD)
 
 Once the setup is complete, you can start the development server.
 
