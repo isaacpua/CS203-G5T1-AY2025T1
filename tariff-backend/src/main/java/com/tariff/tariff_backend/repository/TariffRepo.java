@@ -37,33 +37,28 @@ public interface TariffRepo extends JpaRepository<Tariff, String>, JpaSpecificat
 
   // ---------- SEARCH ----------
   @Query(value = """
-        SELECT t.*
-        FROM tariffs.tariff_master t
-        WHERE
-          (:fromId IS NULL OR t.partnercountry = :fromId)
-          AND (:toId   IS NULL OR t.reportercountry = :toId)
-          AND (
-               COALESCE(:q, '') = ''  -- no text filter if q is null/blank
-            OR t.descriptionwcountry ILIKE CONCAT('%', :q, '%')
-            OR CAST(t.tariffid AS TEXT) ILIKE CONCAT('%', :q, '%')
-          )
-        ORDER BY t.tariffid
+      SELECT * FROM tariffs.tariff_master t
+      WHERE (:fromId IS NULL OR t.partnercountry = :fromId)
+        AND (:toId   IS NULL OR t.reportercountry = :toId)
+        AND (:q IS NULL OR LOWER(t.descriptionwcountry) LIKE LOWER(CONCAT('%', :q, '%'))
+                        OR t.tariffid LIKE CONCAT('%', :q, '%'))
+        AND (:yearFrom IS NULL OR t.year >= :yearFrom)
+        AND (:yearTo   IS NULL OR t.year <= :yearTo)
       """, countQuery = """
-        SELECT COUNT(1)
-        FROM tariffs.tariff_master t
-        WHERE
-          (:fromId IS NULL OR t.partnercountry = :fromId)
-          AND (:toId   IS NULL OR t.reportercountry = :toId)
-          AND (
-               COALESCE(:q, '') = ''
-            OR t.descriptionwcountry ILIKE CONCAT('%', :q, '%')
-            OR CAST(t.tariffid AS TEXT) ILIKE CONCAT('%', :q, '%')
-          )
+      SELECT COUNT(*) FROM tariffs.tariff_master t
+      WHERE (:fromId IS NULL OR t.partnercountry = :fromId)
+        AND (:toId   IS NULL OR t.reportercountry = :toId)
+        AND (:q IS NULL OR LOWER(t.descriptionwcountry) LIKE LOWER(CONCAT('%', :q, '%'))
+                        OR t.tariffid LIKE CONCAT('%', :q, '%'))
+        AND (:yearFrom IS NULL OR t.year >= :yearFrom)
+        AND (:yearTo   IS NULL OR t.year <= :yearTo)
       """, nativeQuery = true)
   Page<Tariff> searchNative(
       @Param("fromId") Integer fromId,
       @Param("toId") Integer toId,
       @Param("q") String q,
+      @Param("yearFrom") Integer yearFrom,
+      @Param("yearTo") Integer yearTo,
       Pageable pageable);
 
   // ---------- DROPDOWNS ----------

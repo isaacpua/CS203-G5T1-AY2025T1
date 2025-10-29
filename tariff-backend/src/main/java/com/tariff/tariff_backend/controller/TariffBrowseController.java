@@ -110,10 +110,12 @@ public class TariffBrowseController {
             @Parameter(description = "Page number (0-based)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "10")
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Integer yearFrom,
+            @RequestParam(required = false) Integer yearTo) {
 
         String query = (q == null || q.trim().isEmpty()) ? null : q.trim();
-        Page<Tariff> result = repo.searchNative(fromId, toId, query, PageRequest.of(page, size));
+        Page<Tariff> result = repo.searchNative(fromId, toId, query, yearFrom, yearTo, PageRequest.of(page, size));
 
         Map<String, Object> response = new HashMap<>();
         response.put("content", result.getContent());
