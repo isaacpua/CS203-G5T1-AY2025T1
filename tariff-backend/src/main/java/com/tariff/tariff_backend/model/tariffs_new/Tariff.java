@@ -57,11 +57,11 @@ public class Tariff {
     @Schema(description = "Product category", example = "Live Animals", required = true)
     private String category;
 
-    @Column (name = "advalorem")
+    @Column (name = "advalorem", precision = 38, scale = 6)
     @Schema(description = "Ad valorem tariff rate (percentage)", example = "12.5")
     private BigDecimal adValorem;
     
-    @Column (name = "specificperunit")
+    @Column (name = "specificperunit", precision = 38, scale = 6)
     @Schema(description = "Specific tariff rate per unit", example = "0.75")
     private BigDecimal specificPerUnit;
 
