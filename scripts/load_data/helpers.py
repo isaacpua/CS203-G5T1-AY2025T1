@@ -404,6 +404,102 @@ def process_csv(df: pd.DataFrame, year: int) -> pd.DataFrame:
     return result_df
 
 
+# ==== Master table helpers (single big table) ====
+from sqlalchemy import text as _sql_text
+from sqlalchemy import create_engine as _create_engine
+
+MASTER_SCHEMA = "tariffs"
+MASTER_TABLE  = "tariff_master"
+
+MASTER_DDL = f"""
+CREATE SCHEMA IF NOT EXISTS {MASTER_SCHEMA};
+
+CREATE TABLE IF NOT EXISTS {MASTER_SCHEMA}.{MASTER_TABLE} (
+    tariffid            TEXT PRIMARY KEY,
+    descriptionwcountry TEXT,
+    unitname            TEXT,
+    category            TEXT,
+    advalorem           DOUBLE PRECISION,
+    specificperunit     DOUBLE PRECISION,
+    effectivedate       DATE,
+    expirydate          DATE,
+    partnercountry      TEXT,
+    reportercountry     TEXT,
+    datasource          TEXT,
+    year                INTEGER
+);
+"""
+
+
+def ensure_master_table(engine):
+    """Create schema/table if not exists for the single master table."""
+    with engine.begin() as conn:
+        conn.execute(_sql_text(MASTER_DDL))
+
+
+def load_into_master(input_df, db_connection_string: str, year: int):
+    """
+    Append/UPSERT rows into one big master table tariffs.tariff_master.
+    - Adds a `year` column to the data
+    - Uses a staging table and INSERT ... ON CONFLICT (tariffid) DO UPDATE
+    """
+    engine = _create_engine(db_connection_string)
+    ensure_master_table(engine)
+
+    # Working copy + enforce year
+    df = input_df.copy()
+    df["year"] = int(year)
+
+    staging_table = f"_stg_tariff_{year}"
+
+    # Drop/create staging (LIKE master)
+    with engine.begin() as conn:
+        conn.execute(_sql_text(f"DROP TABLE IF EXISTS {MASTER_SCHEMA}.{staging_table};"))
+        conn.execute(_sql_text(f"CREATE TABLE {MASTER_SCHEMA}.{staging_table} (LIKE {MASTER_SCHEMA}.{MASTER_TABLE} INCLUDING ALL);"))
+
+    # Use pandas to push rows into staging
+    # Import here to avoid changing the file's import surface unexpectedly
+    import pandas as _pd
+    df.to_sql(
+        name=staging_table,
+        con=engine,
+        schema=MASTER_SCHEMA,
+        if_exists="append",
+        index=False,
+        method="multi",
+        chunksize=1000,
+    )
+
+    upsert_sql = f"""
+    INSERT INTO {MASTER_SCHEMA}.{MASTER_TABLE} (
+        tariffid, descriptionwcountry, unitname, category, advalorem, specificperunit,
+        effectivedate, expirydate, partnercountry, reportercountry, datasource, year
+    )
+    SELECT
+        tariffid, descriptionwcountry, unitname, category, advalorem, specificperunit,
+        effectivedate, expirydate, partnercountry, reportercountry, datasource, year
+    FROM {MASTER_SCHEMA}.{staging_table}
+    ON CONFLICT (tariffid) DO UPDATE SET
+        descriptionwcountry = EXCLUDED.descriptionwcountry,
+        unitname            = EXCLUDED.unitname,
+        category            = EXCLUDED.category,
+        advalorem           = EXCLUDED.advalorem,
+        specificperunit     = EXCLUDED.specificperunit,
+        effectivedate       = EXCLUDED.effectivedate,
+        expirydate          = EXCLUDED.expirydate,
+        partnercountry      = EXCLUDED.partnercountry,
+        reportercountry     = EXCLUDED.reportercountry,
+        datasource          = EXCLUDED.datasource,
+        year                = EXCLUDED.year;
+    """
+
+    with engine.begin() as conn:
+        conn.execute(_sql_text(upsert_sql))
+        conn.execute(_sql_text(f"DROP TABLE IF EXISTS {MASTER_SCHEMA}.{staging_table};"))
+
+    print(f"[helpers] Upserted {len(df)} rows into {MASTER_SCHEMA}.{MASTER_TABLE}.")
+# ==== End master table helpers ====
+
 def parse_rate(rate_str: str) -> tuple:
     """
     Parse a rate string to extract ad valorem and specific components.
