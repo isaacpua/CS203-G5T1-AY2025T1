@@ -303,16 +303,16 @@ function TariffGrid({ userRole, data, onEdit, onDelete, onView, isMobile, countr
 
 const columns = useMemo(
   () => [
-    { id: "tariffid", name: "Tariff ID", width: 120, resizable: true, cellRenderer: TariffIdCell, headerRenderer: StaticHeader },
-    { id: "category", name: "Category", width: 180, resizable: true, cellRenderer: CategoryCell, headerRenderer: StaticHeader },
-    { id: "descriptionwcountry", name: "Description", width: 400, resizable: true, cellRenderer: (props) => <DescriptionCell {...props} onView={onView} />, headerRenderer: StaticHeader }, // Reduced width slightly
+    { id: "tariffid", name: "Tariff ID", width: 140, resizable: true, cellRenderer: TariffIdCell, headerRenderer: StaticHeader },
+    { id: "category", name: "Category", width: 160, resizable: true, cellRenderer: CategoryCell, headerRenderer: StaticHeader },
+    { id: "descriptionwcountry", name: "Description", width: 380, resizable: true, cellRenderer: (props) => <DescriptionCell {...props} onView={onView} />, headerRenderer: StaticHeader }, // Reduced width slightly
     { id: "partnerCountry", name: "Partner", width: 150, resizable: true, cellRenderer: (props) => <CountryCell {...props} countryMap={countryMap} />, headerRenderer: StaticHeader }, // Shorter name
     { id: "reporterCountry", name: "Reporter", width: 150, resizable: true, cellRenderer: (props) => <CountryCell {...props} countryMap={countryMap} />, headerRenderer: StaticHeader }, // Shorter name
-    { id: "adValorem", name: "Ad Valorem", width: 100, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader }, // Reduced width
+    { id: "adValorem", name: "Ad Valorem", width: 110, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader }, // Reduced width
     { id: "specificPerUnit", name: "Specific/Unit", width: 110, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader }, // Reduced width
     { id: "effectivedate", name: "Effective Date", width: 110, resizable: true, cellRenderer: DateCell, headerRenderer: StaticHeader },
     { id: "expirydate", name: "Expiry Date", width: 110, resizable: true, cellRenderer: DateCell, headerRenderer: StaticHeader },
-    { id: "datasource", name: "Data Source", width: 150, resizable: true, cellRenderer: TextCell, headerRenderer: StaticHeader },
+    { id: "datasource", name: "Data Source", width: 120, resizable: true, cellRenderer: TextCell, headerRenderer: StaticHeader },
     { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} userRole={userRole} onEdit={onEdit} onDelete={onDelete} onView={onView} />, headerRenderer: StaticHeader },
   ],
   [onEdit, onDelete, onView, userRole, countryMap] // Add countryMap dependency
