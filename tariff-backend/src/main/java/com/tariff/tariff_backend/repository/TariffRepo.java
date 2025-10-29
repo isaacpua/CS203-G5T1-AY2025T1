@@ -14,9 +14,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecificationExecutor<Tariff> {
+public interface TariffRepo extends JpaRepository<Tariff, String>, JpaSpecificationExecutor<Tariff> {
 
-  Optional<Tariff> findByTariffId(Integer tariffId);
+  Optional<Tariff> findByTariffId(String tariffId);
 
   List<Tariff> findByDescriptionwcountry(String descriptionwcountry);
 
@@ -38,7 +38,7 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecifica
   // ---------- SEARCH ----------
   @Query(value = """
         SELECT t.*
-        FROM tariffs.tariff_new t
+        FROM tariffs.tariff_master t
         WHERE
           (:fromId IS NULL OR t.partnercountry = :fromId)
           AND (:toId   IS NULL OR t.reportercountry = :toId)
@@ -50,7 +50,7 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecifica
         ORDER BY t.tariffid
       """, countQuery = """
         SELECT COUNT(1)
-        FROM tariffs.tariff_new t
+        FROM tariffs.tariff_master t
         WHERE
           (:fromId IS NULL OR t.partnercountry = :fromId)
           AND (:toId   IS NULL OR t.reportercountry = :toId)
@@ -71,7 +71,7 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecifica
   // FROM countries = distinct partnercountry present in tariffs
   @Query(value = """
       select distinct c.countryid as id, c.iso2, c.name
-      from tariffs.tariff_new t
+      from tariffs.tariff_master t
       join tariffs.country c on c.countryid = t.partnercountry
       order by c.name
       """, nativeQuery = true)
@@ -80,7 +80,7 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecifica
   // TO countries = distinct reportercountry, optionally filtered by chosen FROM
   @Query(value = """
       select distinct c.countryid as id, c.iso2, c.name
-      from tariffs.tariff_new t
+      from tariffs.tariff_master t
       join tariffs.country c on c.countryid = t.reportercountry
       where (:fromId is null or t.partnercountry = :fromId)
       order by c.name
@@ -90,14 +90,14 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecifica
   // NEW: FROM countries filtered by chosen TO
   @Query(value = """
       select distinct c.countryid as id, c.iso2, c.name
-      from tariffs.tariff_new t
+      from tariffs.tariff_master t
       join tariffs.country c on c.countryid = t.partnercountry
       where (:toId is null or t.reportercountry = :toId)
       order by c.name
       """, nativeQuery = true)
   List<Object[]> availableFromRawByTo(@Param("toId") Integer toId);
 
-  Page<Tariff> findByTariffId(Integer tariffid, Pageable pageable);
+  Page<Tariff> findByTariffId(String tariffid, Pageable pageable);
 
   Page<Tariff> findByDescriptionwcountryContainingIgnoreCase(String q, Pageable pageable);
   // ---------- Convenience DTO mappers ----------

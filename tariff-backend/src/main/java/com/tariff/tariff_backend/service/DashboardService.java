@@ -9,9 +9,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import com.tariff.tariff_backend.dto.TariffPatchDTO;
 import com.tariff.tariff_backend.model.dashboard.DashboardMetrics;
 import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
-import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
 import com.tariff.tariff_backend.model.tariffs_new.Country;
 import com.tariff.tariff_backend.model.tariffs_new.Tariff;
 import com.tariff.tariff_backend.repository.CountryRepo;
@@ -55,7 +55,7 @@ public class DashboardService {
                     .build();
 
             Tariff savedTariff = tariffRepo.save(newTariff);
-            Integer tariffId = savedTariff.getTariffId();
+            String tariffId = savedTariff.getTariffId();
 
             if (savedTariff == null || !tariffRepo.existsById(tariffId)) {
                 throw new Exception("Unable to create the new tariff.");
@@ -67,7 +67,7 @@ public class DashboardService {
         return response;
     }
 
-    public DashboardResponse updateTariff(Integer tariffId, TariffPatchDTO patchDTO) {
+    public DashboardResponse updateTariff(String tariffId, TariffPatchDTO patchDTO) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully updated the tariff.");
         try {
             Optional<Tariff> optionalTariff = tariffRepo.findById(tariffId);
@@ -122,7 +122,7 @@ public class DashboardService {
         return response;
     }
 
-    public DashboardResponse deleteTariff(Integer tariffId) {
+    public DashboardResponse deleteTariff(String tariffId) {
         DashboardResponse response = new DashboardResponse(true, "Sucessfully deleted the tariff.");
         try {
             if (!tariffRepo.existsById(tariffId)) {
@@ -141,7 +141,7 @@ public class DashboardService {
         return response;
     }
 
-    public DashboardMetrics getTariffs(Integer tariffId, String descriptionQuery, Pageable pageable) {
+    public DashboardMetrics getTariffs(String tariffId, String descriptionQuery, Pageable pageable) {
         Page<Tariff> pageResult;
 
         if (tariffId != null) {
@@ -164,7 +164,8 @@ public class DashboardService {
                         tariff.getSpecificPerUnit(),
                         tariff.getEffectivedate(),
                         tariff.getExpirydate(),
-                        tariff.getDatasource()))
+                        tariff.getDatasource(),
+                        tariff.getYear()))
                 .toList();
 
         return new DashboardMetrics(
@@ -188,7 +189,8 @@ public class DashboardService {
                         tariff.getSpecificPerUnit(),
                         tariff.getEffectivedate(),
                         tariff.getExpirydate(),
-                        tariff.getDatasource()))
+                        tariff.getDatasource(),
+                        tariff.getYear()))
                 .toList();
     }
 }

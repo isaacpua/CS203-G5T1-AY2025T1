@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "tariff_new", schema = "tariffs")
+@Table(name = "tariff_master", schema = "tariffs")
 @Schema(description = "Tariff entity representing trade tariff information")
 public class Tariff {
 
@@ -31,7 +31,7 @@ public class Tariff {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "tariffid")
     @Schema(description = "Unique tariff identifier", example = "12345")
-    private Integer tariffId;
+    private String tariffId;
 
     @Column (name = "descriptionwcountry", nullable = false)
     @Schema(description = "Product description with country context", example = "Live horses - from Canada", required = true)
@@ -76,4 +76,8 @@ public class Tariff {
     @Column(name = "datasource")
     @Schema(description = "Source of the tariff data", example = "Government Gazette")
     private String datasource;
+
+    @Column(name = "year")
+    @Schema(description = "year sourced for the tariff data", example = "2002")
+    private Integer year;
 }
