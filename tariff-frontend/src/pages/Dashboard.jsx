@@ -849,9 +849,28 @@ export default function Dashboard() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [countries, setCountries] = useState([]);
   const [loadingCountries, setLoadingCountries] = useState(true);
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const [fromYear, setFromYear] = useState(2002);
+  const [toYear, setToYear] = useState(2025);
+
+  // Build a year list (2002..current year). Change start if you need.
+  const yearOptions = useMemo(() => {
+    const start = 2002;
+    const end = new Date().getFullYear();
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, []);
+
+  // Keep "to" always >= "from"
+  useEffect(() => {
+    if (toYear < fromYear) setToYear(fromYear);
+  }, [fromYear, toYear]);
 
   const debouncedQuery = useDebounce(query);
+  // Optional: when filters change, go back to page 1
+  useEffect(() => {
+    setPage(0);
+  }, [mode, debouncedQuery, fromYear, toYear]);
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
 
   // Create a lookup map for country names to iso2 codes
   const countryMap = useMemo(() => {
@@ -909,6 +928,8 @@ export default function Dashboard() {
         if (mode === "id") params.set("tariffid", dQ);
         if (mode === "desc") params.set("q", dQ);
       }
+      params.set("fromYear", String(fromYear));
+      params.set("toYear", String(toYear));
       const { data } = await getDashboardData(params);
 
       // Normalize fields so they always match our column IDs
@@ -961,7 +982,7 @@ export default function Dashboard() {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [page, pageSize, debouncedQuery, mode]);
+  }, [page, pageSize, debouncedQuery, mode, fromYear, toYear]);
 
   useEffect(() => { fetchTariffs(); }, [fetchTariffs]);
 
@@ -1202,6 +1223,53 @@ export default function Dashboard() {
               <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-2">
                 <Badge variant="secondary" className="text-xs">{results ? `${results.totalElements ?? results.content.length} results` : "Loading..."}</Badge>
                 {debouncedQuery && <Badge variant="outline" className="text-xs">Filtered</Badge>}
+              </div>
+              {/* From Year */}
+              <div className="w-full md:w-40">
+                <Label className="text-sm font-medium text-foreground">From Year</Label>
+                <Select
+                  value={String(fromYear)}
+                  onValueChange={(v) => {
+                    const y = Number(v);
+                    setFromYear(y);
+                    if (toYear < y) setToYear(y); // enforce To >= From immediately
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* To Year */}
+              <div className="w-full md:w-40">
+                <Label className="text-sm font-medium text-foreground">To Year</Label>
+                <Select
+                  value={String(toYear)}
+                  onValueChange={(v) => setToYear(Math.max(Number(v), fromYear))}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((y) => (
+                      <SelectItem
+                        key={y}
+                        value={String(y)}
+                        disabled={y < fromYear} // prevent picking < fromYear
+                      >
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

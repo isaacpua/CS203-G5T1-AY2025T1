@@ -141,16 +141,32 @@ public class DashboardService {
         return response;
     }
 
-    public DashboardMetrics getTariffs(String tariffId, String descriptionQuery, Pageable pageable) {
+    public DashboardMetrics getTariffs(String tariffId, String descriptionQuery, Pageable pageable, Integer fromYear, Integer toYear) {
         Page<Tariff> pageResult;
-
-        if (tariffId != null) {
-            pageResult = tariffRepo.findByTariffId(tariffId, pageable);
-        } else if (descriptionQuery != null && !descriptionQuery.isBlank()) {
-            pageResult = tariffRepo.findByDescriptionwcountryContainingIgnoreCase(descriptionQuery, pageable);
+        String query;
+        if (descriptionQuery != null) { 
+            query = descriptionQuery.trim();
         } else {
-            pageResult = tariffRepo.findAll(pageable);
+            query = descriptionQuery;
         }
+
+        if (fromYear == null || toYear == null) {
+                if (tariffId != null && !tariffId.isBlank()) {
+                    pageResult = tariffRepo.findByTariffId(tariffId, pageable);
+                } else if (query != null && !query.isBlank()) {
+                    pageResult = tariffRepo.findByDescriptionwcountryContainingIgnoreCase(query, pageable);
+                } else {
+                    pageResult = tariffRepo.findAll(pageable);
+                }
+            } else {
+                if (tariffId != null && !tariffId.isBlank()) {
+                    pageResult = tariffRepo.findByYearBetweenAndTariffId(fromYear, toYear, tariffId, pageable);
+                } else if (query != null && !query.isBlank()) {
+                    pageResult = tariffRepo.findByYearBetweenAndDescriptionwcountryContainingIgnoreCase(fromYear, toYear, query, pageable);
+                } else {
+                    pageResult = tariffRepo.findByYearBetween(fromYear, toYear, pageable);
+                }
+            }
 
         List<TariffPatchDTO> tariffDtoList = pageResult.getContent().stream()
                 .map(tariff -> new TariffPatchDTO(
