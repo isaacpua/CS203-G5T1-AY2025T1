@@ -299,24 +299,24 @@ const StaticHeader = ({ column }) => (
 // Change StaticHeader to SortableHeader to enable sorting
 //
 function TariffGrid({ userRole, data, onEdit, onDelete, onView, isMobile, countryMap }) {
-// Inside the TariffGrid component in Dashboard.jsx
+  // Inside the TariffGrid component in Dashboard.jsx
 
-const columns = useMemo(
-  () => [
-    { id: "tariffid", name: "Tariff ID", width: 140, resizable: true, cellRenderer: TariffIdCell, headerRenderer: StaticHeader },
-    { id: "category", name: "Category", width: 160, resizable: true, cellRenderer: CategoryCell, headerRenderer: StaticHeader },
-    { id: "descriptionwcountry", name: "Description", width: 380, resizable: true, cellRenderer: (props) => <DescriptionCell {...props} onView={onView} />, headerRenderer: StaticHeader }, // Reduced width slightly
-    { id: "partnerCountry", name: "Partner", width: 150, resizable: true, cellRenderer: (props) => <CountryCell {...props} countryMap={countryMap} />, headerRenderer: StaticHeader }, // Shorter name
-    { id: "reporterCountry", name: "Reporter", width: 150, resizable: true, cellRenderer: (props) => <CountryCell {...props} countryMap={countryMap} />, headerRenderer: StaticHeader }, // Shorter name
-    { id: "adValorem", name: "Ad Valorem", width: 110, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader }, // Reduced width
-    { id: "specificPerUnit", name: "Specific/Unit", width: 110, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader }, // Reduced width
-    { id: "effectivedate", name: "Effective Date", width: 110, resizable: true, cellRenderer: DateCell, headerRenderer: StaticHeader },
-    { id: "expirydate", name: "Expiry Date", width: 110, resizable: true, cellRenderer: DateCell, headerRenderer: StaticHeader },
-    { id: "datasource", name: "Data Source", width: 120, resizable: true, cellRenderer: TextCell, headerRenderer: StaticHeader },
-    { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} userRole={userRole} onEdit={onEdit} onDelete={onDelete} onView={onView} />, headerRenderer: StaticHeader },
-  ],
-  [onEdit, onDelete, onView, userRole, countryMap] // Add countryMap dependency
-);
+  const columns = useMemo(
+    () => [
+      { id: "tariffid", name: "Tariff ID", width: 140, resizable: true, cellRenderer: TariffIdCell, headerRenderer: StaticHeader },
+      { id: "category", name: "Category", width: 160, resizable: true, cellRenderer: CategoryCell, headerRenderer: StaticHeader },
+      { id: "descriptionwcountry", name: "Description", width: 380, resizable: true, cellRenderer: (props) => <DescriptionCell {...props} onView={onView} />, headerRenderer: StaticHeader }, // Reduced width slightly
+      { id: "partnerCountry", name: "Partner", width: 150, resizable: true, cellRenderer: (props) => <CountryCell {...props} countryMap={countryMap} />, headerRenderer: StaticHeader }, // Shorter name
+      { id: "reporterCountry", name: "Reporter", width: 150, resizable: true, cellRenderer: (props) => <CountryCell {...props} countryMap={countryMap} />, headerRenderer: StaticHeader }, // Shorter name
+      { id: "adValorem", name: "Ad Valorem", width: 110, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader }, // Reduced width
+      { id: "specificPerUnit", name: "Specific/Unit", width: 110, resizable: true, cellRenderer: MoneyCell, headerRenderer: StaticHeader }, // Reduced width
+      { id: "effectivedate", name: "Effective Date", width: 110, resizable: true, cellRenderer: DateCell, headerRenderer: StaticHeader },
+      { id: "expirydate", name: "Expiry Date", width: 110, resizable: true, cellRenderer: DateCell, headerRenderer: StaticHeader },
+      { id: "datasource", name: "Data Source", width: 120, resizable: true, cellRenderer: TextCell, headerRenderer: StaticHeader },
+      { id: "actions", name: "Actions", width: 80, resizable: false, cellRenderer: (p) => <ActionCell {...p} userRole={userRole} onEdit={onEdit} onDelete={onDelete} onView={onView} />, headerRenderer: StaticHeader },
+    ],
+    [onEdit, onDelete, onView, userRole, countryMap] // Add countryMap dependency
+  );
 
   // hook required by the grid library (mounted only when we have data)
   const ds = useClientRowDataSource({ data });
@@ -403,8 +403,8 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
       setLoadingCountries(true);
       fetch('/countries.csv')
         .then(response => {
-           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-           return response.text();
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          return response.text();
         })
         .then(csvText => {
           Papa.parse(csvText, {
@@ -428,10 +428,10 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
           });
         })
         .catch(error => {
-           if (!isMounted) return;
-           console.error("Error fetching countries.csv:", error);
-           setCountries([]);
-           setLoadingCountries(false);
+          if (!isMounted) return;
+          console.error("Error fetching countries.csv:", error);
+          setCountries([]);
+          setLoadingCountries(false);
         });
     }
     // Cleanup function to set the flag when the component unmounts or isOpen changes
@@ -481,12 +481,12 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
     // Number validations
     const adValoremNum = parseFloat(formData.adValorem);
     if (formData.adValorem && (isNaN(adValoremNum) || adValoremNum < 0)) {
-       errors.adValorem = "Ad Valorem must be a valid non-negative number";
+      errors.adValorem = "Ad Valorem must be a valid non-negative number";
     }
     const specificPerUnitNum = parseFloat(formData.specificPerUnit);
-     if (formData.specificPerUnit && (isNaN(specificPerUnitNum) || specificPerUnitNum < 0)) {
-        errors.specificPerUnit = "Specific per unit must be a valid non-negative number";
-     }
+    if (formData.specificPerUnit && (isNaN(specificPerUnitNum) || specificPerUnitNum < 0)) {
+      errors.specificPerUnit = "Specific per unit must be a valid non-negative number";
+    }
 
 
     // Optional: Date validation (expiry date must be after effective date if both are set)
@@ -507,12 +507,12 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
 
     // Prepare data for submission: Convert empty dates back to null, numbers to numbers
     const dataToSubmit = {
-        ...form,
-        adValorem: form.adValorem === "" ? null : parseFloat(form.adValorem),
-        specificPerUnit: form.specificPerUnit === "" ? null : parseFloat(form.specificPerUnit),
-        effectivedate: form.effectivedate === "" ? null : form.effectivedate,
-        expirydate: form.expirydate === "" ? null : form.expirydate,
-        // datasource can remain as is (empty string or value)
+      ...form,
+      adValorem: form.adValorem === "" ? null : parseFloat(form.adValorem),
+      specificPerUnit: form.specificPerUnit === "" ? null : parseFloat(form.specificPerUnit),
+      effectivedate: form.effectivedate === "" ? null : form.effectivedate,
+      expirydate: form.expirydate === "" ? null : form.expirydate,
+      // datasource can remain as is (empty string or value)
     };
 
     onSubmit(dataToSubmit);
@@ -520,25 +520,25 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
 
   // Check if form has changes compared to initial data (for disabling update button)
   const hasChanges = useMemo(() => {
-      if (!isEditing || !initialData) return true; // Always enable for create mode
+    if (!isEditing || !initialData) return true; // Always enable for create mode
 
-       // Format initial dates for comparison
-       const initialFormatted = {
-           ...initialData,
-           effectivedate: initialData.effectivedate ? String(initialData.effectivedate).split('T')[0] : "",
-           expirydate: initialData.expirydate ? String(initialData.expirydate).split('T')[0] : "",
-           adValorem: initialData.adValorem != null ? String(initialData.adValorem) : "",
-           specificPerUnit: initialData.specificPerUnit != null ? String(initialData.specificPerUnit) : "",
-       };
+    // Format initial dates for comparison
+    const initialFormatted = {
+      ...initialData,
+      effectivedate: initialData.effectivedate ? String(initialData.effectivedate).split('T')[0] : "",
+      expirydate: initialData.expirydate ? String(initialData.expirydate).split('T')[0] : "",
+      adValorem: initialData.adValorem != null ? String(initialData.adValorem) : "",
+      specificPerUnit: initialData.specificPerUnit != null ? String(initialData.specificPerUnit) : "",
+    };
 
-      // Compare relevant fields, ensure types match (mostly strings due to form state)
-      for (const key in initialFormState) {
-          if (String(form[key] ?? "") !== String(initialFormatted[key] ?? "")) {
-               // console.log(`Difference found in key: ${key}, Form: "${form[key]}", Initial: "${initialFormatted[key]}"`);
-              return true;
-          }
+    // Compare relevant fields, ensure types match (mostly strings due to form state)
+    for (const key in initialFormState) {
+      if (String(form[key] ?? "") !== String(initialFormatted[key] ?? "")) {
+        // console.log(`Difference found in key: ${key}, Form: "${form[key]}", Initial: "${initialFormatted[key]}"`);
+        return true;
       }
-      return false; // No changes detected
+    }
+    return false; // No changes detected
   }, [form, initialData, isEditing, initialFormState]);
 
 
@@ -568,7 +568,7 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
           <div className="space-y-2">
             <Label htmlFor="unitname">Unit Name</Label>
             <Input id="unitname" value={form.unitname || ""} onChange={(e) => setForm((f) => ({ ...f, unitname: e.target.value }))} placeholder="e.g., kg, liter, piece" />
-             {/* No error display needed unless you add validation */}
+            {/* No error display needed unless you add validation */}
           </div>
 
 
@@ -607,42 +607,42 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
 
           {/* Ad Valorem Rate */}
           <div className="space-y-2">
-             <Label htmlFor="adValorem">Ad Valorem Rate (Decimal)</Label>
-             <Input id="adValorem" type="number" step="0.0001" min="0" value={form.adValorem || ""} onChange={(e) => setForm((f) => ({ ...f, adValorem: e.target.value }))} className={cn(errors.adValorem ? "border-red-500" : "")} placeholder="e.g., 0.055 for 5.5%" />
-             {errors.adValorem && <p className="text-sm text-red-500">{errors.adValorem}</p>}
-           </div>
+            <Label htmlFor="adValorem">Ad Valorem Rate (Decimal)</Label>
+            <Input id="adValorem" type="number" step="0.0001" min="0" value={form.adValorem || ""} onChange={(e) => setForm((f) => ({ ...f, adValorem: e.target.value }))} className={cn(errors.adValorem ? "border-red-500" : "")} placeholder="e.g., 0.055 for 5.5%" />
+            {errors.adValorem && <p className="text-sm text-red-500">{errors.adValorem}</p>}
+          </div>
 
 
-           {/* Specific per Unit */}
-           <div className="space-y-2">
-             <Label htmlFor="specificPerUnit">Specific per Unit ($)</Label>
-             <Input id="specificPerUnit" type="number" step="0.01" min="0" value={form.specificPerUnit || ""} onChange={(e) => setForm((f) => ({ ...f, specificPerUnit: e.target.value }))} className={cn(errors.specificPerUnit ? "border-red-500" : "")} placeholder="e.g., 12.50" />
-             {errors.specificPerUnit && <p className="text-sm text-red-500">{errors.specificPerUnit}</p>}
-           </div>
+          {/* Specific per Unit */}
+          <div className="space-y-2">
+            <Label htmlFor="specificPerUnit">Specific per Unit ($)</Label>
+            <Input id="specificPerUnit" type="number" step="0.01" min="0" value={form.specificPerUnit || ""} onChange={(e) => setForm((f) => ({ ...f, specificPerUnit: e.target.value }))} className={cn(errors.specificPerUnit ? "border-red-500" : "")} placeholder="e.g., 12.50" />
+            {errors.specificPerUnit && <p className="text-sm text-red-500">{errors.specificPerUnit}</p>}
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="effectivedate">Effective Date</Label>
-            <Input id="effectivedate" type="date" value={form.effectivedate || ""} onChange={(e) => setForm((f) => ({ ...f, effectivedate: e.target.value }))} className={cn(errors.effectivedate ? "border-red-500" : "")}/>
+            <Input id="effectivedate" type="date" value={form.effectivedate || ""} onChange={(e) => setForm((f) => ({ ...f, effectivedate: e.target.value }))} className={cn(errors.effectivedate ? "border-red-500" : "")} />
             {errors.effectivedate && <p className="text-sm text-red-500">{errors.effectivedate}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="expirydate">Expiry Date</Label>
-            <Input id="expirydate" type="date" value={form.expirydate || ""} onChange={(e) => setForm((f) => ({ ...f, expirydate: e.target.value }))} className={cn(errors.expirydate ? "border-red-500" : "")}/>
+            <Input id="expirydate" type="date" value={form.expirydate || ""} onChange={(e) => setForm((f) => ({ ...f, expirydate: e.target.value }))} className={cn(errors.expirydate ? "border-red-500" : "")} />
             {errors.expirydate && <p className="text-sm text-red-500">{errors.expirydate}</p>}
           </div>
 
           <div className="md:col-span-2 space-y-2"> {/* Span across both columns */}
             <Label htmlFor="datasource">Data Source</Label>
             <Input id="datasource" value={form.datasource || ""} onChange={(e) => setForm((f) => ({ ...f, datasource: e.target.value }))} placeholder="e.g., Government Gazette, WTO Schedule" />
-             {/* No error display needed unless you add validation */}
+            {/* No error display needed unless you add validation */}
           </div>
 
           {/* Mandatory Fields Note */}
           <div className="md:col-span-2 text-sm text-muted-foreground mt-2">
             <span className="text-red-500 mr-1">*</span>
             <span>Starred fields are mandatory</span>
-         </div>
+          </div>
         </div>
 
         {error && <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md mb-4"><p className="text-sm text-red-600 dark:text-red-400">{error}</p></div>}
@@ -670,7 +670,7 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
       const date = new Date(dateString + 'T00:00:00');
       // Check if the date is valid after parsing
       if (isNaN(date.getTime())) {
-          return dateString; // Return original string if invalid
+        return dateString; // Return original string if invalid
       }
       return date.toLocaleDateString(undefined, {
         year: 'numeric', month: 'short', day: 'numeric'
@@ -696,17 +696,17 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
     if (!tariffId) return;
     // Use state for prefill instead of query params if possible, depends on Calculator logic
     // For simplicity, sticking to query param as in original code
-     navigate(`/calculator`, { state: { prefill: { tariffId: String(tariffId) } } });
-     onClose(); // Close modal after navigating
+    navigate(`/calculator`, { state: { prefill: { tariffId: String(tariffId) } } });
+    onClose(); // Close modal after navigating
   };
 
   const viewInHistorical = () => {
     if (!data) return;
     // Prefer the display ID for consistency if available
     const tariffId = data.tariffIdDisplay ?? data.tariffid;
-     if (!tariffId) return; // Don't navigate if no ID
+    if (!tariffId) return; // Don't navigate if no ID
     navigate(`/historical?tariffId=${encodeURIComponent(tariffId)}`);
-     onClose(); // Close modal after navigating
+    onClose(); // Close modal after navigating
   };
 
   if (!data) return null; // Render nothing if no data
@@ -718,19 +718,19 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
   })();
 
   // Format AdValorem as percentage
-   const formatAdValorem = (value) => {
-       const num = parseFloat(value);
-       if (isNaN(num)) return "—";
-       // Assuming backend sends 0.05 for 5%
-       return `${(num * 100).toFixed(2).replace(/\.00$/, '')}%`;
-   };
+  const formatAdValorem = (value) => {
+    const num = parseFloat(value);
+    if (isNaN(num)) return "—";
+    // Assuming backend sends 0.05 for 5%
+    return `${(num * 100).toFixed(2).replace(/\.00$/, '')}%`;
+  };
 
-   // Format SpecificPerUnit as currency
-   const formatSpecific = (value) => {
-       const num = parseFloat(value);
-       if (isNaN(num)) return "—";
-       return `$${num.toFixed(2)}`;
-   };
+  // Format SpecificPerUnit as currency
+  const formatSpecific = (value) => {
+    const num = parseFloat(value);
+    if (isNaN(num)) return "—";
+    return `$${num.toFixed(2)}`;
+  };
 
 
   return (
@@ -782,7 +782,7 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Reporter Country</Label>
               <div className="mt-1 flex items-center space-x-2">
-                 <div className="w-4 h-3 bg-muted rounded-sm" />
+                <div className="w-4 h-3 bg-muted rounded-sm" />
                 <span className="text-sm">{data.reporterCountry || "—"}</span>
               </div>
             </div>
@@ -791,30 +791,30 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
           {/* Rates */}
           <div className="grid grid-cols-2 gap-6">
             <div>
-               <Label className="text-sm font-medium text-muted-foreground">Ad Valorem Rate</Label>
-               <p className="mt-1 text-lg font-mono text-foreground">{formatAdValorem(data.adValorem)}</p>
-             </div>
-             <div>
-               <Label className="text-sm font-medium text-muted-foreground">Specific per Unit</Label>
-               <p className="mt-1 text-lg font-mono text-foreground">{formatSpecific(data.specificPerUnit)}</p>
-             </div>
+              <Label className="text-sm font-medium text-muted-foreground">Ad Valorem Rate</Label>
+              <p className="mt-1 text-lg font-mono text-foreground">{formatAdValorem(data.adValorem)}</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">Specific per Unit</Label>
+              <p className="mt-1 text-lg font-mono text-foreground">{formatSpecific(data.specificPerUnit)}</p>
+            </div>
           </div>
 
-           {/* --- NEW DETAILS SECTIONS --- */}
-            <div className="grid grid-cols-2 gap-6 border-t pt-4">
-               <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Effective Date</Label>
-                  <p className="mt-1 text-sm">{formatDateForView(data.effectivedate)}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Expiry Date</Label>
-                  <p className="mt-1 text-sm">{formatDateForView(data.expirydate)}</p>
-                </div>
+          {/* --- NEW DETAILS SECTIONS --- */}
+          <div className="grid grid-cols-2 gap-6 border-t pt-4">
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">Effective Date</Label>
+              <p className="mt-1 text-sm">{formatDateForView(data.effectivedate)}</p>
             </div>
-            <div className="border-t pt-4">
-               <Label className="text-sm font-medium text-muted-foreground">Data Source</Label>
-               <p className="mt-1 text-sm">{data.datasource || "—"}</p>
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">Expiry Date</Label>
+              <p className="mt-1 text-sm">{formatDateForView(data.expirydate)}</p>
             </div>
+          </div>
+          <div className="border-t pt-4">
+            <Label className="text-sm font-medium text-muted-foreground">Data Source</Label>
+            <p className="mt-1 text-sm">{data.datasource || "—"}</p>
+          </div>
 
         </div> {/* End scroll container */}
 
@@ -849,10 +849,9 @@ export default function Dashboard() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [countries, setCountries] = useState([]);
   const [loadingCountries, setLoadingCountries] = useState(true);
-
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-const debouncedQuery = useDebounce(query);
+  const debouncedQuery = useDebounce(query);
 
   // Create a lookup map for country names to iso2 codes
   const countryMap = useMemo(() => {
@@ -868,8 +867,8 @@ const debouncedQuery = useDebounce(query);
     setLoadingCountries(true);
     fetch('/countries.csv')
       .then(response => {
-         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-         return response.text();
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.text();
       })
       .then(csvText => {
         Papa.parse(csvText, {
@@ -893,9 +892,9 @@ const debouncedQuery = useDebounce(query);
         });
       })
       .catch(error => {
-         console.error("Error fetching countries.csv:", error);
-         setCountries([]);
-         setLoadingCountries(false);
+        console.error("Error fetching countries.csv:", error);
+        setCountries([]);
+        setLoadingCountries(false);
       });
   }, []); // Runs once on mount
 
@@ -972,117 +971,117 @@ const debouncedQuery = useDebounce(query);
   const handleCreate = () => { setSelectedRow(null); setShowCreate(true); };
   const handleRefresh = () => { fetchTariffs(true); };
   const handleDownload = async () => {
-      // Helper to format date strings (YYYY-MM-DD) for CSV
-      const formatDateForCSV = (dateString) => {
-        if (!dateString) return ""; // Return empty string for null/undefined dates
-        try {
-          // Add time part to prevent timezone issues during parsing
-          const date = new Date(dateString + 'T00:00:00');
-          // Check if the date is valid
-          if (isNaN(date.getTime())) {
-              return dateString; // Return original string if invalid
-          }
-          // Format as locale date string (e.g., MM/DD/YYYY or DD/MM/YYYY based on locale)
-          return date.toLocaleDateString();
-        } catch (e) {
-          console.error("Error formatting date for CSV:", dateString, e);
-          return dateString; // Fallback to raw value on error
-        }
-      };
-
+    // Helper to format date strings (YYYY-MM-DD) for CSV
+    const formatDateForCSV = (dateString) => {
+      if (!dateString) return ""; // Return empty string for null/undefined dates
       try {
-        setIsDownloading(true); // Assuming you have this state setter
-        // --- Fetch ALL tariff data ONCE ---
-        // Backend should return { tariffs: [...] } when size=-1
-        const { data } = await getDashboardData(new URLSearchParams("size=-1"));
-
-        // --- Use the data from the single API call ---
-        const allTariffsData = Array.isArray(data?.tariffs) ? data.tariffs : [];
-
-        if (allTariffsData.length === 0) {
-          toast.info("No tariff data available to export.");
-          setIsDownloading(false); // Reset loading state
-          return; // Exit if no data
+        // Add time part to prevent timezone issues during parsing
+        const date = new Date(dateString + 'T00:00:00');
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+          return dateString; // Return original string if invalid
         }
-
-        // Define the fields you want to export and their CSV header labels
-        const fields = [
-          // --- Use 'tariffId' as the key from TariffPatchDTO ---
-          { key: 'tariffId', label: 'Tariff ID' },
-          { key: 'descriptionwcountry', label: 'Description' },
-          { key: 'partnerCountry', label: 'Partner Country' },
-          { key: 'reporterCountry', label: 'Reporter Country' },
-          { key: 'unitname', label: 'Unit Name' },
-          { key: 'category', label: 'Category' },
-          { key: 'adValorem', label: 'Ad Valorem Rate' }, // Changed label slightly
-          { key: 'specificPerUnit', label: 'Specific Per Unit Rate' }, // Changed label slightly
-          { key: 'effectivedate', label: 'Effective Date' },
-          { key: 'expirydate', label: 'Expiry Date' },
-          { key: 'datasource', label: 'Data Source' }
-        ];
-
-        // Transform data for CSV, applying formatting
-        const transformedData = allTariffsData.map(item => {
-          const transformed = {};
-          fields.forEach(field => {
-            let value = item[field.key]; // Directly use the key defined in fields
-
-            // Format dates
-            if ((field.key === 'effectivedate' || field.key === 'expirydate') && value) {
-              transformed[field.label] = formatDateForCSV(value);
-            }
-            // Format Ad Valorem as percentage string if it exists
-            else if (field.key === 'adValorem' && value != null) {
-                const num = parseFloat(value);
-                // Display as percentage
-                transformed[field.label] = !isNaN(num) ? `${(num * 100).toFixed(2)}%` : '';
-            }
-            // Keep Specific Per Unit as number string (formatted to 2 decimals)
-            else if (field.key === 'specificPerUnit' && value != null) {
-                const num = parseFloat(value);
-                // Format as number string
-                transformed[field.label] = !isNaN(num) ? num.toFixed(2) : '';
-            }
-            // Handle other fields (null/undefined become empty string)
-            else {
-              transformed[field.label] = value ?? '';
-            }
-          });
-          return transformed;
-        });
-
-        // Convert to CSV using Papaparse
-        const csv = Papa.unparse(transformedData, {
-          header: true, // Use field.label as headers
-          skipEmptyLines: true
-        });
-
-        // Create Blob and trigger download
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        // Use date-fns or similar for more robust date formatting if needed
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        a.download = `tariffs_${timestamp}.csv`;
-        document.body.appendChild(a); // Append to body for Firefox compatibility
-        a.click();
-        document.body.removeChild(a); // Clean up
-        window.URL.revokeObjectURL(url);
-
-        // --- Use the length of the actual exported data array ---
-        toast.success(`Exported ${allTariffsData.length} tariff records`);
-
-      } catch (err) {
-        if (err.response?.status === 401) {
-          setShowRelogin(true); // Assuming you have this state setter
-          return;
-        }
-        console.error('Download failed:', err);
-        toast.error('Failed to export data. See console for details.');
-      } finally {
-        setIsDownloading(false); // Assuming you have this state setter
+        // Format as locale date string (e.g., MM/DD/YYYY or DD/MM/YYYY based on locale)
+        return date.toLocaleDateString();
+      } catch (e) {
+        console.error("Error formatting date for CSV:", dateString, e);
+        return dateString; // Fallback to raw value on error
       }
+    };
+
+    try {
+      setIsDownloading(true); // Assuming you have this state setter
+      // --- Fetch ALL tariff data ONCE ---
+      // Backend should return { tariffs: [...] } when size=-1
+      const { data } = await getDashboardData(new URLSearchParams("size=-1"));
+
+      // --- Use the data from the single API call ---
+      const allTariffsData = Array.isArray(data?.tariffs) ? data.tariffs : [];
+
+      if (allTariffsData.length === 0) {
+        toast.info("No tariff data available to export.");
+        setIsDownloading(false); // Reset loading state
+        return; // Exit if no data
+      }
+
+      // Define the fields you want to export and their CSV header labels
+      const fields = [
+        // --- Use 'tariffId' as the key from TariffPatchDTO ---
+        { key: 'tariffId', label: 'Tariff ID' },
+        { key: 'descriptionwcountry', label: 'Description' },
+        { key: 'partnerCountry', label: 'Partner Country' },
+        { key: 'reporterCountry', label: 'Reporter Country' },
+        { key: 'unitname', label: 'Unit Name' },
+        { key: 'category', label: 'Category' },
+        { key: 'adValorem', label: 'Ad Valorem Rate' }, // Changed label slightly
+        { key: 'specificPerUnit', label: 'Specific Per Unit Rate' }, // Changed label slightly
+        { key: 'effectivedate', label: 'Effective Date' },
+        { key: 'expirydate', label: 'Expiry Date' },
+        { key: 'datasource', label: 'Data Source' }
+      ];
+
+      // Transform data for CSV, applying formatting
+      const transformedData = allTariffsData.map(item => {
+        const transformed = {};
+        fields.forEach(field => {
+          let value = item[field.key]; // Directly use the key defined in fields
+
+          // Format dates
+          if ((field.key === 'effectivedate' || field.key === 'expirydate') && value) {
+            transformed[field.label] = formatDateForCSV(value);
+          }
+          // Format Ad Valorem as percentage string if it exists
+          else if (field.key === 'adValorem' && value != null) {
+            const num = parseFloat(value);
+            // Display as percentage
+            transformed[field.label] = !isNaN(num) ? `${(num * 100).toFixed(2)}%` : '';
+          }
+          // Keep Specific Per Unit as number string (formatted to 2 decimals)
+          else if (field.key === 'specificPerUnit' && value != null) {
+            const num = parseFloat(value);
+            // Format as number string
+            transformed[field.label] = !isNaN(num) ? num.toFixed(2) : '';
+          }
+          // Handle other fields (null/undefined become empty string)
+          else {
+            transformed[field.label] = value ?? '';
+          }
+        });
+        return transformed;
+      });
+
+      // Convert to CSV using Papaparse
+      const csv = Papa.unparse(transformedData, {
+        header: true, // Use field.label as headers
+        skipEmptyLines: true
+      });
+
+      // Create Blob and trigger download
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // Use date-fns or similar for more robust date formatting if needed
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      a.download = `tariffs_${timestamp}.csv`;
+      document.body.appendChild(a); // Append to body for Firefox compatibility
+      a.click();
+      document.body.removeChild(a); // Clean up
+      window.URL.revokeObjectURL(url);
+
+      // --- Use the length of the actual exported data array ---
+      toast.success(`Exported ${allTariffsData.length} tariff records`);
+
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setShowRelogin(true); // Assuming you have this state setter
+        return;
+      }
+      console.error('Download failed:', err);
+      toast.error('Failed to export data. See console for details.');
+    } finally {
+      setIsDownloading(false); // Assuming you have this state setter
+    }
   };
 
   const closeDialogs = () => {
@@ -1227,12 +1226,12 @@ const debouncedQuery = useDebounce(query);
               </div>
             </div>
           ) : results && results.content.length > 0 ? (
-              <TariffGrid 
-              userRole={userRole} 
-              data={results.content} 
-              onEdit={handleEdit} 
-              onDelete={handleDelete} 
-              onView={handleView} 
+            <TariffGrid
+              userRole={userRole}
+              data={results.content}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onView={handleView}
               isMobile={isMobile}
               countryMap={countryMap}
             />
