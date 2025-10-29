@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import httpx
 from fastapi import APIRouter, HTTPException
 from fastmcp import Client
 import pandas as pd
@@ -57,6 +58,10 @@ async def get_forecast():
 @router.post("/forecast")
 async def forecast_tariffs():
     try:
+        response = httpx.get(f"{BASE_URL}/forecast/status")
+        if (json.loads(response.read())["updating"]):
+            raise Exception("Forecast update already in progress. Please try again later.")
+
         async with client:
             logging.info(
                 f"Calling forecast_tariffs tool on {MCP_SERVER_URL} ...")
@@ -72,7 +77,7 @@ async def forecast_tariffs():
 
     except Exception as e:
         logging.error(f"Error details: {e}")
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e))
     
 
 @router.get("/newsletter")
