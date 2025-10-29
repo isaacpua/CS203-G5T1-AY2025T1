@@ -53,8 +53,8 @@ async def stream_graph_response(
             # Optionally, you can yield a summary of the tool result.
             # For now, we'll just print it server-side and let the
             # agent summarize it in the next loop.
-            print(f"Tool {message_chunk.name} returned: {message_chunk.content[:200]}...")
-            yield f"Running tool: {message_chunk.name}..."
+            yield f"[DEBUG] Running tool: {message_chunk.name}...\n"
+            print(f"[DEBUG] Tool {message_chunk.name} returned: {message_chunk.content[:200]}...")
 
         # You can add more handling here if needed
 
