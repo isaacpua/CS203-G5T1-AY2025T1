@@ -404,102 +404,6 @@ def process_csv(df: pd.DataFrame, year: int) -> pd.DataFrame:
     return result_df
 
 
-# ==== Master table helpers (single big table) ====
-from sqlalchemy import text as _sql_text
-from sqlalchemy import create_engine as _create_engine
-
-MASTER_SCHEMA = "tariffs"
-MASTER_TABLE  = "tariff_master"
-
-MASTER_DDL = f"""
-CREATE SCHEMA IF NOT EXISTS {MASTER_SCHEMA};
-
-CREATE TABLE IF NOT EXISTS {MASTER_SCHEMA}.{MASTER_TABLE} (
-    tariffid            TEXT PRIMARY KEY,
-    descriptionwcountry TEXT,
-    unitname            TEXT,
-    category            TEXT,
-    advalorem           DOUBLE PRECISION,
-    specificperunit     DOUBLE PRECISION,
-    effectivedate       DATE,
-    expirydate          DATE,
-    partnercountry      TEXT,
-    reportercountry     TEXT,
-    datasource          TEXT,
-    year                INTEGER
-);
-"""
-
-
-def ensure_master_table(engine):
-    """Create schema/table if not exists for the single master table."""
-    with engine.begin() as conn:
-        conn.execute(_sql_text(MASTER_DDL))
-
-
-def load_into_master(input_df, db_connection_string: str, year: int):
-    """
-    Append/UPSERT rows into one big master table tariffs.tariff_master.
-    - Adds a `year` column to the data
-    - Uses a staging table and INSERT ... ON CONFLICT (tariffid) DO UPDATE
-    """
-    engine = _create_engine(db_connection_string)
-    ensure_master_table(engine)
-
-    # Working copy + enforce year
-    df = input_df.copy()
-    df["year"] = int(year)
-
-    staging_table = f"_stg_tariff_{year}"
-
-    # Drop/create staging (LIKE master)
-    with engine.begin() as conn:
-        conn.execute(_sql_text(f"DROP TABLE IF EXISTS {MASTER_SCHEMA}.{staging_table};"))
-        conn.execute(_sql_text(f"CREATE TABLE {MASTER_SCHEMA}.{staging_table} (LIKE {MASTER_SCHEMA}.{MASTER_TABLE} INCLUDING ALL);"))
-
-    # Use pandas to push rows into staging
-    # Import here to avoid changing the file's import surface unexpectedly
-    import pandas as _pd
-    df.to_sql(
-        name=staging_table,
-        con=engine,
-        schema=MASTER_SCHEMA,
-        if_exists="append",
-        index=False,
-        method="multi",
-        chunksize=1000,
-    )
-
-    upsert_sql = f"""
-    INSERT INTO {MASTER_SCHEMA}.{MASTER_TABLE} (
-        tariffid, descriptionwcountry, unitname, category, advalorem, specificperunit,
-        effectivedate, expirydate, partnercountry, reportercountry, datasource, year
-    )
-    SELECT
-        tariffid, descriptionwcountry, unitname, category, advalorem, specificperunit,
-        effectivedate, expirydate, partnercountry, reportercountry, datasource, year
-    FROM {MASTER_SCHEMA}.{staging_table}
-    ON CONFLICT (tariffid) DO UPDATE SET
-        descriptionwcountry = EXCLUDED.descriptionwcountry,
-        unitname            = EXCLUDED.unitname,
-        category            = EXCLUDED.category,
-        advalorem           = EXCLUDED.advalorem,
-        specificperunit     = EXCLUDED.specificperunit,
-        effectivedate       = EXCLUDED.effectivedate,
-        expirydate          = EXCLUDED.expirydate,
-        partnercountry      = EXCLUDED.partnercountry,
-        reportercountry     = EXCLUDED.reportercountry,
-        datasource          = EXCLUDED.datasource,
-        year                = EXCLUDED.year;
-    """
-
-    with engine.begin() as conn:
-        conn.execute(_sql_text(upsert_sql))
-        conn.execute(_sql_text(f"DROP TABLE IF EXISTS {MASTER_SCHEMA}.{staging_table};"))
-
-    print(f"[helpers] Upserted {len(df)} rows into {MASTER_SCHEMA}.{MASTER_TABLE}.")
-# ==== End master table helpers ====
-
 def parse_rate(rate_str: str) -> tuple:
     """
     Parse a rate string to extract ad valorem and specific components.
@@ -603,3 +507,153 @@ def load_into_db(input_df: pd.DataFrame, db_connection_string: str, year: int):
 
     print(
         f"Successfully loaded {len(input_df)} rows into table '{schema}.{table_name}'.")
+
+COUNTRY_MAP = {
+    "SG": 1, "AF": 2, "AL": 3, "DZ": 4, "AD": 5, "AO": 6, "AG": 7, "AR": 8, "AM": 9, "AU": 10,
+    "AT": 11, "AZ": 12, "BS": 13, "BH": 14, "BD": 15, "BB": 16, "BY": 17, "BE": 18, "BZ": 19, "BJ": 20,
+    "BT": 21, "BO": 22, "BA": 23, "BW": 24, "BR": 25, "BN": 26, "BG": 27, "BF": 28, "BI": 29, "CV": 30,
+    "KH": 31, "CM": 32, "CA": 33, "CF": 34, "TD": 35, "CL": 36, "CN": 37, "CO": 38, "KM": 39, "CG": 40,
+    "CD": 41, "CR": 42, "HR": 43, "CU": 44, "CY": 45, "CZ": 46, "DK": 47, "DJ": 48, "DM": 49, "DO": 50,
+    "EC": 51, "EG": 52, "SV": 53, "GQ": 54, "ER": 55, "EE": 56, "SZ": 57, "ET": 58, "FJ": 59, "FI": 60,
+    "FR": 61, "GA": 62, "GM": 63, "GE": 64, "DE": 65, "GH": 66, "GR": 67, "GD": 68, "GT": 69, "GN": 70,
+    "GW": 71, "GY": 72, "HT": 73, "VA": 74, "HN": 75, "HU": 76, "IS": 77, "IN": 78, "ID": 79, "IR": 80,
+    "IQ": 81, "IE": 82, "IL": 83, "IT": 84, "CI": 85, "JM": 86, "JP": 87, "JO": 88, "KZ": 89, "KE": 90,
+    "KI": 91, "KW": 92, "KG": 93, "LA": 94, "LV": 95, "LB": 96, "LS": 97, "LR": 98, "LY": 99, "LI": 100,
+    "LT": 101, "LU": 102, "MG": 103, "MW": 104, "MY": 105, "MV": 106, "ML": 107, "MT": 108, "MH": 109, "MR": 110,
+    "MU": 111, "MX": 112, "FM": 113, "MD": 114, "MC": 115, "MN": 116, "ME": 117, "MA": 118, "MZ": 119, "MM": 120,
+    "NA": 121, "NR": 122, "NP": 123, "NL": 124, "NZ": 125, "NI": 126, "NE": 127, "NG": 128, "KP": 129, "MK": 130,
+    "NO": 131, "OM": 132, "PK": 133, "PW": 134, "PS": 135, "PA": 136, "PG": 137, "PY": 138, "PE": 139, "PH": 140,
+    "PL": 141, "PT": 142, "QA": 143, "RO": 144, "RU": 145, "RW": 146, "KN": 147, "LC": 148, "VC": 149, "WS": 150,
+    "SM": 151, "ST": 152, "SA": 153, "SN": 154, "RS": 155, "SC": 156, "SL": 157, "SK": 158, "SI": 159, "SB": 160,
+    "SO": 161, "ZA": 162, "KR": 163, "SS": 164, "ES": 165, "LK": 166, "SD": 167, "SR": 168, "SE": 169, "CH": 170,
+    "SY": 171, "TW": 172, "TJ": 173, "TZ": 174, "TH": 175, "TL": 176, "TG": 177, "TO": 178, "TT": 179, "TN": 180,
+    "TR": 181, "TM": 182, "TV": 183, "UG": 184, "UA": 185, "AE": 186, "GB": 187, "US": 188, "UY": 189, "UZ": 190,
+    "VU": 191, "VE": 192, "VN": 193, "YE": 194, "ZM": 195, "ZW": 196, "AS": 197, "AI": 198, "AQ": 199, "AW": 200,
+    "BM": 201, "BQ": 202, "BV": 203, "IO": 204, "KY": 205, "CX": 206, "CC": 207, "CK": 208, "CW": 209, "FK": 210,
+    "FO": 211, "GF": 212, "PF": 213, "TF": 214, "GI": 215, "GL": 216, "GP": 217, "GU": 218, "GG": 219, "HM": 220,
+    "HK": 221, "IM": 222, "JE": 223, "MO": 224, "MQ": 225, "YT": 226, "MS": 227, "NC": 229, "NU": 230, "NF": 231,
+    "MP": 232, "PN": 233, "PR": 234, "RE": 235, "BL": 236, "SH": 237, "MF": 238, "PM": 239, "SX": 240, "GS": 241,
+    "SJ": 242, "TK": 243, "TC": 244, "UM": 245, "VG": 246, "VI": 247, "WF": 248, "EH": 249, "AX": 250
+}
+
+
+
+COUNTRY_SCHEMA = "tariffs"
+COUNTRY_TABLE  = "country"
+COUNTRY_FQN    = f'{COUNTRY_SCHEMA}."{COUNTRY_TABLE}"'  # -> tariffs."country"
+
+MASTER_SCHEMA = "tariffs"
+MASTER_TABLE  = "tariff_master"
+
+MASTER_DDL_FK = f"""
+CREATE SCHEMA IF NOT EXISTS {MASTER_SCHEMA};
+
+CREATE TABLE IF NOT EXISTS {MASTER_SCHEMA}.{MASTER_TABLE} (
+    tariffid            TEXT PRIMARY KEY,
+    descriptionwcountry TEXT,
+    unitname            TEXT,
+    category            TEXT,
+    advalorem           DOUBLE PRECISION,
+    specificperunit     DOUBLE PRECISION,
+    effectivedate       DATE,
+    expirydate          DATE,
+    partnercountry      INTEGER REFERENCES {COUNTRY_FQN}(countryid),
+    reportercountry     INTEGER REFERENCES {COUNTRY_FQN}(countryid),
+    datasource          TEXT,
+    year                INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_{MASTER_TABLE}_year ON {MASTER_SCHEMA}.{MASTER_TABLE}(year);
+"""
+
+
+def ensure_master_table(engine):
+    with engine.begin() as conn:
+        conn.execute(text(MASTER_DDL_FK))
+
+CODE_ALIASES = {"AN": "NL", "VG": "GB"}
+
+def to_country_id(series):
+    s = series.copy()
+
+    # 1) normalize strings
+    is_str = s.map(lambda x: isinstance(x, str))
+    s.loc[is_str] = s.loc[is_str].str.strip().str.upper().replace(CODE_ALIASES)
+
+    # 2) try to parse numeric (already IDs)
+    numeric = pd.to_numeric(s, errors="coerce")
+    already_ids_mask = numeric.notna()
+    # keep parsed ints where numeric
+    s.loc[already_ids_mask] = numeric.loc[already_ids_mask].astype("Int64")
+
+    # 3) map ISO2 strings → IDs for the rest
+    need_map_mask = ~already_ids_mask
+    s.loc[need_map_mask] = s.loc[need_map_mask].map(COUNTRY_MAP)
+
+    # final tidy: cast to plain int (or keep Int64 if you prefer nullable)
+    return s.astype("Int64")
+
+def load_into_master(input_df, db_connection_string: str, year: int):
+    """
+    Load into tariffs.tariff_master with integer FKs (ISO2 -> country.id).
+    """
+    engine = create_engine(db_connection_string)
+    ensure_master_table(engine)
+
+    df = input_df.copy()
+    df["year"] = int(year)
+    # Normalize first
+    df["partnercountry"] = df["partnercountry"].astype(str).str.strip().str.upper()
+    df["reportercountry"] = df["reportercountry"].astype(str).str.strip().str.upper()
+    df["partnercountry"]  = to_country_id(df["partnercountry"])
+    df["reportercountry"] = to_country_id(df["reportercountry"])
+
+    missing_partner = df["partnercountry"].isna().sum()
+    missing_reporter = df["reportercountry"].isna().sum()
+    if missing_partner or missing_reporter:
+        print(f"[helpers] WARNING: {missing_partner} partnercountry and {missing_reporter} reportercountry values did not map.")
+
+    staging_table = f"_stg_tariff_{year}"
+
+    with engine.begin() as conn:
+        conn.execute(text(f"DROP TABLE IF EXISTS {MASTER_SCHEMA}.{staging_table};"))
+        conn.execute(text(f"CREATE TABLE {MASTER_SCHEMA}.{staging_table} (LIKE {MASTER_SCHEMA}.{MASTER_TABLE} INCLUDING ALL);"))
+
+    import pandas as _pd
+    df.to_sql(
+        name=staging_table,
+        con=engine,
+        schema=MASTER_SCHEMA,
+        if_exists="append",
+        index=False,
+        method="multi",
+        chunksize=1000,
+    )
+
+    upsert_sql = f"""
+    INSERT INTO {MASTER_SCHEMA}.{MASTER_TABLE} (
+        tariffid, descriptionwcountry, unitname, category, advalorem, specificperunit,
+        effectivedate, expirydate, partnercountry, reportercountry, datasource, year
+    )
+    SELECT
+        tariffid, descriptionwcountry, unitname, category, advalorem, specificperunit,
+        effectivedate, expirydate, partnercountry, reportercountry, datasource, year
+    FROM {MASTER_SCHEMA}.{staging_table}
+    ON CONFLICT (tariffid) DO UPDATE SET
+        descriptionwcountry = EXCLUDED.descriptionwcountry,
+        unitname            = EXCLUDED.unitname,
+        category            = EXCLUDED.category,
+        advalorem           = EXCLUDED.advalorem,
+        specificperunit     = EXCLUDED.specificperunit,
+        effectivedate       = EXCLUDED.effectivedate,
+        expirydate          = EXCLUDED.expirydate,
+        partnercountry      = EXCLUDED.partnercountry,
+        reportercountry     = EXCLUDED.reportercountry,
+        datasource          = EXCLUDED.datasource,
+        year                = EXCLUDED.year;
+    """
+
+    with engine.begin() as conn:
+        conn.execute(text(upsert_sql))
+        conn.execute(text(f"DROP TABLE IF EXISTS {MASTER_SCHEMA}.{staging_table};"))
+
+    print(f"[helpers] Upserted {len(df)} rows into {MASTER_SCHEMA}.{MASTER_TABLE} (FK-mapped).")
