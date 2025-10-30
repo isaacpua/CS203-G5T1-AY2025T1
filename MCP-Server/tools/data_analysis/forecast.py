@@ -27,26 +27,19 @@ class TariffForecaster:
             raise
 
     def load_data(self):
-        """Load all tariff tables from start_year to end_year"""
-        dfs = []
-
-        for year in range(self.start_year, self.end_year + 1):
-            table_name = f"tariff_hts{year}"
-            try:
-                query = f"SELECT * FROM tariffs.{table_name}"
-                df = pd.read_sql(query, self.engine)
-                df['year'] = year
-                dfs.append(df)
-                print(f"Loaded {table_name}: {len(df)} rows")
-            except Exception as e:
-                print(f"Warning: Could not load {table_name}: {e}")
-
-        if not dfs:
-            raise ValueError("No data tables found!")
-
-        self.data = pd.concat(dfs, ignore_index=True)
-        print(f"\nTotal rows loaded: {len(self.data)}")
-        return self.data
+        """Load data from tariff_master table"""
+        try:
+            query = f"""
+                SELECT * FROM tariffs.tariff_master 
+                WHERE year BETWEEN {self.start_year} AND {self.end_year}
+            """
+            self.data = pd.read_sql(query, self.engine)
+            print(f"Loaded tariff_master: {len(self.data)} rows")
+            print(f"Years: {sorted(self.data['year'].unique())}")
+            return self.data
+        except Exception as e:
+            print(f"Error loading data: {e}")
+            raise
 
     def preprocess_data(self):
         """Clean and prepare data for forecasting"""
@@ -64,9 +57,10 @@ class TariffForecaster:
         self.data['advalorem'].fillna(0, inplace=True)
         self.data['specificperunit'].fillna(0, inplace=True)
 
-        # Extract base tariff code (remove year suffix)
-        # Pattern: tariffid ends with country code (2 chars) + year (4 digits)
-        self.data['base_tariffid'] = self.data['tariffid'].astype(str).str[:-6]
+        # Extract base tariff code (remove only the year suffix, keep country code)
+        # Pattern: tariffid ends with year (4 digits)
+        # Example: "100111USAF2012" -> "100111USAF"
+        self.data['base_tariffid'] = self.data['tariffid'].astype(str).str[:-4]
 
         print(f"\nData preprocessed. Shape: {self.data.shape}")
         print(
@@ -141,8 +135,11 @@ class TariffForecaster:
         model_sp.fit(X, y_specific)
         forecast_ad = model_ad.predict(future_years)
         forecast_sp = model_sp.predict(future_years)
+
+        # Ensure non-negative forecasts
         forecast_ad = np.maximum(forecast_ad, 0)
         forecast_sp = np.maximum(forecast_sp, 0)
+
         results['forecast_advalorem'] = forecast_ad.tolist()
         results['forecast_specific'] = forecast_sp.tolist()
 
@@ -179,7 +176,7 @@ class TariffForecaster:
                 forecast_years=forecast_years,
                 method=method
             )
-            
+
             if result:
                 forecasts.append(result)
 
@@ -197,12 +194,10 @@ class TariffForecaster:
         """
         records = []
         for forecast in forecasts:
-            # Combine base_tariffid and partnercountry
-            combined_tariffid = f"{forecast['base_tariffid']}{forecast['partnercountry']}"
-            
+            # Use base_tariffid directly (already contains country code)
             for i, year in enumerate(forecast['forecast_years']):
                 records.append({
-                    'tariffid': combined_tariffid,
+                    'tariffid': forecast['base_tariffid'],
                     'description': forecast['description'],
                     'unitname': forecast['unitname'],
                     'forecast_year': year,
@@ -224,17 +219,46 @@ class TariffForecaster:
 
         # Save to database
         try:
+            # If replace mode, drop and create table with composite primary key
+            if if_exists == 'replace':
+                with self.engine.connect() as conn:
+                    # Drop table if exists
+                    if schema:
+                        conn.execute(text(f'DROP TABLE IF EXISTS "{schema}"."{table}"'))
+                    else:
+                        conn.execute(text(f'DROP TABLE IF EXISTS "{table}"'))
+                    conn.commit()
+                    
+                    # Create table with composite primary key (tariffid, forecast_year)
+                    create_table_sql = f"""
+                    CREATE TABLE {f'"{schema}".' if schema else ''}"{table}" (
+                        tariffid VARCHAR(255) NOT NULL,
+                        description VARCHAR(255),
+                        unitname VARCHAR(255),
+                        forecast_year INTEGER NOT NULL,
+                        forecast_advalorem NUMERIC(38, 6),
+                        forecast_specificperunit NUMERIC(38, 6),
+                        num_historical_points INTEGER,
+                        forecast_method VARCHAR(50),
+                        created_at TIMESTAMP,
+                        PRIMARY KEY (tariffid, forecast_year)
+                    )
+                    """
+                    conn.execute(text(create_table_sql))
+                    conn.commit()
+                    print(f"✓ Created table '{table_name}' with composite primary key (tariffid, forecast_year)")
+            
+            # Insert data
             df_forecast.to_sql(
                 table,
                 self.engine,
                 schema=schema,
-                if_exists=if_exists,
+                if_exists='append',  # Always append after table creation
                 index=False,
                 method='multi',
                 chunksize=1000
             )
-            print(
-                f"\n✓ Forecasts saved to table '{table_name}' ({len(df_forecast)} rows)")
+            print(f"\n✓ Forecasts saved to table '{table_name}' ({len(df_forecast)} rows)")
             print(f"  Mode: {if_exists}")
 
             # Show table info with proper schema handling
@@ -259,8 +283,7 @@ class TariffForecaster:
         for forecast in forecasts:
             for i, year in enumerate(forecast['forecast_years']):
                 records.append({
-                    'base_tariffid': forecast['base_tariffid'],
-                    'partnercountry': forecast['partnercountry'],
+                    'tariffid': forecast['base_tariffid'],
                     'description': forecast['description'],
                     'unitname': forecast['unitname'],
                     'forecast_year': year,
@@ -283,10 +306,11 @@ async def forecast_tariffs(db_config):
             db_config=db_config
         )
 
-        print("Loading data from DB")
+        print("Loading data from tariff_master table...")
         forecaster.load_data()
         forecaster.preprocess_data()
-        print("Generating forecasts...")
+
+        print("\nGenerating forecasts...")
         forecasts = forecaster.forecast_all_tariffs(
             forecast_years=3,
             method='linear',  # Use 'rf' for Random Forest
@@ -302,11 +326,11 @@ async def forecast_tariffs(db_config):
         # Optionally save to CSV as backup
         # forecaster.save_forecasts_to_csv(forecasts, 'tariff_forecasts_backup.csv')
 
-        print(f"\nForecast complete! Generated {len(forecasts)} forecasts.")
+        print(f"\n✓ Forecast complete! Generated {len(forecasts)} forecasts.")
 
         if forecaster.engine:
             forecaster.engine.dispose()
-            print("\nDatabase connection closed")
+            print("\n✓ Database connection closed")
         return {
             "success": True,
             "message": f"Generated {len(forecasts)} forecasts."

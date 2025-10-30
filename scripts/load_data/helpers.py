@@ -618,7 +618,6 @@ def load_into_master(input_df, db_connection_string: str, year: int):
         conn.execute(text(f"DROP TABLE IF EXISTS {MASTER_SCHEMA}.{staging_table};"))
         conn.execute(text(f"CREATE TABLE {MASTER_SCHEMA}.{staging_table} (LIKE {MASTER_SCHEMA}.{MASTER_TABLE} INCLUDING ALL);"))
 
-    import pandas as _pd
     df.to_sql(
         name=staging_table,
         con=engine,
