@@ -31,10 +31,11 @@ import AdminPanel from "@/components/AdminPanel"
 
 const navigationItems = [
   { label: "Calculator", path: "/calculator" },
+  { label: "Calculation History", path: "/calc-history" },
   { label: "Dashboard", path: "/dashboard" },
   { label: "Historical Explorer", path: "/historical" },
   { label: "Forecasts", path: "/forecast" },
-  { label: "Calculation History", path: "/calc-history" }
+  { label: "MCPAssistant", path: "/chatbot" }
 ]
 
 export default function Header() {
