@@ -22,6 +22,10 @@ cd tariff-backend
 
 ## MCP-Server
 
+### Required Files
+- credentials.json — OAuth 2.0 credentials for the email service
+- token.json — Generated after first authentication
+
 ### macOS/Linux
 
 ```sh
