@@ -1,4 +1,4 @@
-import { getForecast } from "@/api/axiosClient";
+import { getForecast, updateForecast } from "@/api/axiosClient";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -101,9 +101,20 @@ export default function Forecast() {
   }, [searchValue, searchMethod, forecastData]);
 
   const handleRefresh = async () => {
-    // setIsRefreshing(true);
-    // await updateForecast();
-    fetchForecast(true);
+    try {
+      setIsRefreshing(true);
+      await updateForecast();
+      fetchForecast(true);
+    } catch (err) {
+      console.log(err)
+      toast.error("Failed to refresh forecast data", {
+        description: err.response.data.detail || "An error occurred while loading the data"
+      });
+      console.error("Error refreshing forecast:", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+    
   };
 
   const handleExportCSV = async () => {

@@ -1,3 +1,5 @@
+import asyncpg
+import logging
 import os
 import uvicorn 
 from fastmcp import FastMCP
@@ -13,6 +15,17 @@ DB_CONFIG = {
     "DB_USERNAME": os.getenv("DB_USERNAME"),
     "DB_PASSWORD": os.getenv("DB_PASSWORD"),
 }
+
+db_pool = None
+
+async def init_db_pool():
+    global db_pool
+    if db_pool is None:
+        db_pool = await asyncpg.create_pool(
+            dsn=f'postgresql://{DB_CONFIG["DB_USERNAME"]}:{DB_CONFIG["DB_PASSWORD"]}@{DB_CONFIG["DB_URL"]}',
+            min_size=1,
+            max_size=10
+        )
 
 mcp = FastMCP(
     name="DexiaMCP",
@@ -64,6 +77,47 @@ async def scrape_single_article(url: str) -> dict:
     """
     return await single_URL_scrape(url)
 
+
+@mcp.tool(name="forecast_tariffs")
+async def generate_tariff_forecasts() -> dict:
+    if db_pool is None:
+        await init_db_pool()
+
+    async with db_pool.acquire() as conn:
+        # Atomic check-and-set using UPDATE with WHERE condition
+        result = await conn.execute(
+            """
+            UPDATE tariffs.forecast_lock 
+            SET is_updating = TRUE, updated_at = NOW()
+            WHERE id = 1 AND is_updating = FALSE
+            """
+        )
+        logging.info(result)
+        # If no rows updated, lock was already held
+        if result == "UPDATE 0":
+            return {
+                "success": False,
+                "error": "Forecast update already in progress. Please try again later."
+            }
+
+        try:
+            response = await forecast_tariffs(DB_CONFIG)
+            return response
+        finally:
+            # Always release the lock
+            await conn.execute("UPDATE tariffs.forecast_lock SET is_updating = FALSE WHERE id = 1")
+
+
+@mcp.custom_route("/forecast/status", methods=["GET"])
+async def forecast_status(request: Request) -> JSONResponse:
+    if db_pool is None:
+        await init_db_pool()
+    
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT is_updating FROM tariffs.forecast_lock WHERE id = 1"
+        )
+        return JSONResponse({"updating": row["is_updating"] if row else False})
 @mcp.tool(name="send_email")
 async def send_email(to_email: str, subject: Optional[str] = None, body: Optional[str] = None) -> dict:
     """
@@ -102,7 +156,3 @@ async def analyze_article(md: str) -> dict:
         the analysis of the article.
     """
     return await analyze(md)
-  
-  if __name__ == "__main__":
-    # Assumes this file is named mcp_server.py
-    uvicorn.run("mcp_server:mcp.app", host="0.0.0.0", port=8000, reload=True)
