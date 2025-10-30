@@ -1,9 +1,14 @@
 import os
+import uvicorn 
 from fastmcp import FastMCP
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-from tools import newsletter_scrape, single_URL_scrape, forecast_tariffs
+from typing import Optional
+
+# --- Imports for existing tools ---
+from tools import newsletter_scrape, single_URL_scrape, forecast_tariffs, send_email_logic
+
 
 load_dotenv()
 DB_CONFIG = {
@@ -60,3 +65,34 @@ async def scrape_single_article(url: str) -> dict:
         the scraped information
     """
     return await single_URL_scrape(url)
+
+@mcp.tool(name="send_email")
+async def send_email(to_email: str, subject: Optional[str] = None, body: Optional[str] = None) -> dict:
+    """
+    Sends an email using the Gmail API via a Service Account.
+    Requires 'credentials.json' (service account) in the root
+    and the 'SERVICE_ACCOUNT_IMPERSONATE' env variable to be set.
+    Subject and body will use defaults if not provided.
+
+    Args:
+        to_email (str): The recipient's email address. (Compulsory)
+        subject (Optional[str]): The subject line of the email.
+        body (Optional[str]): The plain text body of the email.
+
+    Returns:
+        dict: A dictionary with the status and message_id or an error.
+    """
+    # --- Set Default values if not provided ---
+    final_subject = subject if subject is not None else "Test Email from MCP Server"
+    final_body = body if body is not None else "Hello! This is a test email sent from the DexiaMCP server."
+    # -----------------------------------------
+
+    # Just call the async logic function you imported
+    return await send_email_logic(to_email, final_subject, final_body)
+
+
+# --- Add this to make your server runnable ---
+if __name__ == "__main__":
+    # Assumes this file is named mcp_server.py
+    uvicorn.run("mcp_server:mcp.app", host="0.0.0.0", port=8000, reload=True)
+
