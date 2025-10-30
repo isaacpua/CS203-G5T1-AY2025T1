@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+import Markdown from 'markdown-to-jsx'; // <-- 1. Import the new library
 
 // Connect to your MCP-client server
-const socket = io('http://127.0.0.1:8001');
+const socket = io('http://127.0.0.1:8001'); //
 // A unique ID for this chat session, you can make this more robust
-const CHAT_THREAD_ID = 'user_session_123'; 
+const CHAT_THREAD_ID = 'user_session_123'; //
 
 function Chatbot() {
   const [isConnected, setIsConnected] = useState(socket.connected);
@@ -31,7 +32,7 @@ function Chatbot() {
         const lastMessage = prevMessages[prevMessages.length - 1];
         
         // If the last message was from the AI, append to it
-        if (lastMessage && lastMessage.sender === 'ai') {
+        if (lastMessage && lastMessage.sender === 'ai') { //
           return [
             ...prevMessages.slice(0, -1),
             { ...lastMessage, text: lastMessage.text + aiChunk },
@@ -49,7 +50,7 @@ function Chatbot() {
 
     // This listens for the end-of-stream signal
     function onAiResponseEnd() {
-      setIsAiTyping(false);
+      setIsAiTyping(false); //
     }
 
     socket.on('connect', onConnect);
@@ -79,7 +80,7 @@ function Chatbot() {
     setMessages((prevMessages) => [...prevMessages, userMessage]);
     
     // Send the message to the server
-    socket.emit('chat_message', {
+    socket.emit('chat_message', { //
       message: currentInput,
       thread_id: CHAT_THREAD_ID, // Send the thread_id
     });
@@ -89,38 +90,63 @@ function Chatbot() {
   };
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <div style={{ border: '1px solid #ccc', height: '400px', overflowY: 'scroll', padding: '10px', marginBottom: '10px' }}>
+    <div className="p-5 font-sans">
+      <div className="border border-border h-96 overflow-y-auto p-2.5 mb-2.5 rounded-md">
         {messages.map((msg) => (
-          <div key={msg.id} style={{ textAlign: msg.sender === 'user' ? 'right' : 'left', margin: '5px 0' }}>
-            <span style={{
-              background: msg.sender === 'user' ? '#dcf8c6' : '#f1f0f0',
-              padding: '8px 12px',
-              borderRadius: '10px',
-              display: 'inline-block',
-            }}>
-              {msg.text}
+          <div key={msg.id} className={msg.sender === 'user' ? 'text-right my-1.5' : 'text-left my-1.5'}>
+            <span className={`
+              py-2 px-3 rounded-lg inline-block text-left
+              ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}
+            `}>
+              {/* --- 2. This is the new part --- */}
+              {msg.sender === 'user' ? (
+                msg.text // Keep user text plain
+              ) : (
+                // Render AI text with Markdown
+                // We add 'prose' classes for nice typography
+                <div className="prose dark:prose-invert prose-sm break-words">
+                  <Markdown
+                    options={{
+                      // This forces all links to open in a new tab
+                      overrides: {
+                        a: {
+                          props: {
+                            target: '_blank',
+                            rel: 'noopener noreferrer',
+                          },
+                        },
+                      },
+                    }}
+                  >
+                    {msg.text}
+                  </Markdown>
+                </div>
+              )}
+              {/* --- End of new part --- */}
             </span>
           </div>
         ))}
-        {isAiTyping && <div style={{ textAlign: 'left', color: '#888' }}>Jarvis is typing...</div>}
+        {isAiTyping && <div className="text-left text-muted-foreground">Jarvis is typing...</div>}
       </div>
-      <div style={{ display: 'flex' }}>
+      <div className="flex">
         <input
           type="text"
           value={currentInput}
           onChange={(e) => setCurrentInput(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-          style={{ flex: 1, padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          style={{ flex: 1 }}
         />
         <button
           onClick={handleSend}
-          style={{ padding: '10px', marginLeft: '5px', borderRadius: '5px', border: 'none', background: '#007bff', color: 'white' }}
+          className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 ml-1.5"
         >
           Send
         </button>
       </div>
-      <p>Connection status: {isConnected ? 'Connected' : 'Disconnected'}</p>
+      <p className="text-muted-foreground">
+        Connection status: {isConnected ? <span className="text-green-500">Connected</span> : <span className="text-red-500">Disconnected</span>}
+      </p>
     </div>
   );
 }
