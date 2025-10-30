@@ -3,7 +3,7 @@ from fastmcp import FastMCP
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-from tools import newsletter_scrape, single_URL_scrape, forecast_tariffs
+from tools import newsletter_scrape, single_URL_scrape, forecast_tariffs, analyze
 
 load_dotenv()
 DB_CONFIG = {
@@ -47,6 +47,7 @@ async def scrape_tariff_news_articles() -> dict:
     return await newsletter_scrape()
 
 
+
 @mcp.tool(name="scrape_single_url")
 async def scrape_single_article(url: str) -> dict:
     """
@@ -60,3 +61,20 @@ async def scrape_single_article(url: str) -> dict:
         the scraped information
     """
     return await single_URL_scrape(url)
+
+
+
+@mcp.tool(name="analyze_article")
+async def analyze_article(md: str) -> dict:
+    """
+    The tool for analyzing tariff articles. Send the provided markdown string of an 
+    article related to tariffs to OpenAI and return a concise analysis.
+
+    Args:
+        md: A string of the markdown of the article to analyze
+
+    Returns:
+        Dict with the success state, and error message or response markdown text for
+        the analysis of the article.
+    """
+    return await analyze(md)
