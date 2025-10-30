@@ -57,6 +57,13 @@ uv pip install -r requirements.txt
 uv run main.py
 ```
 
+### crawl4ai setup
+Within venv, run:
+```sh
+playwright install
+crawl4ai-setup
+```
+
 ## MCP-Gateway
 
 ### macOS/Linux
