@@ -1,6 +1,9 @@
 package com.tariff.tariff_backend.model.dashboard;
 
 import java.util.List;
+
+import com.tariff.tariff_backend.dto.TariffPatchDTO;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;

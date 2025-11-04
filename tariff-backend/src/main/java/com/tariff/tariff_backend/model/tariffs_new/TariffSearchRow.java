@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "Tariff search result record with complete tariff information")
 public record TariffSearchRow(
     @Schema(description = "Unique tariff identifier", example = "12345")
-    Integer tariffId,
+    String tariffId,
     
     @Schema(description = "Product description with country context", example = "Live horses - from Canada")
     String descriptionwcountry,
