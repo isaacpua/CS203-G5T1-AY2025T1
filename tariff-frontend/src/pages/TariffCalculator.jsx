@@ -30,6 +30,31 @@ export default function TariffCalc() {
             setAutoSelectId(String(statePrefill.tariffId));
         }
     }, [location.state]);
+    useEffect(() => {
+        // ⬅️ Block the fromId/toId effects from clearing selection
+        const pf = prefillRef.current;
+        if (!pf || prefillAppliedRef.current || prefillInFlightRef.current) return;
+        prefillInFlightRef.current = true;
+
+        const selectedFromPrefill = {
+            id: pf.tariffId,
+            descriptionwcountry: pf.descriptionwcountry ?? "",
+            category: (pf.category || "").toUpperCase(),
+            advalorem: pf.advalorem ?? null,
+            specificperunit: pf.specificperunit ?? null,
+            unitname: pf.unitname ?? "unit",
+        };
+
+        setSelected(selectedFromPrefill);
+        if (pf.customsValue != null) setDeclaredValue(String(pf.customsValue));
+        if (pf.quantity != null) setQuantity(String(pf.quantity));
+        if (typeof pf.save === "boolean") setSaveResult(pf.save);
+
+        // DO NOT set prefillAppliedRef here; let the resolver effect do it.
+        setQ(String(pf.tariffId));
+        setPage(0);
+        setSearchTick((n) => n + 1);
+    }, []); // real empty deps
 
     const [showRelogin, setShowRelogin] = useState(false);
 
@@ -63,6 +88,9 @@ export default function TariffCalc() {
     const [computeError, setComputeError] = useState("");
     const [computeRes, setComputeRes] = useState(null); // we use only the total for the last line
     const [saveResult, setSaveResult] = useState(false);
+    const [yearFrom, setYearFrom] = useState(NONE);
+    const [yearTo, setYearTo] = useState(NONE);
+    const YEARS = Array.from({ length: 2025 - 2002 + 1 }, (_, i) => 2002 + i).reverse();
 
     // Workings visibility (no toggle; just show after compute)
     const [showWorkings, setShowWorkings] = useState(false);
@@ -169,6 +197,8 @@ export default function TariffCalc() {
     }, [fromOptions, toOptions]);
     /** When FROM changes */
     useEffect(() => {
+        if (prefillInFlightRef.current) return;  // ⬅️ add this
+
         setSelected(null);
         setResults({ content: [], totalPages: 0, number: 0, size, last: null });
         setComputeError("");
@@ -199,6 +229,8 @@ export default function TariffCalc() {
 
     /** When TO changes */
     useEffect(() => {
+        if (prefillInFlightRef.current) return;  // ⬅️ add this
+
         setSelected(null);
         setResults({ content: [], totalPages: 0, number: 0, size, last: null });
         setComputeError("");
@@ -247,7 +279,8 @@ export default function TariffCalc() {
                 if (toId && toId !== NONE) params.set("toId", String(toId));
                 const dQ = debouncedQ.trim();
                 if (dQ !== "") params.set("q", dQ);
-
+                if (yearFrom && yearFrom !== NONE) params.set("yearFrom", yearFrom);
+                if (yearTo && yearTo !== NONE) params.set("yearTo", yearTo);
                 const { data } = await searchTariff(params);
 
                 // normalize paging (Page or Slice)
@@ -413,8 +446,9 @@ export default function TariffCalc() {
                     </CardHeader>
 
                     <CardContent className="space-y-4">
-                        {/* From / To row */}
-                        <div className="grid grid-cols-2 gap-6">
+                        {/* From / To / Year row */}
+                        <div className="grid gap-6 grid-cols-2 md:grid-cols-4">
+                            {/* From Country */}
                             <div className="space-y-2">
                                 <Label>From Country (origin)</Label>
                                 <Select
@@ -422,12 +456,11 @@ export default function TariffCalc() {
                                     onValueChange={(v) => {
                                         setFromId(v);
                                         setPage(0);
+                                        setSearchTick((n) => n + 1);
                                     }}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue
-                                            placeholder={loadingCountries ? "Loading…" : "Select country"}
-                                        />
+                                        <SelectValue placeholder={loadingCountries ? "Loading…" : "Select country"} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value={NONE}>None</SelectItem>
@@ -442,6 +475,7 @@ export default function TariffCalc() {
                                 </Select>
                             </div>
 
+                            {/* To Country */}
                             <div className="space-y-2">
                                 <Label>To Country (destination)</Label>
                                 <Select
@@ -449,12 +483,11 @@ export default function TariffCalc() {
                                     onValueChange={(v) => {
                                         setToId(v);
                                         setPage(0);
+                                        setSearchTick((n) => n + 1);
                                     }}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue
-                                            placeholder={loadingCountries ? "Loading…" : "Select country"}
-                                        />
+                                        <SelectValue placeholder={loadingCountries ? "Loading…" : "Select country"} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value={NONE}>None</SelectItem>
@@ -468,7 +501,68 @@ export default function TariffCalc() {
                                     </SelectContent>
                                 </Select>
                             </div>
+
+                            {/* From Year */}
+                            <div className="space-y-2">
+                                <Label>From Year</Label>
+                                <Select
+                                    value={String(yearFrom)}
+                                    onValueChange={(v) => {
+                                        const newFrom = v === NONE ? NONE : Number(v);
+                                        let newTo = yearTo === NONE ? NONE : Number(yearTo);
+                                        // enforce: To >= From
+                                        if (newTo !== NONE && newFrom !== NONE && newTo < newFrom) {
+                                            newTo = newFrom;
+                                            setYearTo(String(newTo));
+                                        }
+                                        setYearFrom(String(newFrom));
+                                        setPage(0);
+                                        setSearchTick((n) => n + 1); // auto-refresh
+                                    }}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Any" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value={NONE}>Any</SelectItem>
+                                        {YEARS.map((y) => (
+                                            <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* To Year */}
+                            <div className="space-y-2">
+                                <Label>To Year</Label>
+                                <Select
+                                    value={String(yearTo)}
+                                    onValueChange={(v) => {
+                                        const newTo = v === NONE ? NONE : Number(v);
+                                        let newFrom = yearFrom === NONE ? NONE : Number(yearFrom);
+                                        // enforce: To >= From
+                                        if (newFrom !== NONE && newTo !== NONE && newTo < newFrom) {
+                                            newFrom = newTo;
+                                            setYearFrom(String(newFrom));
+                                        }
+                                        setYearTo(String(newTo));
+                                        setPage(0);
+                                        setSearchTick((n) => n + 1); // auto-refresh
+                                    }}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Any" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value={NONE}>Any</SelectItem>
+                                        {YEARS.map((y) => (
+                                            <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
+
 
                         {/* Query + page size + Search */}
                         <div className="grid grid-cols-12 gap-4 items-end">
@@ -522,21 +616,22 @@ export default function TariffCalc() {
                                 <div className="p-4 text-sm text-muted-foreground">No results.</div>
                             )}
                             {results.content.map((row) => {
-                                const id = row.id ?? row.tariffId ?? row.tariffid;
+                                const rawId = row.id ?? row.tariffId ?? row.tariffid;
+                                const id = String(rawId); // ⬅️ normalize
                                 const normalized = {
                                     id,
-                                    descriptionwcountry:
-                                        row.descriptionwcountry ?? row.descriptionWCountry ?? row.description,
+                                    descriptionwcountry: row.descriptionwcountry ?? row.descriptionWCountry ?? row.description,
                                     category: row.category,
                                     advalorem: row.advalorem ?? row.adValorem,
                                     specificperunit: row.specificperunit ?? row.specificPerUnit,
                                     unitname: row.unitname ?? row.unitName,
                                 };
+                                const isActive = String(selected?.id) === id; // ⬅️ compare as strings
+
                                 return (
                                     <button
                                         key={id}
-                                        className={`w-full text-left p-3 hover:bg-muted/50 ${selected?.id === id ? "bg-muted/70" : ""
-                                            }`}
+                                        className={`w-full text-left p-3 hover:bg-muted/50 ${isActive ? "bg-muted/70" : ""}`}
                                         onClick={() => setSelected(normalized)}
                                     >
                                         <div className="flex justify-between">
@@ -573,7 +668,6 @@ export default function TariffCalc() {
                                 Next
                             </Button>
                         </div>
-
                         {searchError && (
                             <Alert variant="destructive">
                                 <AlertTitle>Search Error</AlertTitle>

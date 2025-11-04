@@ -21,9 +21,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tariff.tariff_backend.dto.TariffPatchDTO;
 import com.tariff.tariff_backend.model.dashboard.DashboardMetrics;
 import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
-import com.tariff.tariff_backend.model.dashboard.TariffPatchDTO;
 import com.tariff.tariff_backend.service.DashboardService;
 import com.tariff.tariff_backend.service.JwtService;
 
@@ -97,7 +97,7 @@ public class DashboardController {
         @Parameter(description = "Bearer token for admin authentication", required = true)
         @RequestHeader("Authorization") String authHeader,
         @Parameter(description = "ID of the tariff to update", required = true, example = "1")
-        @PathVariable Integer tariffid,
+        @PathVariable String tariffid,
         @Parameter(description = "Updated tariff data", required = true)
         @RequestBody TariffPatchDTO patchDTO) {
         if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
@@ -128,7 +128,7 @@ public class DashboardController {
         @Parameter(description = "Bearer token for admin authentication", required = true)
         @RequestHeader("Authorization") String authHeader,
         @Parameter(description = "ID of the tariff to delete", required = true, example = "1")
-        @PathVariable Integer tariffid) {
+        @PathVariable String tariffid) {
         if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have enough permissions.");
         }
@@ -154,9 +154,11 @@ public class DashboardController {
             @Parameter(description = "Number of items per page. Use 0 or negative for all results", example = "50")
             @RequestParam(defaultValue = "50") int size,
             @Parameter(description = "Filter by specific tariff ID", example = "123")
-            @RequestParam(name = "tariffid", required = false) Integer tariffId,
+            @RequestParam(name = "tariffid", required = false) String tariffId,
             @Parameter(description = "Search query for tariff description", example = "mobile data")
-            @RequestParam(name = "q", required = false) String descriptionQuery) {
+            @RequestParam(name = "q", required = false) String descriptionQuery,
+            @RequestParam(required = false) Integer fromYear,
+            @RequestParam(required = false) Integer toYear) {
         
         // Get all tariff data
         if (size <= 0) {
@@ -169,7 +171,7 @@ public class DashboardController {
         int safeSize = size > 0 ? size : 50;
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("tariffId").ascending());
         String trimmedQuery = descriptionQuery != null ? descriptionQuery.trim() : null;
-        DashboardMetrics metrics = dashboardService.getTariffs(tariffId, trimmedQuery, pageable);
+        DashboardMetrics metrics = dashboardService.getTariffs(tariffId, trimmedQuery, pageable, fromYear, toYear);
         return ResponseEntity.ok(metrics);
     }
 }

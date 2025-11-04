@@ -9,7 +9,7 @@ public record CalculateDutyResponse(
     Integer transactionId,
     
     @Schema(description = "ID of the tariff used in calculation", example = "12345")
-    Integer tariffId,
+    String tariffId,
     
     @Schema(description = "Total calculated duty amount", example = "1250.75")
     BigDecimal total

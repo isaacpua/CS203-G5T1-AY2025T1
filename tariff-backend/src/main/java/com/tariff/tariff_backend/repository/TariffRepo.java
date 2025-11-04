@@ -14,9 +14,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecificationExecutor<Tariff> {
+public interface TariffRepo extends JpaRepository<Tariff, String>, JpaSpecificationExecutor<Tariff> {
 
-  Optional<Tariff> findByTariffId(Integer tariffId);
+  Optional<Tariff> findByTariffId(String tariffId);
 
   List<Tariff> findByDescriptionwcountry(String descriptionwcountry);
 
@@ -37,33 +37,28 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecifica
 
   // ---------- SEARCH ----------
   @Query(value = """
-        SELECT t.*
-        FROM tariffs.tariff_new t
-        WHERE
-          (:fromId IS NULL OR t.partnercountry = :fromId)
-          AND (:toId   IS NULL OR t.reportercountry = :toId)
-          AND (
-               COALESCE(:q, '') = ''  -- no text filter if q is null/blank
-            OR t.descriptionwcountry ILIKE CONCAT('%', :q, '%')
-            OR CAST(t.tariffid AS TEXT) ILIKE CONCAT('%', :q, '%')
-          )
-        ORDER BY t.tariffid
+      SELECT * FROM tariffs.tariff_master t
+      WHERE (:fromId IS NULL OR t.partnercountry = :fromId)
+        AND (:toId   IS NULL OR t.reportercountry = :toId)
+        AND (:q IS NULL OR LOWER(t.descriptionwcountry) LIKE LOWER(CONCAT('%', :q, '%'))
+                        OR t.tariffid LIKE CONCAT('%', :q, '%'))
+        AND (:yearFrom IS NULL OR t.year >= :yearFrom)
+        AND (:yearTo   IS NULL OR t.year <= :yearTo)
       """, countQuery = """
-        SELECT COUNT(1)
-        FROM tariffs.tariff_new t
-        WHERE
-          (:fromId IS NULL OR t.partnercountry = :fromId)
-          AND (:toId   IS NULL OR t.reportercountry = :toId)
-          AND (
-               COALESCE(:q, '') = ''
-            OR t.descriptionwcountry ILIKE CONCAT('%', :q, '%')
-            OR CAST(t.tariffid AS TEXT) ILIKE CONCAT('%', :q, '%')
-          )
+      SELECT COUNT(*) FROM tariffs.tariff_master t
+      WHERE (:fromId IS NULL OR t.partnercountry = :fromId)
+        AND (:toId   IS NULL OR t.reportercountry = :toId)
+        AND (:q IS NULL OR LOWER(t.descriptionwcountry) LIKE LOWER(CONCAT('%', :q, '%'))
+                        OR t.tariffid LIKE CONCAT('%', :q, '%'))
+        AND (:yearFrom IS NULL OR t.year >= :yearFrom)
+        AND (:yearTo   IS NULL OR t.year <= :yearTo)
       """, nativeQuery = true)
   Page<Tariff> searchNative(
       @Param("fromId") Integer fromId,
       @Param("toId") Integer toId,
       @Param("q") String q,
+      @Param("yearFrom") Integer yearFrom,
+      @Param("yearTo") Integer yearTo,
       Pageable pageable);
 
   // ---------- DROPDOWNS ----------
@@ -71,7 +66,7 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecifica
   // FROM countries = distinct partnercountry present in tariffs
   @Query(value = """
       select distinct c.countryid as id, c.iso2, c.name
-      from tariffs.tariff_new t
+      from tariffs.tariff_master t
       join tariffs.country c on c.countryid = t.partnercountry
       order by c.name
       """, nativeQuery = true)
@@ -80,7 +75,7 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecifica
   // TO countries = distinct reportercountry, optionally filtered by chosen FROM
   @Query(value = """
       select distinct c.countryid as id, c.iso2, c.name
-      from tariffs.tariff_new t
+      from tariffs.tariff_master t
       join tariffs.country c on c.countryid = t.reportercountry
       where (:fromId is null or t.partnercountry = :fromId)
       order by c.name
@@ -90,16 +85,24 @@ public interface TariffRepo extends JpaRepository<Tariff, Integer>, JpaSpecifica
   // NEW: FROM countries filtered by chosen TO
   @Query(value = """
       select distinct c.countryid as id, c.iso2, c.name
-      from tariffs.tariff_new t
+      from tariffs.tariff_master t
       join tariffs.country c on c.countryid = t.partnercountry
       where (:toId is null or t.reportercountry = :toId)
       order by c.name
       """, nativeQuery = true)
   List<Object[]> availableFromRawByTo(@Param("toId") Integer toId);
 
-  Page<Tariff> findByTariffId(Integer tariffid, Pageable pageable);
+  Page<Tariff> findByTariffId(String tariffid, Pageable pageable);
 
   Page<Tariff> findByDescriptionwcountryContainingIgnoreCase(String q, Pageable pageable);
+
+  // NEW: year filters
+  Page<Tariff> findByYearBetween(int fromYear, int toYear, Pageable pageable);
+
+  Page<Tariff> findByYearBetweenAndDescriptionwcountryContainingIgnoreCase(int fromYear, int toYear, String q, Pageable pageable);
+
+  Page<Tariff> findByYearBetweenAndTariffId(int fromYear, int toYear, String tariffId, Pageable pageable);
+
   // ---------- Convenience DTO mappers ----------
 
   default List<CountryDTO> availableFrom() {

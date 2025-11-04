@@ -1,4 +1,4 @@
-package com.tariff.tariff_backend.model.dashboard;
+package com.tariff.tariff_backend.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class TariffPatchDTO {
     
     @Schema(description = "Unique tariff identifier", example = "12345")
-    private Integer tariffId;
+    private String tariffId;
     
     @Schema(description = "Product description including country-specific details", example = "Wheat flour - Canada to USA")
     private String descriptionwcountry;
@@ -46,4 +46,7 @@ public class TariffPatchDTO {
 
     @Schema(description = "Data source", example = "Government Gazette")
     private String datasource;
+
+    @Schema(description = "year sourced for the tariff data", example = "2002")
+    private Integer year;
 }
