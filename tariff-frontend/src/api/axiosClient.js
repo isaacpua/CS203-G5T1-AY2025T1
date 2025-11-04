@@ -159,4 +159,8 @@ export const updateForecast = async () => {
   return await mcpAxiosClient.post(`/forecast`);
 };
 
+export const loadLive = async () =>{
+  return await mcpAxiosClient.post("/data/live")
+};
+
 export default axiosClient;

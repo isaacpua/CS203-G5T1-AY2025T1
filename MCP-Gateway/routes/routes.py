@@ -1,11 +1,11 @@
-import os
-import json
+import os,json
 import logging
 import httpx
 from fastapi import APIRouter, HTTPException
 from fastmcp import Client
 import pandas as pd
 from sqlalchemy import create_engine
+from load_data import main as data
 
 logging.basicConfig(level=logging.INFO)
 BASE_URL = "http://127.0.0.1:8000"
@@ -130,3 +130,13 @@ async def analyze(url: str):
     except Exception as e:
         logging.error(f"Error details: {e}")
         raise HTTPException(status_code=404, detail=str(e))
+
+@router.post("/data/live")
+async def load_live_data():
+    try:
+        logging.info("Starting data load")
+        data.load_usitc_data()
+        return {"message": "Load completed"}
+    except Exception as e:
+        logging.error(f"Error loading live data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
