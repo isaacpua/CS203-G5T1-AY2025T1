@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import Markdown from 'markdown-to-jsx'; // <-- 1. Import the new library
+import Markdown from 'markdown-to-jsx';
 
-// Connect to your MCP-client server
-const socket = io("/chat"); //
+const socket = io({path:'/chat/socket.io'});
 // A unique ID for this chat session, you can make this more robust
 const CHAT_THREAD_ID = 'user_session_123'; //
 
@@ -98,7 +97,6 @@ function Chatbot() {
               py-2 px-3 rounded-lg inline-block text-left
               ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}
             `}>
-              {/* --- 2. This is the new part --- */}
               {msg.sender === 'user' ? (
                 msg.text // Keep user text plain
               ) : (

@@ -1,14 +1,10 @@
-import os
 import json
-import asyncio
 import uvicorn
 import socketio
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from typing import AsyncGenerator, Any, Dict, Optional
+from typing import AsyncGenerator
 
-# Import client files
-from src.graph import build_graph, AgentState  # Import from src/graph.py
+from src.graph import build_graph, AgentState
 from langchain_core.messages import HumanMessage, AIMessageChunk, ToolMessage
 from langgraph.graph import StateGraph
 from dotenv import load_dotenv
@@ -20,11 +16,6 @@ load_dotenv()
 compiled_graph = None
 client = None
 
-# -----------------------------------------------------------------
-# 1. MODIFIED STREAMING LOGIC
-# This function now yields a tuple: (event_type, content)
-# "ai" -> for frontend, "debug" -> for terminal
-# -----------------------------------------------------------------
 async def _stream_graph_logic(
     input_text: str, 
     graph: StateGraph, 
@@ -74,36 +65,11 @@ async def _stream_graph_logic(
             # Yield a "debug" event for the terminal
             yield ("debug", debug_msg)
 
-# -----------------------------------------------------------------
-# 2. SERVER SETUP
-# We create a FastAPI app and a Socket.IO server
-# -----------------------------------------------------------------
 
-# Allow all origins for simplicity. For production, restrict this
-# to your frontend's URL (e.g., "http://localhost:5173")
-sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
-
-# Standard FastAPI app
+sio = socketio.AsyncServer(async_mode="asgi")
 app = FastAPI()
 
-# Wrap the FastAPI app with the Socket.IO server
-sio_app = socketio.ASGIApp(socketio_server=sio, other_asgi_app=app)
 
-# Add CORS middleware to the FastAPI app itself
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Or restrict to "http://localhost:5173"
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# -----------------------------------------------------------------
-# 3. STARTUP LOGIC
-# This replaces the old `main` function.
-# It loads tools and builds the graph when the server starts.
-# -----------------------------------------------------------------
-@app.on_event("startup")
 async def startup_event():
     """
     Main function to load tools and build the graph.
@@ -137,17 +103,13 @@ async def startup_event():
     print("Chatbot graph compiled successfully.")
     print("\n--- Jarvis is online. Waiting for frontend connection... ---")
 
-# -----------------------------------------------------------------
-# 4. SOCKET.IO EVENT HANDLERS
-# These replace the old `while True:` terminal loop
-# -----------------------------------------------------------------
 
 @sio.event
-async def connect(sid, environ):
+async def connect(sid, environ, auth):
     print(f"[Socket.IO] Frontend connected: {sid}")
 
 @sio.event
-async def disconnect(sid):
+async def disconnect(sid, reason):
     print(f"[Socket.IO] Frontend disconnected: {sid}")
 
 @sio.event
@@ -192,16 +154,11 @@ async def chat_message(sid, data):
         await sio.emit('ai_response', {'chunk': f'An error occurred: {e}'}, to=sid)
         await sio.emit('ai_response_end', to=sid)
 
+sio_app = socketio.ASGIApp(socketio_server=sio, other_asgi_app=app, socketio_path="/chat/socket.io", on_startup=startup_event)
 
-# -----------------------------------------------------------------
-# 5. SERVER RUNNER
-# This starts the Uvicorn server
-# -----------------------------------------------------------------
 if __name__ == "__main__":
-    # Note: The startup_event() is automatically called by FastAPI/Uvicorn
-    # print("Starting Socket.IO server on http://127.0.0.1:8001")
     uvicorn.run(
-        sio_app, 
+        sio_app,
         host="0.0.0.0", 
         port=8001
     )
