@@ -35,7 +35,8 @@ const navigationItems = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Historical Explorer", path: "/historical" },
   { label: "Forecasts", path: "/forecast" },
-  { label: "MCPAssistant", path: "/chatbot" }
+  { label: "MCPAssistant", path: "/chatbot" },
+  { label: "Newsletter", path: "/newsletter"}
 ]
 
 export default function Header() {

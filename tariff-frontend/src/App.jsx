@@ -12,6 +12,7 @@ import LandingPage from './pages/LandingPage';
 import { AuthProvider } from './utils/AuthProvider';
 import ChatbotPage from './pages/Chatbot';
 import Forecast from './pages/Forecast';
+import Newsletter from './pages/Newsletter';
 
 function AppContent() {
 
@@ -56,6 +57,12 @@ function AppContent() {
                 <Route path="/chatbot" element={
                   <section className="container mx-auto py-8 md:py-12 lg:py-24">
                     <ChatbotPage />
+                  </section>
+                } />
+
+                <Route path="/newsletter" element={
+                  <section className="container mx-auto py-8 md:py-12 lg:py-24">
+                    <Newsletter />
                   </section>
                 } />
 
