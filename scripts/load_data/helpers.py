@@ -381,7 +381,10 @@ def process_csv(df: pd.DataFrame, year: int) -> pd.DataFrame:
             return 'SPECIFIC_PER_UNIT'
         else:  # both present
             return 'COMPOSITE'
-
+    result_df.loc[result_df['category'] == 'AD_VALOREM', 'specificperunit'] = np.nan
+    result_df.loc[result_df['category'] == 'SPECIFIC_PER_UNIT', 'advalorem'] = np.nan
+    result_df['advalorem'] = result_df['advalorem'].replace(0, np.nan)
+    result_df['specificperunit'] = result_df['specificperunit'].replace(0, np.nan)
     result_df['category'] = result_df.apply(categorize_tariff, axis=1)
 
     # Transform unitname column
