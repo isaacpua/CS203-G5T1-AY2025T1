@@ -36,9 +36,6 @@ public class CalculationService {
         if (request.tariffId() == null) {
             throw new IllegalArgumentException("tariffID is needed");
         }
-        if (request.customsValue() == null && request.quantity() == null) {
-            throw new IllegalArgumentException("Provide a Value and/or quantity");
-        }
 
         Tariff tariff = null; // getting tariffs
         try {
@@ -71,8 +68,13 @@ public class CalculationService {
         String category = tariff.getCategory().toLowerCase();
         BigDecimal inputValue = request.customsValue();
         BigDecimal quantity = request.quantity();
-
+        if (request.customsValue() == null && request.quantity() == null && !category.equals("free")) {
+            throw new IllegalArgumentException("Provide a Value and/or quantity");
+        }
         BigDecimal price = null;
+        if (category.equals("free")){
+            price = BigDecimal.ZERO;
+        }
         if (category.equals("ad_valorem")) {
             if (inputValue == null) {
                 throw new IllegalArgumentException("Please input a value");
