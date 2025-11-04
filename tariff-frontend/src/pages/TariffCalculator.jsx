@@ -30,6 +30,31 @@ export default function TariffCalc() {
             setAutoSelectId(String(statePrefill.tariffId));
         }
     }, [location.state]);
+    useEffect(() => {
+        // ⬅️ Block the fromId/toId effects from clearing selection
+        const pf = prefillRef.current;
+        if (!pf || prefillAppliedRef.current || prefillInFlightRef.current) return;
+        prefillInFlightRef.current = true;
+
+        const selectedFromPrefill = {
+            id: pf.tariffId,
+            descriptionwcountry: pf.descriptionwcountry ?? "",
+            category: (pf.category || "").toUpperCase(),
+            advalorem: pf.advalorem ?? null,
+            specificperunit: pf.specificperunit ?? null,
+            unitname: pf.unitname ?? "unit",
+        };
+
+        setSelected(selectedFromPrefill);
+        if (pf.customsValue != null) setDeclaredValue(String(pf.customsValue));
+        if (pf.quantity != null) setQuantity(String(pf.quantity));
+        if (typeof pf.save === "boolean") setSaveResult(pf.save);
+
+        // DO NOT set prefillAppliedRef here; let the resolver effect do it.
+        setQ(String(pf.tariffId));
+        setPage(0);
+        setSearchTick((n) => n + 1);
+    }, []); // real empty deps
 
     const [showRelogin, setShowRelogin] = useState(false);
 
@@ -172,6 +197,8 @@ export default function TariffCalc() {
     }, [fromOptions, toOptions]);
     /** When FROM changes */
     useEffect(() => {
+        if (prefillInFlightRef.current) return;  // ⬅️ add this
+
         setSelected(null);
         setResults({ content: [], totalPages: 0, number: 0, size, last: null });
         setComputeError("");
@@ -202,6 +229,8 @@ export default function TariffCalc() {
 
     /** When TO changes */
     useEffect(() => {
+        if (prefillInFlightRef.current) return;  // ⬅️ add this
+
         setSelected(null);
         setResults({ content: [], totalPages: 0, number: 0, size, last: null });
         setComputeError("");
@@ -587,21 +616,22 @@ export default function TariffCalc() {
                                 <div className="p-4 text-sm text-muted-foreground">No results.</div>
                             )}
                             {results.content.map((row) => {
-                                const id = row.id ?? row.tariffId ?? row.tariffid;
+                                const rawId = row.id ?? row.tariffId ?? row.tariffid;
+                                const id = String(rawId); // ⬅️ normalize
                                 const normalized = {
                                     id,
-                                    descriptionwcountry:
-                                        row.descriptionwcountry ?? row.descriptionWCountry ?? row.description,
+                                    descriptionwcountry: row.descriptionwcountry ?? row.descriptionWCountry ?? row.description,
                                     category: row.category,
                                     advalorem: row.advalorem ?? row.adValorem,
                                     specificperunit: row.specificperunit ?? row.specificPerUnit,
                                     unitname: row.unitname ?? row.unitName,
                                 };
+                                const isActive = String(selected?.id) === id; // ⬅️ compare as strings
+
                                 return (
                                     <button
                                         key={id}
-                                        className={`w-full text-left p-3 hover:bg-muted/50 ${selected?.id === id ? "bg-muted/70" : ""
-                                            }`}
+                                        className={`w-full text-left p-3 hover:bg-muted/50 ${isActive ? "bg-muted/70" : ""}`}
                                         onClick={() => setSelected(normalized)}
                                     >
                                         <div className="flex justify-between">
