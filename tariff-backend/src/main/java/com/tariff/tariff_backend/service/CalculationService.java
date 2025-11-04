@@ -85,17 +85,11 @@ public class CalculationService {
             if (quantity == null) {
                 throw new IllegalArgumentException("Please input a quantity");
             }
-            if (!isWholeNumber(quantity)) {
-                throw new IllegalArgumentException("Please put a whole number");
-            }
             price = quantity.multiply(specificPerUnit);
         }
         if (category.equals("composite")) {
             if (quantity == null) {
                 throw new IllegalArgumentException("Please input a quantity");
-            }
-            if (!isWholeNumber(quantity)) {
-                throw new IllegalArgumentException("Please put a whole number");
             }
             BigDecimal specPart = quantity.multiply(specificPerUnit);
             price = specPart.multiply(advalorem);
@@ -130,11 +124,5 @@ public class CalculationService {
         } 
         return new CalculateDutyResponse(null, tariff.getTariffId(), price); 
 
-    }
-
-    private static boolean isWholeNumber(BigDecimal n) {
-        if (n == null)
-            return false;
-        return n.stripTrailingZeros().scale() <= 0;
     }
 }
