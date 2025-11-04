@@ -70,7 +70,7 @@ public class TariffService {
     }
 
     // UPDATE
-    public Tariff updateTariff(Integer tariffId, Tariff patch) {
+    public Tariff updateTariff(String tariffId, Tariff patch) {
     Tariff existing = tariffRepo.findById(tariffId).orElseThrow(() -> new IllegalArgumentException("Tariff not found: " + tariffId));
     // Update fields
     existing.setTariffId(patch.getTariffId());
@@ -85,7 +85,7 @@ public class TariffService {
     }
 
     // DELETE
-    public void deleteTariff(Integer tariffId) {
-    tariffRepo.deleteById(tariffId);
+    public void deleteTariff(String tariffId) {
+        tariffRepo.deleteById(tariffId);
     }
 }

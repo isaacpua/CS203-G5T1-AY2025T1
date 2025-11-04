@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -14,9 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.tariff.tariff_backend.dto.CalculationDTO.TransactionLineDTO;
 import com.tariff.tariff_backend.model.User;
-import com.tariff.tariff_backend.model.tariffs_new.Country;
 import com.tariff.tariff_backend.model.tariffs_new.TransactionLine;
-import com.tariff.tariff_backend.repository.CountryRepo;
 import com.tariff.tariff_backend.repository.TransactionLineRepo;
 import com.tariff.tariff_backend.repository.UserRepo;
 
@@ -26,12 +23,10 @@ public class CalculatorHistoryService {
 
     private final TransactionLineRepo txRepo;
     private final UserRepo userRepo;
-    private final CountryRepo countryRepo;
 
-    public CalculatorHistoryService(TransactionLineRepo txRepo, UserRepo userRepo, CountryRepo countryRepo) {
+    public CalculatorHistoryService(TransactionLineRepo txRepo, UserRepo userRepo) {
         this.txRepo = txRepo;
         this.userRepo = userRepo;
-        this.countryRepo = countryRepo;
     }
 
     public List<TransactionLineDTO> viewHistory() {
@@ -80,82 +75,6 @@ public class CalculatorHistoryService {
         long rows = txRepo.deleteByTransactionIdAndUserId(id, user.getId());
         if (rows == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transaction not found");
-        }
-    }
-
-    public Map<String,Object> editOwn(Integer id, Map<String, Object> snapshotJson, Authentication auth){
-        String username = null;
-
-        if (auth != null) {
-            username = auth.getName();
-        }
-        if (username == null) {
-            throw new IllegalArgumentException("No authenticated user");
-        }
-
-        User user = null; // getting user
-        try {
-            user = userRepo.findByUsername(username).get();
-        } catch (NoSuchElementException e) {
-            throw new IllegalArgumentException("User not found: " + username);
-        }
-
-        Optional<TransactionLine> txCheck = txRepo.findByTransactionIdAndUserId(id,user.getId());
-        TransactionLine tx = null;
-        if (txCheck.isPresent()) {
-            tx = txCheck.get();
-        }
-        formatNumbers(snapshotJson, "total", "quantity", "tariffId", "adValorem", "customsValue", "specificPerUnit");
-        resolveCountryIds(snapshotJson);
-        tx.setSnapshot(snapshotJson);
-        txRepo.save(tx);
-        return tx.getSnapshot();
-
-    }
-
-    private void formatNumbers(Map<String, Object> snapshot, String... keys) { //convert string to int/double
-        for (String key : keys) {
-
-            // skip if the key is missing or null
-            if (!snapshot.containsKey(key) || snapshot.get(key) == null)
-                continue;
-
-            Object value = snapshot.get(key);
-
-            // already a number? skip
-            if (value instanceof Number)
-                continue;
-
-            // try to convert string → number
-            if (value instanceof String str && !str.isBlank()) {
-                try {
-                    // if the string has a decimal point, treat as Double; else Long
-                    Number numericValue = str.contains(".")
-                            ? Double.parseDouble(str)
-                            : Integer.parseInt(str);
-
-                    snapshot.put(key, numericValue);
-                } catch (NumberFormatException e) {
-                    // if it's not a valid number, just leave it as-is
-                    System.out.println("Skipping non-numeric value for key: " + key);
-                }
-            }
-        }
-    }
-
-    private void resolveCountryIds(Map<String, Object> snapshot) {
-        Object partnerName = snapshot.get("partnerCountry");
-        Object reporterName = snapshot.get("reporterCountry");
-
-        if (partnerName instanceof String){
-            List<Country> partner = countryRepo.findByName(partnerName.toString());
-            Integer partnerId = partner.get(0).getCountryId();
-            snapshot.put("partnerCountryId", partnerId);
-        }
-        if (reporterName instanceof String){
-            List<Country> reporter = countryRepo.findByName(reporterName.toString());
-            Integer reporterId = reporter.get(0).getCountryId();
-            snapshot.put("reporterCountrId", reporterId);
         }
     }
 }
