@@ -94,3 +94,23 @@ cd MCP-Gateway
 uv sync
 uv run main.py
 ```
+
+## MCP-client
+
+### macOS/Linux
+
+```sh
+cd MCP-client
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python run_client.py
+```
+
+```sh
+cd MCP-client
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python run_client.py
+```
