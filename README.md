@@ -108,7 +108,7 @@ python run_client.py
 ```
 
 ```sh
-cd MCP-Gateway
+cd MCP-client
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
