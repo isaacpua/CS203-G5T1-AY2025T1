@@ -287,7 +287,7 @@ async def chat_message(sid, data):
 # 6. SERVER RUNNER (Unchanged)
 # -----------------------------------------------------------------
 if __name__ == "__main__":
-    print("Starting Socket.IO server on http://127.00.1:8001")
+    print("Starting Socket.IO server on http://127.0.0.1:8001")
     uvicorn.run(
         sio_app, 
         host="127.0.0.1", 
