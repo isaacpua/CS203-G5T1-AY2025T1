@@ -29,9 +29,10 @@ load_dotenv()
 # --- Globals to hold the compiled graph and client ---
 compiled_graph = None
 client = None
+FILE_PARSE_TIMEOUT = 60.0
 
 # -----------------------------------------------------------------
-# 1. DEBUG-ENABLED STREAMING LOGIC
+# 1. DEBUG-ENABLED STREAMING LOGIC (Unchanged)
 # -----------------------------------------------------------------
 async def _stream_graph_logic(
     input_text: str, 
@@ -78,12 +79,14 @@ async def _stream_graph_logic(
             else:
                 debug_msg = f"[DEBUG-NEW] Running tool: {message_chunk.name}...\n"
                 print(f"[DEBUG-NEW] Tool {message_chunk.name} returned: {message_chunk.content[:200]}...")
+                # --- Yield a separate event for the frontend ---
+                yield ("tool_call", message_chunk.name)
             
             # Yield a "debug" event for the terminal
             yield ("debug", debug_msg)
 
 # -----------------------------------------------------------------
-# 2. FILE PARSING HELPER (from previous step)
+# 2. FILE PARSING HELPER (with robust PDF handling)
 # -----------------------------------------------------------------
 def parse_file_content(file_name: str, base64_data: str) -> str:
     """
@@ -97,11 +100,17 @@ def parse_file_content(file_name: str, base64_data: str) -> str:
         
         text_content = []
 
+        # --- MODIFIED: Added specific try/except for pypdf ---
         if extension == '.pdf':
-            reader = pypdf.PdfReader(file_stream)
-            for page in reader.pages:
-                text_content.append(page.extract_text())
-            return "\n".join(text_content)
+            try:
+                reader = pypdf.PdfReader(file_stream)
+                for page in reader.pages:
+                    text_content.append(page.extract_text() or "") # Add 'or ""' for blank pages
+                return "\n".join(text_content)
+            except Exception as pdf_error:
+                print(f"[ERROR] pypdf failed to parse {file_name}: {pdf_error}")
+                return f"[Error: Failed to parse PDF file '{file_name}'. It may be corrupted, password-protected, or have an unsupported format.]"
+        # --- END MODIFIED ---
 
         elif extension == '.docx':
             doc = docx.Document(file_stream)
@@ -136,17 +145,31 @@ def parse_file_content(file_name: str, base64_data: str) -> str:
             return f"[Error: Unsupported file type '{extension}'. Could not parse file.]"
 
     except Exception as e:
+        # This catches errors like Base64 decoding
         print(f"[ERROR] Failed to parse file {file_name}: {e}")
         return f"[Error: Could not read file {file_name}. It may be corrupted or an unsupported format.]"
 
 # -----------------------------------------------------------------
-# 3. SERVER SETUP (Unchanged)
+# 3. SERVER SETUP (with increased buffer size)
 # -----------------------------------------------------------------
-# Allow all origins for simplicity. For production, restrict this
-# to your frontend's URL (e.g., "http://localhost:5173")
-sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
+
+# --- MODIFIED: max_http_buffer_size moved here ---
+sio = socketio.AsyncServer(
+    async_mode="asgi", 
+    cors_allowed_origins="*",
+    max_http_buffer_size=200 * 1024 * 1024 # 200MB
+)
+# --- END MODIFIED ---
+
 app = FastAPI()
-sio_app = socketio.ASGIApp(socketio_server=sio, other_asgi_app=app)
+
+# --- MODIFIED: Removed the failing 'engineio_options' ---
+sio_app = socketio.ASGIApp(
+    socketio_server=sio, 
+    other_asgi_app=app
+)
+# --- END MODIFIED ---
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -190,7 +213,7 @@ async def startup_event():
     print("\n--- Jarvis is online. Waiting for frontend connection... ---")
 
 # -----------------------------------------------------------------
-# 5. SOCKET.IO EVENT HANDLERS (connect/disconnect)
+# 5. SOCKET.IO EVENT HANDLERS (Unchanged)
 # -----------------------------------------------------------------
 
 @sio.event
@@ -201,7 +224,6 @@ async def connect(sid, environ):
 async def disconnect(sid):
     print(f"[Socket.IO] Frontend disconnected: {sid}")
 
-# --- MODIFIED chat_message handler (with "one-shot" logic) ---
 @sio.event
 async def chat_message(sid, data):
     """
@@ -211,7 +233,6 @@ async def chat_message(sid, data):
         await sio.emit('ai_response', {'chunk': 'Error: Graph not initialized.'}, to=sid)
         return
 
-    # Receive base64 data
     user_input = data.get("message", "").strip()
     file_base64 = data.get("file_base64") 
     file_name = data.get("file_name")
@@ -224,17 +245,23 @@ async def chat_message(sid, data):
 
     final_input = user_input
     
-    # Use the new parser
     if file_base64 and file_name:
         print(f"[Context] Receiving file: {file_name}. Parsing...")
         
-        # Run the CPU-bound parsing in a separate thread
         try:
             loop = asyncio.get_running_loop()
-            extracted_text = await loop.run_in_executor(
-                None, parse_file_content, file_name, file_base64
+            extracted_text = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None, parse_file_content, file_name, file_base64
+                ),
+                timeout=FILE_PARSE_TIMEOUT
             )
             print(f"[Context] File parsed successfully. ({len(extracted_text)} chars)")
+        
+        except asyncio.TimeoutError:
+            print(f"[ERROR] File parsing timed out for {file_name}")
+            extracted_text = f"[Error: File parsing timed out after {FILE_PARSE_TIMEOUT} seconds. The file may be too large or complex.]"
+        
         except Exception as e:
             print(f"[ERROR] File parsing failed in executor: {e}")
             extracted_text = f"[Error: Failed to process file {file_name}.]"
@@ -250,14 +277,12 @@ async def chat_message(sid, data):
             f"My question is: {user_input if user_input else f'Please analyze the file {file_name}'}"
         )
         
-        # This is a file upload, use a temporary "one-shot" thread
         temp_thread_id = f"oneshot_{sid}_{int(time.time())}"
         run_config = {"configurable": {"thread_id": temp_thread_id}}
         print(f"\n[Request from {sid}] User: {user_input}")
         print(f"[Request from {sid}] File: {file_name}")
         print(f"[Thread] Using temporary 'one-shot' thread: {temp_thread_id}")
     else:
-        # This is a normal message. Use the persistent thread.
         run_config = {"configurable": {"thread_id": persistent_thread_id}}
         print(f"\n[Request from {sid}] User: {user_input}")
         print(f"[Thread] Using persistent thread: {persistent_thread_id}")
@@ -265,15 +290,16 @@ async def chat_message(sid, data):
     print("Jarvis: ...")
 
     try:
-        # This now calls YOUR version of _stream_graph_logic
         async for event_type, content in _stream_graph_logic(final_input, compiled_graph, run_config):
             
             if event_type == "ai":
                 await sio.emit('ai_response', {'chunk': content}, to=sid)
             
             elif event_type == "debug":
-                # This will now print your [DEBUG-...] messages
                 print(content.strip())
+
+            elif event_type == "tool_call":
+                await sio.emit('tool_call', {'tool_name': content}, to=sid)
         
         await sio.emit('ai_response_end', to=sid)
         print("[Jarvis] Response stream complete.")
