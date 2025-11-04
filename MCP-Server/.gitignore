@@ -142,3 +142,6 @@ __pychache
 
 # --- Mac OS ---
 .DS_Store
+
+credentials.json
+token.json

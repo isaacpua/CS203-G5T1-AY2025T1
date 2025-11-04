@@ -31,11 +31,6 @@ crawler_strategy = AsyncPlaywrightCrawlerStrategy(
 )
 
 
-response = {
-    "success": None,
-    "error": None,
-    "markdown": None
-}
 
 
 async def newsletter_scrape() -> dict:
@@ -47,6 +42,12 @@ async def newsletter_scrape() -> dict:
         Dict with the success state, and error message or response markdown text for
         the various news items and the respective links to those articles
     """
+    
+    response = {
+        "success": None,
+        "error": None,
+        "markdown": None
+    }
 
     url = "https://finance.yahoo.com/topic/tariffs/"
 
@@ -85,6 +86,7 @@ async def newsletter_scrape() -> dict:
                 raise Exception(f"{result.error_message}")
 
             # successful crawl
+            print("Crawl success!")
             markdown = result.markdown.raw_markdown
             markdown = re.split("## Tariffs", markdown)[1]
             markdown = re.split(
@@ -116,6 +118,13 @@ async def single_URL_scrape(url: str) -> dict:
 
     """
 
+    response = {
+        "success": None,
+        "error": None,
+        "markdown": None
+    }
+
+    
     try:
         # Create MD Generator
         prune_filter = PruningContentFilter(
@@ -157,6 +166,7 @@ async def single_URL_scrape(url: str) -> dict:
                 raise Exception(f"{result.error_message}")
 
             # successful crawl
+            print("Crawl success!")
             markdown = result.markdown.fit_markdown
 
             response["success"] = True
