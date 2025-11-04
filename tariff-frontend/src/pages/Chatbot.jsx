@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import Markdown from 'markdown-to-jsx'; // <-- 1. Import the new library
 
 // Connect to your MCP-client server
-const socket = io('http://127.0.0.1:8001'); //
+const socket = io("/chat"); //
 // A unique ID for this chat session, you can make this more robust
 const CHAT_THREAD_ID = 'user_session_123'; //
 

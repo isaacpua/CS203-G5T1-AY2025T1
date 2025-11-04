@@ -199,9 +199,9 @@ async def chat_message(sid, data):
 # -----------------------------------------------------------------
 if __name__ == "__main__":
     # Note: The startup_event() is automatically called by FastAPI/Uvicorn
-    print("Starting Socket.IO server on http://127.0.0.1:8001")
+    # print("Starting Socket.IO server on http://127.0.0.1:8001")
     uvicorn.run(
         sio_app, 
-        host="127.0.0.1", 
+        host="0.0.0.0", 
         port=8001
     )

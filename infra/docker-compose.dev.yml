@@ -1,7 +1,46 @@
-name: TARIFIC
+name: tarific
 
 services:
-  backend:
+  mcp_chatbot_backend:
+    container_name: mcp-chatbot
+    build:
+      context: ../MCP-client
+      dockerfile: Dockerfile.dev
+    expose:
+      - "8001"
+    env_file:
+      - ../MCP-client/.env
+    restart: on-failure
+    networks:
+      - tariff-network
+
+  mcp_gateway_backend:
+    container_name: mcp-gateway
+    build:
+      context: ../MCP-Gateway
+      dockerfile: Dockerfile.dev
+    expose:
+      - "8090"
+    env_file:
+      - ../MCP-Gateway/.env
+    restart: on-failure
+    networks:
+      - tariff-network
+
+  mcp_server_backend:
+    container_name: mcp-server
+    build:
+      context: ../MCP-Server
+      dockerfile: Dockerfile.dev
+    expose:
+      - "8000"
+    env_file:
+      - ../MCP-Server/.env
+    restart: on-failure
+    networks:
+      - tariff-network
+
+  spring_boot_backend:
     container_name: tariff-backend
     build:
       context: ../tariff-backend
@@ -24,8 +63,11 @@ services:
       # - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - backend
+    # depends_on:
+    #   - spring_boot_backend
+    #   - mcp_server_backend
+    #   - mcp_gateway_backend
+    #   - mcp_chatbot_backend
     networks:
       - tariff-network
 
