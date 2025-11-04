@@ -1,20 +1,37 @@
-# --- Stage 1: Builder (with shell, Python, and uv) ---
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS builder
+# --- Stage 1: Base with system deps ---
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS base
 
+RUN apt-get update && \
+    apt-get install -y \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libatspi2.0-0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libxkbcommon0 \
+    libpango-1.0-0 \
+    libxshmfence1 \
+    libgtk-3-0 \
+    libnss3 \
+    libdrm2 \
+    libgbm1 \
+    libasound2 && \
+    rm -rf /var/lib/apt/lists/*
+
+# --- Stage 2: Builder ---
+FROM base AS builder
 WORKDIR /app
 COPY . .
-
-# Create virtual environment and install dependencies
 RUN uv venv
 RUN uv pip install -r requirements.txt
 RUN . .venv/bin/activate && crawl4ai-setup
 
-# --- Stage 2: Runtime (minimal) ---
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm
-
+# --- Stage 3: Runtime ---
+FROM base
 WORKDIR /app
 COPY --from=builder /app /app
+COPY --from=builder /root/.cache/ms-playwright/ /root/.cache/ms-playwright/
 COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
-
 EXPOSE 8000
 ENTRYPOINT ["uv", "run", "main.py"]
