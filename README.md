@@ -22,6 +22,10 @@ cd tariff-backend
 
 ## MCP-Server
 
+### Required Files
+- credentials.json — OAuth 2.0 credentials for the email service
+- token.json — Generated after first authentication
+
 ### macOS/Linux
 
 ```sh
@@ -53,6 +57,13 @@ uv pip install -r requirements.txt
 uv run main.py
 ```
 
+### crawl4ai setup
+Within venv, run:
+```sh
+playwright install
+crawl4ai-setup
+```
+
 ## MCP-Gateway
 
 ### macOS/Linux
@@ -82,4 +93,24 @@ cd MCP-Gateway
 # "sync" works because MCP-Gateway is a uv project
 uv sync
 uv run main.py
+```
+
+## MCP-client
+
+### macOS/Linux
+
+```sh
+cd MCP-client
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python run_client.py
+```
+
+```sh
+cd MCP-client
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python run_client.py
 ```

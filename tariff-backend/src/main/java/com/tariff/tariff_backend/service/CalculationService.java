@@ -36,9 +36,6 @@ public class CalculationService {
         if (request.tariffId() == null) {
             throw new IllegalArgumentException("tariffID is needed");
         }
-        if (request.customsValue() == null && request.quantity() == null) {
-            throw new IllegalArgumentException("Provide a Value and/or quantity");
-        }
 
         Tariff tariff = null; // getting tariffs
         try {
@@ -71,8 +68,13 @@ public class CalculationService {
         String category = tariff.getCategory().toLowerCase();
         BigDecimal inputValue = request.customsValue();
         BigDecimal quantity = request.quantity();
-
+        if (request.customsValue() == null && request.quantity() == null && !category.equals("free")) {
+            throw new IllegalArgumentException("Provide a Value and/or quantity");
+        }
         BigDecimal price = null;
+        if (category.equals("free")){
+            price = BigDecimal.ZERO;
+        }
         if (category.equals("ad_valorem")) {
             if (inputValue == null) {
                 throw new IllegalArgumentException("Please input a value");
@@ -83,17 +85,11 @@ public class CalculationService {
             if (quantity == null) {
                 throw new IllegalArgumentException("Please input a quantity");
             }
-            if (!isWholeNumber(quantity)) {
-                throw new IllegalArgumentException("Please put a whole number");
-            }
             price = quantity.multiply(specificPerUnit);
         }
         if (category.equals("composite")) {
             if (quantity == null) {
                 throw new IllegalArgumentException("Please input a quantity");
-            }
-            if (!isWholeNumber(quantity)) {
-                throw new IllegalArgumentException("Please put a whole number");
             }
             BigDecimal specPart = quantity.multiply(specificPerUnit);
             price = specPart.multiply(advalorem);
@@ -128,11 +124,5 @@ public class CalculationService {
         } 
         return new CalculateDutyResponse(null, tariff.getTariffId(), price); 
 
-    }
-
-    private static boolean isWholeNumber(BigDecimal n) {
-        if (n == null)
-            return false;
-        return n.stripTrailingZeros().scale() <= 0;
     }
 }

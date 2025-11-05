@@ -692,12 +692,38 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
   };
 
   const viewInCalculator = () => {
-    const tariffId = getValidTariffId();
+    if (!data) return;
+
+    const tariffId = String(data.tariffIdDisplay ?? data.tariffid ?? "").trim();
     if (!tariffId) return;
-    // Use state for prefill instead of query params if possible, depends on Calculator logic
-    // For simplicity, sticking to query param as in original code
-    navigate(`/calculator`, { state: { prefill: { tariffId: String(tariffId) } } });
-    onClose(); // Close modal after navigating
+
+    const payload = {
+      // identify/select
+      tariffId,
+
+      // meta for right pane (use lowercase keys to match Calculator's selected object)
+      descriptionwcountry: data.descriptionwcountry ?? data.description ?? "",
+      category: (data.category || "").toUpperCase(),
+      advalorem: data.adValorem ?? data.advalorem ?? null,
+      specificperunit: data.specificPerUnit ?? data.specificperunit ?? null,
+      unitname: data.unitname ?? data.unitName ?? null,
+
+      // countries (names; Calculator will resolve IDs)
+      partnerCountry: data.partnerCountry ?? null,
+      reporterCountry: data.reporterCountry ?? null,
+      fromId: null,
+      toId: null,
+
+      // inputs (none for now; user will type)
+      customsValue: null,
+      quantity: null,
+
+      // other flags
+      save: false,
+    };
+
+    navigate("/calculator", { state: { prefill: payload } });
+    onClose();
   };
 
   const viewInHistorical = () => {
