@@ -162,5 +162,8 @@ export const updateForecast = async () => {
 export const loadLive = async () =>{
   return await mcpAxiosClient.post("/data/live")
 };
+export const getNewsletter = async () => {
+  return await mcpAxiosClient.get(`/newsletter`)
+}
 
 export default axiosClient;

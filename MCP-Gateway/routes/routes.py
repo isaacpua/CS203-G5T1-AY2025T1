@@ -6,6 +6,7 @@ from fastmcp import Client
 import pandas as pd
 from sqlalchemy import create_engine
 from load_data import main as data
+import datetime
 
 logging.basicConfig(level=logging.INFO)
 BASE_URL = "http://127.0.0.1:8000"
@@ -84,15 +85,45 @@ async def forecast_tariffs():
 async def get_newsletter():
     try:
         async with client:
+            try:
+                with open("data/newsletter.json", "r", encoding="utf-8") as file:
+                    print("Reading stored newsletter")
+                    curr_newsletter_json = json.load(file)
+                if datetime.datetime.strptime(curr_newsletter_json["date"], "%d/%m/%Y").date() == datetime.date.today():
+                    print("Stored newsletter is updated! Returning that...")
+                    response = {
+                        "success": True,
+                        "error": None,
+                        "markdown": curr_newsletter_json["content"]
+                    }
+                    # print(response)
+                    return response
+                else:
+                    print("Stored newsletter is old!")
+            except(FileNotFoundError, json.JSONDecodeError, KeyError, ValueError):
+                print("Failed to read stored newsletter or date")
+
+
             logging.info(f"Calling newsletter tool on {MCP_SERVER_URL} ...")
             mcp_response = await client.call_tool("newsletter_scrape")
             logging.info(f"Successfully called newsletter tool!")
-
             response = json.loads(mcp_response.content[0].text)
-            print(response)
+            # print(response)
+
 
             if not response["success"]:
                 raise Exception(response["error"])
+
+
+            print("Creating newsletter json...")
+            new_newsletter_json = {
+                "date": datetime.date.today().strftime("%d/%m/%Y"),
+                "content": response["markdown"]
+            }
+            with open("data/newsletter.json", "w", encoding="utf-8") as file:
+                print("Writing today's Newsletter to file...")
+                json.dump(new_newsletter_json, file, indent = 4)
+
 
             return response
         
