@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getNewsletter } from "@/api/axiosClient";
+import { getNewsletter, getMailingList, saveMailingList, sendNewsletter } from "@/api/axiosClient";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from "@/components/ui/button";
@@ -21,9 +21,6 @@ function splitIntoItems(md) {
 // --- Helper to validate emails ---
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const isValidEmail = (email) => emailRegex.test(email);
-
-// --- Gateway URL constant ---
-const GATEWAY_URL = "http://127.0.0.1:8090/mcp/api/v1";
 
 function Newsletter() {
   const [grid, setGrid] = useState(null);
@@ -61,12 +58,12 @@ function Newsletter() {
         setError(err); // Only set main error for newsletter load fail
       });
 
-    const fetchMailingList = fetch(`${GATEWAY_URL}/newsletter/mailinglist`)
-      .then(res => res.json())
-      .then(data => {
+    const fetchMailingList = getMailingList()
+      .then(res => {
         if (!mounted) return;
-        if (data.recipients && Array.isArray(data.recipients)) {
-          setMailingList(data.recipients);
+        // axios wraps the response in a .data object
+        if (res.data.recipients && Array.isArray(res.data.recipients)) {
+          setMailingList(res.data.recipients);
         }
       })
       .catch(err => {
@@ -100,7 +97,6 @@ function Newsletter() {
     }
   };
 
-  // --- UPDATED: Added ';' to the trigger keys ---
   const handleEmailInputKeyDown = (e) => {
     if (['Enter', ' ', ',', ';'].includes(e.key)) {
       e.preventDefault();
@@ -124,31 +120,30 @@ function Newsletter() {
   const handleSaveList = async () => {
     setIsSaving(true);
     setSaveResult(null);
+    let success = false;
     try {
-      const response = await fetch(`${GATEWAY_URL}/newsletter/mailinglist`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${localStorage.getItem("accessToken")}` // Add if needed
-        },
-        body: JSON.stringify({ recipients: mailingList })
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.detail || "Failed to save.");
+      const res = await saveMailingList(mailingList);
+      const result = res.data; // axios wraps response in .data
+
+      if (result.status !== 'success') throw new Error(result.message || "Failed to save.");
       
       setSaveResult({ status: 'success', message: 'Mailing list saved!' });
+      success = true;
     } catch (err) {
-      setSaveResult({ status: 'error', message: err.message });
+      // --- Axios error handling ---
+      const message = err.response?.data?.detail || err.message || "Failed to save.";
+      setSaveResult({ status: 'error', message: message });
+      // --- END REFACTOR ---
     } finally {
       setIsSaving(false);
-      if (!err) {
+      if (success) {
         setTimeout(() => setSaveResult(null), 3000);
       }
     }
   };
 
 
-  // --- Handler for sending the newsletter ---
+  // --- Handler for sending the newsletter  ---
   const handleSendNewsletter = async () => {
     setIsSending(true);
     setSendResult(null);
@@ -167,19 +162,10 @@ function Newsletter() {
     }
 
     try {
-      const response = await fetch(`${GATEWAY_URL}/newsletter/send`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${localStorage.getItem("accessToken")}` // Add if needed
-        },
-        body: JSON.stringify({
-          markdown_content: rawMarkdown
-        })
-      });
+      const res = await sendNewsletter(rawMarkdown);
+      const result = res.data; // axios wraps response in .data
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.detail || "An unknown error occurred.");
+      if (result.status !== 'complete') throw new Error(result.detail || "An unknown error occurred.");
 
       setSendResult({ 
         status: 'success', 
@@ -188,7 +174,9 @@ function Newsletter() {
 
     } catch (err) {
       console.error("Failed to send newsletter:", err);
-      setSendResult({ status: 'error', message: err.message || "Failed to connect to the server." });
+      // --- Axios error handling ---
+      const message = err.response?.data?.detail || err.message || "Failed to connect to the server.";
+      setSendResult({ status: 'error', message: message });
     } finally {
       setIsSending(false);
     }
@@ -208,7 +196,6 @@ function Newsletter() {
         </p>
       </header>
       
-      {/* --- MODIFIED: Collapsible Mailing List UI --- */}
       <div className="max-w-2xl mx-auto bg-card text-card-foreground p-6 rounded-lg shadow-md border border-border mb-12">
         <h2 className="text-xl font-semibold mb-4">Send Newsletter Digest</h2>
         <div className="space-y-4">
