@@ -143,16 +143,16 @@ async def send_email(to_email: str, subject: Optional[str] = None, body: Optiona
     return await send_email_logic(to_email, final_subject, final_body)
 
 @mcp.tool(name="analyze_article")
-async def analyze_article(md: str) -> dict:
+async def analyze_article(input: str) -> dict:
     """
-    The tool for analyzing tariff articles. Send the provided markdown string of an 
+    The tool for analyzing tariff articles. Send the provided string of an 
     article related to tariffs to OpenAI and return a concise analysis.
 
     Args:
-        md: A string of the markdown of the article to analyze
+        input: A string of the markdown of the article to analyze
 
     Returns:
         Dict with the success state, and error message or response markdown text for
         the analysis of the article.
     """
-    return await analyze(md)
+    return await analyze(input)

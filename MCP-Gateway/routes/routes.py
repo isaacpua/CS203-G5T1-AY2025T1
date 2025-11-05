@@ -149,7 +149,7 @@ async def analyze(url: str):
             md = response["markdown"]
 
             logging.info(f"Calling analyze tool on {MCP_SERVER_URL} ...")
-            mcp_response = await client.call_tool("analyze_article", {"md": md})
+            mcp_response = await client.call_tool("analyze_article", {"input": md})
             response = json.loads(mcp_response.content[0].text)
             print(response)
 
