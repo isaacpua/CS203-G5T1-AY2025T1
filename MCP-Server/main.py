@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from mcp_server import mcp as mcp_server
+from tools.historical_viewer import historical_viewer_tool
 
 mcp_app = mcp_server.http_app()
 
@@ -12,6 +13,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.include_router(historical_viewer_tool.router)
 
 app.mount("/", mcp_app)
 
