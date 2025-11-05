@@ -2,11 +2,15 @@ import os
 import json
 import logging
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from fastmcp import Client
 import pandas as pd
 from sqlalchemy import create_engine
 import datetime
+import asyncio  # <-- NEW
+from pydantic import BaseModel, Field  # <-- NEW
+from typing import List  # <-- NEW
+from openai import OpenAI  # <-- NEW
 
 logging.basicConfig(level=logging.INFO)
 BASE_URL = "http://127.0.0.1:8000"
@@ -19,6 +23,39 @@ DB_CONFIG = {
 
 router = APIRouter(prefix="/mcp/api/v1")
 client = Client(MCP_SERVER_URL)
+
+
+class NewsletterRequest(BaseModel):
+    markdown_content: str = Field(..., description="The full raw markdown content of the newsletter.")
+    recipients: List[str] = Field(..., description="A list of email addresses to send the newsletter to.")
+
+async def summarize_newsletter(content: str) -> str:
+    """
+    Uses OpenAI to summarize the newsletter markdown into a plain-text email body.
+    """
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        logging.error("OPENAI_API_KEY is not set.")
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not set.")
+
+    try:
+        # Run the blocking OpenAI call in a separate thread
+        def blocking_openai_call():
+            client = OpenAI(api_key=api_key)
+            completion = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are an assistant that summarizes daily newsletter markdown into a concise, plain-text email body for a mailing list. Since it is plain text, provide the urls if any after each point.Do not give me an email template, the start of email should be \"Dear Users\", and the end will be \"Best Regards, TARIFF\". Focus on the key news items. Do not use markdown in your output."},
+                    {"role": "user", "content": f"Summarize this newsletter:\n\n{content}"}
+                ]
+            )
+            return completion.choices[0].message.content
+
+        summary = await asyncio.to_thread(blocking_openai_call)
+        return summary
+    except Exception as e:
+        logging.error(f"OpenAI Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to summarize content with OpenAI: {e}")
 
 
 @router.get("/greet")
@@ -130,7 +167,104 @@ async def get_newsletter():
     except Exception as e:
         logging.error(f"Error details: {e}")
         raise HTTPException(status_code=404, detail=str(e))
+
+@router.post("/newsletter/send")
+async def send_newsletter(request: NewsletterRequest = Body(...)):
+    """
+    This endpoint orchestrates the newsletter sending process:
+    1. Summarizes the markdown content using OpenAI.
+    2. Sends the summary to each recipient using the MCP-Server's email tool.
+    """
+    if not request.recipients:
+        raise HTTPException(status_code=400, detail="No recipients provided.")
     
+    if not request.markdown_content:
+        raise HTTPException(status_code=400, detail="No markdown content provided.")
+
+    # Step 1: Summarize the content
+    logging.info("Summarizing newsletter content...")
+    try:
+        email_body = await summarize_newsletter(request.markdown_content)
+        subject = "Your Daily Tariff Newsletter Digest"
+    except HTTPException as e:
+        return e # Re-raise the exception from the helper
+    
+    logging.info("Summary complete. Starting email dispatch...")
+
+    # Step 2: Send emails concurrently using the existing global client
+    tasks = []
+    try:
+        async with client:
+            for email in request.recipients:
+                # Create a payload for the 'send_email' tool
+                #
+                tool_payload = {
+                    "to_email": email,
+                    "subject": subject,
+                    "body": email_body
+                }
+                # Add the coroutine to the task list
+                tasks.append(client.call_tool("send_email", tool_payload))
+            
+            # Run all email-sending tasks concurrently
+            mcp_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    except Exception as e:
+        logging.error(f"Error connecting to MCP server: {e}")
+        raise HTTPException(status_code=503, detail=f"Failed to connect to MCP-Server: {e}")
+    
+    logging.info("Email dispatch complete. Compiling results...")
+
+    # Step 3: Report results
+    dispatch_results = []
+    success_count = 0
+    
+    for email, result in zip(request.recipients, mcp_results):
+        if isinstance(result, Exception):
+            # Error calling the tool itself (e.g., timeout, MCP error)
+            dispatch_results.append({
+                "email": email, 
+                "status": "error", 
+                "detail": f"Task failed: {result}"
+            })
+        else:
+            try:
+                # The tool call succeeded, now parse its JSON response
+                # This follows your pattern from /newsletter and /analyze
+                tool_output = json.loads(result.content[0].text) 
+                
+                # Check the 'status' from the gmail_tool.py
+                #
+                if tool_output.get("status") == "success":
+                    success_count += 1
+                    dispatch_results.append({
+                        "email": email, 
+                        "status": "success", 
+                        "message_id": tool_output.get("message_id")
+                    })
+                else:
+                    # The tool ran but returned an error (e.g., auth failed)
+                    dispatch_results.append({
+                        "email": email, 
+                        "status": "error", 
+                        "detail": tool_output.get("detail", "Unknown error from email tool")
+                    })
+            except Exception as e:
+                 # The tool returned something that wasn't valid JSON
+                 dispatch_results.append({
+                    "email": email, 
+                    "status": "error", 
+                    "detail": f"Failed to parse tool response: {e}"
+                })
+
+    failed_count = len(request.recipients) - success_count
+    
+    return {
+        "status": "complete",
+        "total_sent": success_count,
+        "total_failed": failed_count,
+        "dispatch_results": dispatch_results
+    }
 
 
 @router.get("/analyze")
