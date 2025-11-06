@@ -1,5 +1,5 @@
 // src/test/java/com/tariff/tariff_backend/security/SecurityComponentsTest.java
-package com.tariff.tariff_backend.security; // <-- Correct package (lowercase 's')
+package com.tariff.tariff_backend.security;
 
 import java.util.Collections;
 
@@ -22,7 +22,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails; // Added for the last test
+import org.springframework.security.core.userdetails.UserDetails; 
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 import com.tariff.tariff_backend.service.JwtService;
@@ -72,28 +72,7 @@ class SecurityComponentsTest {
 
         verify(userDetailsService, times(1)).loadUserByUsername("testuser");
     }
-    
-    // @Test
-    // void testJwtFilter_ValidToken_CacheHit() throws Exception {
-    //     MockHttpServletRequest request = new MockHttpServletRequest();
-    //     request.addHeader("Authorization", "Bearer valid.token.jwt");
-    //     MockHttpServletResponse response = new MockHttpServletResponse();
-    //     MockFilterChain filterChain = new MockFilterChain();
 
-    //     UserDetails userDetails = new User("testuser", "pass", Collections.emptyList());
-
-    //     when(jwtService.extractUsername("valid.token.jwt")).thenReturn("testuser");
-    //     when(userDetailsService.loadUserByUsername("testuser")).thenReturn(userDetails);
-    //     when(jwtService.isTokenValid("valid.token.jwt", userDetails)).thenReturn(true);
-
-    //     // First call (cache miss)
-    //     jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
-    //     // Second call (cache hit)
-    //     jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
-
-    //     // Should still only be called once due to cache
-    //     verify(userDetailsService, times(1)).loadUserByUsername("testuser");
-    // }
 
     @Test
     void testJwtFilter_NoToken() throws Exception {

@@ -276,26 +276,6 @@ class UserManagementControllerTest {
                 .andExpect(status().isInternalServerError()) // 500
                 .andExpect(jsonPath("$").value("Internal Server Error"));
     }
-    
-    // --- New tests for PUT /{id}/username ---
-
-    // @Test
-    // @WithMockUser(username = "test-user")
-    // public void updateUsername_Success() throws Exception {
-    //     UUID id = UUID.randomUUID();
-    //     UsernameUpdateDTO dto = new UsernameUpdateDTO("newName");
-
-    //     when(jwtService.extractUsername(any())).thenReturn("test-user");
-    //     when(userManagementService.updateUsername(any(), any(), any()))
-    //         .thenReturn(new UsernameUpdateResponse("newName", "Success"));
-
-    //     mockMvc.perform(put("/api/v1/users/{id}/username", id)
-    //             .header("Authorization", "Bearer fake-token")
-    //             .contentType(MediaType.APPLICATION_JSON)
-    //             .content(objectMapper.writeValueAsString(dto)))
-    //             .andExpect(status().isOk())
-    //             .andExpect(jsonPath("$.newUsername").value("newName"));
-    // }
 
     @Test
     @WithMockUser(username = "test-user")

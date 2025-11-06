@@ -30,8 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({
     SecurityConfiguration.class, 
     CorsConfig.class,
-    JwtAuthenticationEntryPoint.class,  // <-- ADD THIS
-    JwtAuthenticationFilter.class       // <-- ADD THIS
+    JwtAuthenticationEntryPoint.class, 
+    JwtAuthenticationFilter.class 
 })public class AuthenticationControllerTest {
 
     @Autowired
