@@ -6,6 +6,8 @@ services:
     build:
       context: ../MCP-client
       dockerfile: Dockerfile.dev
+      args:
+        BASE_URL: "http://mcp-server-backend:8000"
     expose:
       - "8001"
     env_file:

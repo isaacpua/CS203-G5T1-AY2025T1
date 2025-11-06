@@ -26,22 +26,25 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 
 load_dotenv()
 
+MCP_SERVER_URL = f"{os.getenv("BASE_URL", "http://127.0.0.1:8000")}/mcp"
+
 # --- Globals to hold the compiled graph and client ---
 compiled_graph = None
 client = None
 FILE_PARSE_TIMEOUT = 60.0
 
+
 async def _stream_graph_logic(
-    input_text: str, 
-    graph: StateGraph, 
+    input_text: str,
+    graph: StateGraph,
     config: dict
 ) -> AsyncGenerator[tuple[str, str], None]:
     """
     Internal streaming logic that yields structured events.
     """
-    
+
     try:
-        current_state = graph.get_state(config) 
+        current_state = graph.get_state(config)
         if current_state and current_state.values and "messages" in current_state.values:
             old_message_ids = {m.id for m in current_state.values["messages"]}
         else:
@@ -49,9 +52,9 @@ async def _stream_graph_logic(
     except Exception as e:
         print(f"[WARN] No prior state or error getting state: {e}")
         old_message_ids = set()
-    
+
     input_state = AgentState(messages=[HumanMessage(content=input_text)])
-    
+
     async for message_chunk, metadata in graph.astream(
         input=input_state,
         stream_mode="messages",
@@ -72,19 +75,22 @@ async def _stream_graph_logic(
             is_old_memory = message_chunk.id in old_message_ids
             if is_old_memory:
                 debug_msg = f"[DEBUG-MEMORY] Replaying tool: {message_chunk.name}...\n"
-                print(f"[DEBUG-MEMORY] Tool {message_chunk.name} replayed: {message_chunk.content[:100]}...")
+                print(
+                    f"[DEBUG-MEMORY] Tool {message_chunk.name} replayed: {message_chunk.content[:100]}...")
             else:
                 debug_msg = f"[DEBUG-NEW] Running tool: {message_chunk.name}...\n"
-                print(f"[DEBUG-NEW] Tool {message_chunk.name} returned: {message_chunk.content[:200]}...")
+                print(
+                    f"[DEBUG-NEW] Tool {message_chunk.name} returned: {message_chunk.content[:200]}...")
                 # --- Yield a separate event for the frontend ---
                 yield ("tool_call", message_chunk.name)
-            
+
             # Yield a "debug" event for the terminal
             yield ("debug", debug_msg)
 
 
 sio = socketio.AsyncServer(async_mode="asgi")
 app = FastAPI()
+
 
 @app.get("/chat/health")
 async def health_check():
@@ -99,6 +105,7 @@ async def health_check():
         }
     )
 
+
 def parse_file_content(file_name: str, base64_data: str) -> str:
     """
     Decodes Base64 data and extracts text based on file extension.
@@ -108,7 +115,7 @@ def parse_file_content(file_name: str, base64_data: str) -> str:
         binary_data = base64.b64decode(base64_data)
         file_stream = io.BytesIO(binary_data)
         _, extension = os.path.splitext(file_name.lower())
-        
+
         text_content = []
 
         # --- MODIFIED: Added specific try/except for pypdf ---
@@ -116,10 +123,12 @@ def parse_file_content(file_name: str, base64_data: str) -> str:
             try:
                 reader = pypdf.PdfReader(file_stream)
                 for page in reader.pages:
-                    text_content.append(page.extract_text() or "") # Add 'or ""' for blank pages
+                    # Add 'or ""' for blank pages
+                    text_content.append(page.extract_text() or "")
                 return "\n".join(text_content)
             except Exception as pdf_error:
-                print(f"[ERROR] pypdf failed to parse {file_name}: {pdf_error}")
+                print(
+                    f"[ERROR] pypdf failed to parse {file_name}: {pdf_error}")
                 return f"[Error: Failed to parse PDF file '{file_name}'. It may be corrupted, password-protected, or have an unsupported format.]"
         # --- END MODIFIED ---
 
@@ -135,7 +144,8 @@ def parse_file_content(file_name: str, base64_data: str) -> str:
                 sheet = wb[sheet_name]
                 text_content.append(f"--- Sheet: {sheet_name} ---")
                 for row in sheet.iter_rows():
-                    row_text = [str(cell.value) if cell.value is not None else "" for cell in row]
+                    row_text = [
+                        str(cell.value) if cell.value is not None else "" for cell in row]
                     text_content.append(", ".join(row_text))
             return "\n".join(text_content)
 
@@ -147,7 +157,7 @@ def parse_file_content(file_name: str, base64_data: str) -> str:
                     if hasattr(shape, "text_frame") and shape.text_frame:
                         text_content.append(shape.text_frame.text)
             return "\n".join(text_content)
-        
+
         elif extension in ['.csv', '.txt', '.md', '.json']:
             # These are text-based, just decode
             return binary_data.decode('utf-8')
@@ -159,22 +169,20 @@ def parse_file_content(file_name: str, base64_data: str) -> str:
         # This catches errors like Base64 decoding
         print(f"[ERROR] Failed to parse file {file_name}: {e}")
         return f"[Error: Could not read file {file_name}. It may be corrupted or an unsupported format.]"
-    
+
 
 async def startup_event():
     global compiled_graph, client
     print("Starting MCP Client Server...")
-    
-    try:
-        with open("src/mcp_config.json", "r") as f:
-            mcp_config = json.load(f)
-        print("Loaded MCP server configuration from src/mcp_config.json")
-    except FileNotFoundError:
-        print("ERROR: src/mcp_config.json not found.")
-        return
-    except json.JSONDecodeError:
-        print("ERROR: Could not parse src/mcp_config.json.")
-        return
+
+    mcp_config = {
+        "mcpServers": {
+            "MCP-Server": {
+                "url": MCP_SERVER_URL,
+                "transport": "streamable_http",
+            }
+        }
+    }
 
     print("Connecting to MCP servers and fetching tools...")
     try:
@@ -196,9 +204,11 @@ async def startup_event():
 async def connect(sid, environ, auth):
     print(f"[Socket.IO] Frontend connected: {sid}")
 
+
 @sio.event
 async def disconnect(sid, reason):
     print(f"[Socket.IO] Frontend disconnected: {sid}")
+
 
 @sio.event
 async def chat_message(sid, data):
@@ -210,20 +220,20 @@ async def chat_message(sid, data):
         return
 
     user_input = data.get("message", "").strip()
-    file_base64 = data.get("file_base64") 
+    file_base64 = data.get("file_base64")
     file_name = data.get("file_name")
-    
-    persistent_thread_id = data.get("thread_id", sid) 
-    
+
+    persistent_thread_id = data.get("thread_id", sid)
+
     if not user_input and not file_base64:
         print("[Request] Received empty message and no file.")
-        return 
+        return
 
     final_input = user_input
-    
+
     if file_base64 and file_name:
         print(f"[Context] Receiving file: {file_name}. Parsing...")
-        
+
         try:
             loop = asyncio.get_running_loop()
             extracted_text = await asyncio.wait_for(
@@ -232,19 +242,20 @@ async def chat_message(sid, data):
                 ),
                 timeout=FILE_PARSE_TIMEOUT
             )
-            print(f"[Context] File parsed successfully. ({len(extracted_text)} chars)")
-        
+            print(
+                f"[Context] File parsed successfully. ({len(extracted_text)} chars)")
+
         except asyncio.TimeoutError:
             print(f"[ERROR] File parsing timed out for {file_name}")
             extracted_text = f"[Error: File parsing timed out after {FILE_PARSE_TIMEOUT} seconds. The file may be too large or complex.]"
-        
+
         except Exception as e:
             print(f"[ERROR] File parsing failed in executor: {e}")
             extracted_text = f"[Error: Failed to process file {file_name}.]"
-        
+
         context_header = f"--- START OF UPLOADED FILE: {file_name} ---"
         context_footer = f"--- END OF UPLOADED FILE: {file_name} ---"
-        
+
         final_input = (
             f"Please use the following document as context:\n\n"
             f"{context_header}\n"
@@ -252,7 +263,7 @@ async def chat_message(sid, data):
             f"{context_footer}\n\n"
             f"My question is: {user_input if user_input else f'Please analyze the file {file_name}'}"
         )
-        
+
         temp_thread_id = f"oneshot_{sid}_{int(time.time())}"
         run_config = {"configurable": {"thread_id": temp_thread_id}}
         print(f"\n[Request from {sid}] User: {user_input}")
@@ -262,21 +273,21 @@ async def chat_message(sid, data):
         run_config = {"configurable": {"thread_id": persistent_thread_id}}
         print(f"\n[Request from {sid}] User: {user_input}")
         print(f"[Thread] Using persistent thread: {persistent_thread_id}")
-    
+
     print("Jarvis: ...")
 
     try:
         async for event_type, content in _stream_graph_logic(final_input, compiled_graph, run_config):
-            
+
             if event_type == "ai":
                 await sio.emit('ai_response', {'chunk': content}, to=sid)
-            
+
             elif event_type == "debug":
                 print(content.strip())
 
             elif event_type == "tool_call":
                 await sio.emit('tool_call', {'tool_name': content}, to=sid)
-        
+
         await sio.emit('ai_response_end', to=sid)
         print("[Jarvis] Response stream complete.")
 
@@ -285,11 +296,12 @@ async def chat_message(sid, data):
         await sio.emit('ai_response', {'chunk': f'An error occurred: {e}'}, to=sid)
         await sio.emit('ai_response_end', to=sid)
 
-sio_app = socketio.ASGIApp(socketio_server=sio, other_asgi_app=app, socketio_path="/chat/socket.io", on_startup=startup_event)
+sio_app = socketio.ASGIApp(socketio_server=sio, other_asgi_app=app,
+                           socketio_path="/chat/socket.io", on_startup=startup_event)
 
 if __name__ == "__main__":
     uvicorn.run(
         sio_app,
-        host="0.0.0.0", 
+        host="0.0.0.0",
         port=8001
     )

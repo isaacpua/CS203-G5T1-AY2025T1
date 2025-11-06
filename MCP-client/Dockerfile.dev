@@ -11,6 +11,9 @@ RUN uv pip install -r requirements.txt
 # --- Stage 2: Runtime (minimal) ---
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS runtime
 
+ARG BASE_URL
+ENV BASE_URL=${BASE_URL}
+
 WORKDIR /app
 COPY --from=builder /app /app
 COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
