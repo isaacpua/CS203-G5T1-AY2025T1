@@ -70,7 +70,7 @@ export default function HistoricalTariffExplorer() {
     fetchCountries();
   }, []);
 
-  // --- Data Fetching ---
+  // --- Data Fetching (LOGIC FIX APPLIED HERE) ---
   const handleSearch = async () => {
     setLoading(true);
     setError(null);
@@ -101,22 +101,38 @@ export default function HistoricalTariffExplorer() {
 
       if (response.data && response.data.length > 0) {
         
-        // --- THIS IS THE FIX ---
-        // Inspect the first data point to determine the chart type
-        const firstPoint = response.data[0];
+        // --- START OF LOGIC FIX ---
+        // The original code here only checked response.data[0], which was the bug.
+        // We now scan the entire array to find the *first* non-'FREE' tariff to determine the Y-axis type.
+
+        let primaryCategory = 'AD_VALOREM'; // Assume Ad Valorem/FREE by default
+        let primaryUnitName = 'USD'; // Default unit
+        
+        // Find the first point that is NOT 'FREE'
+        const firstPaidPoint = response.data.find(item => item.category !== 'FREE');
+        
+        if (firstPaidPoint) {
+            primaryCategory = firstPaidPoint.category;
+            primaryUnitName = firstPaidPoint.unitname || 'USD';
+        } else if (response.data.length > 0) {
+            // If all are FREE, explicitly set to FREE category
+            primaryCategory = 'FREE';
+        }
+
         let formattedData = [];
 
-        if (firstPoint.category === 'SPECIFIC_PER_UNIT') {
-          setYAxisLabel(`Specific Duty (${firstPoint.unitname || 'USD'})`);
+        // Now, set the Y-Axis label and plot category based on the *scanned* primary category.
+        if (primaryCategory === 'SPECIFIC_PER_UNIT') {
+          setYAxisLabel(`Specific Duty (${primaryUnitName})`);
           setPlotCategory('Specific');
           formattedData = response.data.map(item => ({
             ...item, // Keep all original data for the tooltip
             year: Number(item.year),
             plotValue: parseFloat(item.specificperunit) || 0.0, // Plot this value
           }));
-          toast.info("Displaying Specific Duty.");
+          if (firstPaidPoint) toast.info("Displaying Specific Duty.");
 
-        } else if (firstPoint.category === 'COMPOSITE') {
+        } else if (primaryCategory === 'COMPOSITE') {
           setYAxisLabel("Ad Valorem Component (%)");
           setPlotCategory('Ad Valorem'); // Plot the ad valorem part
           formattedData = response.data.map(item => ({
@@ -124,19 +140,19 @@ export default function HistoricalTariffExplorer() {
             year: Number(item.year),
             plotValue: parseFloat(item.advalorem) || 0.0, // Plot this value
           }));
-          toast.info("Composite tariff detected. Plotting Ad Valorem component.");
+          if (firstPaidPoint) toast.info("Composite tariff detected. Plotting Ad Valorem component.");
         
         } else {
-          // Default to Ad Valorem (includes "Free", "Ad Valorem", or null categories)
+          // Default to Ad Valorem (handles "Free", "Ad Valorem", or null categories)
           setYAxisLabel("Ad Valorem Duty (%)");
           setPlotCategory('Ad Valorem');
           formattedData = response.data.map(item => ({
             ...item,
             year: Number(item.year),
-            plotValue: parseFloat(item.advalorem) || 0.0, // Plot this value
+            plotValue: parseFloat(item.advalorem) || 0.0, // Plot this value (which will be 0.0 for FREE)
           }));
         }
-        // --- END OF FIX ---
+        // --- END OF LOGIC FIX ---
 
         setData(formattedData);
         toast.success(`Found ${formattedData.length} data points.`);
@@ -159,7 +175,7 @@ export default function HistoricalTariffExplorer() {
     }
   };
 
-  // --- DYNAMIC CHART FORMATTERS ---
+  // --- DYNAMIC CHART FORMATTERS (UNTOUCHED) ---
   
   // Format the Y-Axis ticks based on category
   const yAxisTickFormatter = (value) => {
