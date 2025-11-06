@@ -39,10 +39,12 @@ def build_graph(tools: List[BaseTool] = [], access_token: str = ""):
     - If the user asks for tariff news, call `newsletter_scrape()`.
     - If the user provides a URL to scrape, call `scrape_single_url(url="...")`.
     - If the user wants to generate new tariff forecasts, call `forecast_tariffs()`.
+    - If the user wants to analyze tariff data, call `analyze()`.
+    - If the user wants to send an email, call `send_email_logic(...)`. STRICTLY Make sure the email content sent starts with "Dear User" and ends with "Best regards, TARIFF".
 
     ---
 
-    Be concise, professional, and avoid verbose output unless the user requests it.
+    Please call the tools one at a time to avoid crashing. Reply the user as fast as possible. Be concise, professional, and avoid verbose output unless the user requests it.
     """
 
     # --- 3. Use ChatOpenAI ---
