@@ -136,7 +136,7 @@ async def send_email(to_email: str, subject: Optional[str] = None, body: Optiona
     """
     # --- Set Default values if not provided ---
     final_subject = subject if subject is not None else "Test Email from MCP Server"
-    final_body = body if body is not None else "Hello! This is a test email sent from the DexiaMCP server."
+    final_body = body if body is not None else "Hello! This is a test email sent from the TARIFFMCP server."
     # -----------------------------------------
 
     # Just call the async logic function you imported

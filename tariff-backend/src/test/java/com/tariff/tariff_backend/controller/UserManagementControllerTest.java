@@ -1,9 +1,13 @@
 package com.tariff.tariff_backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tariff.tariff_backend.config.CorsConfig;
+import com.tariff.tariff_backend.config.SecurityConfiguration;
 import com.tariff.tariff_backend.dto.UserManagementDTO;
 import com.tariff.tariff_backend.dto.UsernameUpdateDTO;
 import com.tariff.tariff_backend.exception.UserManagementException;
+import com.tariff.tariff_backend.security.JwtAuthenticationEntryPoint;
+import com.tariff.tariff_backend.security.JwtAuthenticationFilter;
 import com.tariff.tariff_backend.service.JwtService;
 import com.tariff.tariff_backend.service.UserManagementService;
 import org.junit.jupiter.api.Test;
@@ -11,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
@@ -40,6 +45,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     "spring.jpa.hibernate.ddl-auto=create-drop",
     "jwt.secret=a-very-long-and-random-secret-key-for-testing-purposes-only-123456789"
 })
+@Import({
+    SecurityConfiguration.class, 
+    CorsConfig.class,
+    JwtAuthenticationEntryPoint.class,  // <-- ADD THIS
+    JwtAuthenticationFilter.class       // <-- ADD THIS
+})
 class UserManagementControllerTest {
 
     @Autowired
@@ -53,6 +64,7 @@ class UserManagementControllerTest {
 
     @MockBean
     private JwtService jwtService;
+
 
     @Test
     // **FIXED**: Use @WithMockUser to simulate a logged-in user

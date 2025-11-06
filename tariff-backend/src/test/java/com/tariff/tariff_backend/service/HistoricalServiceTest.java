@@ -1,14 +1,17 @@
 package com.tariff.tariff_backend.service;
 
-import com.tariff.tariff_backend.model.history.HistoricalResponse;
-import com.tariff.tariff_backend.model.history.HistoryPreset;
-import com.tariff.tariff_backend.model.history.Unit;
-import org.junit.jupiter.api.Test;
-
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
+
+import com.tariff.tariff_backend.model.history.HistoricalResponse;
+import com.tariff.tariff_backend.model.history.HistoryPreset;
+import com.tariff.tariff_backend.model.history.Unit;
 
 class HistoricalServiceTest {
 

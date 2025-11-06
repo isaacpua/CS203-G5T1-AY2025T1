@@ -25,7 +25,7 @@ def build_graph(tools: List[BaseTool] = [], access_token: str = ""):
     # This prompt is now simple and only describes your 4 new tools.
     # All old logic (paywalls, pptx, run_analysis) is gone.
     system_prompt = """
-    Your name is Jarvis. You are a helpful assistant that can use the following tools to help the user.
+    Your name is TARIFF. You are a helpful assistant that can use the following tools to help the user.
 
     When the user sends a request, determine what they want and call the appropriate tool. Do not attempt to solve tasks yourself if a tool exists — always delegate to tools.
 
@@ -83,23 +83,23 @@ def build_graph(tools: List[BaseTool] = [], access_token: str = ""):
     builder = StateGraph(AgentState)
 
     # Add the two nodes we need: the agent and the tools
-    builder.add_node("Jarvis", assistant)
+    builder.add_node("TARIFF", assistant)
     builder.add_node("tools", ToolNode(tools))
 
-    # The graph starts with the "Jarvis" (agent) node
-    builder.add_edge(START, "Jarvis")
+    # The graph starts with the "TARIFF" (agent) node
+    builder.add_edge(START, "TARIFF")
 
-    # After "Jarvis" runs, check if it called a tool
+    # After "TARIFF" runs, check if it called a tool
     builder.add_conditional_edges(
-        "Jarvis",
+        "TARIFF",
         tools_condition,
         # The tools_condition function will automatically route
         # to "tools" if a tool is called, or to END if not.
         {"tools": "tools", "__end__": END},
     )
 
-    # After the "tools" node runs, send the output back to "Jarvis"
-    builder.add_edge("tools", "Jarvis")
+    # After the "tools" node runs, send the output back to "TARIFF"
+    builder.add_edge("tools", "TARIFF")
 
     # Compile the graph with memory
     return builder.compile(checkpointer=MemorySaver())
