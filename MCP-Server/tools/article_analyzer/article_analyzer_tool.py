@@ -8,13 +8,13 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-async def analyze(md: str) -> dict:
+async def analyze(input: str) -> dict:
     """
-    The tool for analyzing tariff articles. Send the provided markdown string of an 
+    The tool for analyzing tariff articles. Send the provided string of an 
     article related to tariffs to OpenAI and return a concise analysis.
 
     Args:
-        md: A string of the markdown of the article to analyze
+        input: A string of the article to analyze
         
     Returns:
         Dict with the success state, and error message or response markdown text for
@@ -28,27 +28,45 @@ async def analyze(md: str) -> dict:
         "markdown": None
     }
 
-    if not md:
+    if not input:
         response["success"] = False
         response["error"] = "Input markdown cannot be empty"
 
 
     prompt = (
-        "You are an assistant that analyzes and summarizes articles on tariffs supplied as Markdown.\n\n"
-        "Please produce:\n"
-        "1) A short concise summary (2-4 sentences) of the tariff article.\n"
-        "2) A bullet list of 5 key points or takeaways from the article regarding tariffs.\n"
-        "Input Markdown:\n\n"
-        f"{md}\n\n"
-        "Return the output as plain text. Do not include extraneous commentary."
+        "Please analyze the article below"
+        "Input:\n\n"
+        f"{input}\n\n"
     )
 
-    print("Asking gpt to summarize md!")
+    instruction = (
+        "You are an AI tariff article analyzer.\n"
+        "Your task is to read news articles or policy documents and extract all relevant information about tariffs, duties, and trade restrictions.\n"
+        "Focus only on tariff-related changes (e.g., increases, decreases, introductions, removals, exemptions).\n\n"
+        "For each article, provide a structured summary with these sections:\n\n"
+        "1. **Summary Overview** - A concise summary (2-3 sentences) describing what the article is about.\n"
+        "2. **Tariff Changes Detected** - A bullet list of detected changes. Each item should include:\n"
+        "   * **Product of Sector** affected\n"
+        "   * **Change Type** (Increase, Decrease, New Tariff, Removal, Exemption)\n"
+        "   * **New Rate or Change Description** (if available)\n"
+        "   * **Country or Region Involved**\n"
+        "3. **Effective Dates or Timelines** - Any mentioned dates for when the tariffs take effect\n"
+        "4. **Sources or References** - Extracted URLs, organization names, or government bodies mentioned.\n"
+        "5. **Confidence Notes** (optional) - If the data is ambiguous, mention what part is uncertain and why.\n\n"
+        "Your tone should be **professional, factual, and neutral**, suitable for analysts or policymakers.\n"
+        "Do **not** include unrelated economic or political commentary unless directly linked to tariff effects.\n"
+        "If the article contains **no tariff-related content**, output:\n"
+        "“No tariff-related information found.”\n"
+    )
+
+
+    print("Asking gpt to summarize article!")
     try:
         resp = client.responses.create(
             model="gpt-4o",
             input=prompt,
-            max_output_tokens=512,
+            instructions=instruction,
+            max_output_tokens=1024,
             temperature=0.1,
         )
 

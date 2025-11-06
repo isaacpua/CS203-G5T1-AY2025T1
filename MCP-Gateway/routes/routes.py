@@ -210,7 +210,7 @@ async def get_newsletter():
         
     except Exception as e:
         logging.error(f"Error details: {e}")
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/newsletter/mailinglist")
 async def get_mailing_list():
@@ -330,23 +330,30 @@ async def send_newsletter(request: NewsletterRequest = Body(...)):
     }
 
 
-@router.get("/analyze")
-async def analyze(url: str):
+@router.post("/analyze")
+async def analyze(data: dict):
     try:
         async with client:
-            logging.info(f"Calling scrape tool on {MCP_SERVER_URL} ...")
-            mcp_response = await client.call_tool("scrape_single_url", {"url": url})
-            logging.info(f"Successfully called scrape tool!")
-            response = json.loads(mcp_response.content[0].text)
-            print(response)
+            url = data["url"]
+            text = data["text"]
+            md = ""
+            if url:
+                logging.info(f"Calling scrape tool on {MCP_SERVER_URL} ...")
+                mcp_response = await client.call_tool("scrape_single_url", {"url": url})
+                logging.info(f"Successfully called scrape tool!")
+                response = json.loads(mcp_response.content[0].text)
+                print(response)
 
-            if not response["success"]:
-                raise Exception(response["error"])
-            
-            md = response["markdown"]
+                if not response["success"]:
+                    raise Exception(response["error"])
+                md = response["markdown"]
+
+            if text:
+                md = md + "\n" + text
+            # print(md)
 
             logging.info(f"Calling analyze tool on {MCP_SERVER_URL} ...")
-            mcp_response = await client.call_tool("analyze_article", {"md": md})
+            mcp_response = await client.call_tool("analyze_article", {"input": md})
             response = json.loads(mcp_response.content[0].text)
             print(response)
 
@@ -357,4 +364,4 @@ async def analyze(url: str):
         
     except Exception as e:
         logging.error(f"Error details: {e}")
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))

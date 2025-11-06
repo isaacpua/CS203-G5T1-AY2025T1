@@ -175,4 +175,8 @@ export const sendNewsletter = async (markdownContent) => {
   return await mcpAxiosClient.post(`/newsletter/send`, { markdown_content: markdownContent });
 };
 
+export const postAnalyzable = async (analyzable) => {
+  return await mcpAxiosClient.post(`/analyze`, analyzable);
+}
+
 export default axiosClient;
