@@ -8,6 +8,7 @@ import base64  # For decoding
 import io      # To handle binary data in memory
 import csv     # For CSV parsing
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from typing import AsyncGenerator
 
 # --- Import parsing libraries ---
@@ -85,6 +86,18 @@ async def _stream_graph_logic(
 sio = socketio.AsyncServer(async_mode="asgi")
 app = FastAPI()
 
+@app.get("/chat/health")
+async def health_check():
+    """Health check endpoint"""
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "healthy",
+            "service": "mcp-client",
+            "graph_initialized": compiled_graph is not None,
+            "client_connected": client is not None
+        }
+    )
 
 def parse_file_content(file_name: str, base64_data: str) -> str:
     """

@@ -3,6 +3,7 @@ import json
 import logging
 import httpx
 from fastapi import APIRouter, HTTPException, Body
+from fastapi.responses import JSONResponse
 from fastmcp import Client
 import pandas as pd
 from sqlalchemy import create_engine
@@ -14,7 +15,7 @@ from openai import OpenAI
 from pathlib import Path  # <-- NEW IMPORT
 
 logging.basicConfig(level=logging.INFO)
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 MCP_SERVER_URL = f"{BASE_URL}/mcp/"
 DB_CONFIG = {
     "DB_URL": os.getenv("DB_URL"),
@@ -114,6 +115,11 @@ async def greet(name: str):
     except Exception as e:
         logging.error(f"Error details: {e}")
         raise HTTPException(status_code=404, detail=str(e))
+    
+
+@router.get("/health")
+async def healthcheck():
+    return JSONResponse({"status": "ok"})
 
 
 @router.get("/forecast")
