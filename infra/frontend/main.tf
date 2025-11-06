@@ -3,35 +3,12 @@ resource "aws_route53_zone" "primary" {
   name = var.domain_name
 }
 
-resource "aws_route53_record" "www_alias" {
-  zone_id = aws_route53_zone.primary.zone_id
-  name    = "www"
-  type    = "A"
-  alias {
-    name                   = aws_cloudfront_distribution.spa.domain_name
-    zone_id                = aws_cloudfront_distribution.spa.hosted_zone_id
-    evaluate_target_health = false
-  }
-}
-
-resource "aws_route53_record" "root_alias" {
-  zone_id = aws_route53_zone.primary.zone_id
-  name    = var.domain_name
-  type    = "A"
-  alias {
-    name                   = aws_cloudfront_distribution.spa.domain_name
-    zone_id                = aws_cloudfront_distribution.spa.hosted_zone_id
-    evaluate_target_health = false
-  }
-}
-
 # ---------- S3 bucket for SPA ----------
 resource "aws_s3_bucket" "spa" {
   bucket        = var.bucket_name
   force_destroy = true
 }
 
-# Ownership & ACL
 resource "aws_s3_bucket_ownership_controls" "spa" {
   bucket = aws_s3_bucket.spa.id
   rule {
@@ -39,13 +16,6 @@ resource "aws_s3_bucket_ownership_controls" "spa" {
   }
 }
 
-# resource "aws_s3_bucket_acl" "spa" {
-#   bucket     = aws_s3_bucket.spa.id
-#   acl        = "private"
-#   depends_on = [aws_s3_bucket_ownership_controls.spa]
-# }
-
-# Versioning
 resource "aws_s3_bucket_versioning" "spa" {
   bucket = aws_s3_bucket.spa.id
   versioning_configuration {
@@ -53,27 +23,19 @@ resource "aws_s3_bucket_versioning" "spa" {
   }
 }
 
-# Lifecycle rules
 resource "aws_s3_bucket_lifecycle_configuration" "spa" {
   bucket = aws_s3_bucket.spa.id
 
   rule {
     id     = "cleanup"
     status = "Enabled"
-
-    # This means "apply to all objects"
-    filter {
-      prefix = ""
-    }
-
+    filter { prefix = "" }
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
     }
   }
 }
 
-
-# Block all public access
 resource "aws_s3_bucket_public_access_block" "spa_block" {
   bucket                  = aws_s3_bucket.spa.id
   block_public_acls       = true
@@ -117,8 +79,7 @@ resource "aws_acm_certificate" "cf_cert" {
   }
 }
 
-# DNS validation record in Route53 for the us-east-1 cert
-# Use the certificate's domain_validation_options to create records automatically
+# DNS validation record in Route53
 resource "aws_route53_record" "cf_cert_validation" {
   for_each = {
     for dvo in aws_acm_certificate.cf_cert.domain_validation_options : dvo.domain_name => {
@@ -148,9 +109,8 @@ resource "aws_cloudfront_distribution" "spa" {
   enabled         = true
   is_ipv6_enabled = true
   comment         = "CloudFront for ${var.domain_name}"
+  aliases         = [var.domain_name, "www.${var.domain_name}"]
   depends_on = [aws_acm_certificate_validation.cf_cert_validation]
-
-  aliases = [var.domain_name, "www.${var.domain_name}"]
 
   origin {
     domain_name = aws_s3_bucket.spa.bucket_regional_domain_name
@@ -161,8 +121,23 @@ resource "aws_cloudfront_distribution" "spa" {
     }
   }
 
+  # Backend ALB (for the API)
+  origin {
+ 
+    domain_name = "api.${var.domain_name}"
+    origin_id   = "alb-api-origin"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
   default_root_object = "index.html"
 
+  # --- Default Behavior: Send all other traffic to S3 ---
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]
@@ -177,6 +152,56 @@ resource "aws_cloudfront_distribution" "spa" {
     min_ttl     = 0
     default_ttl = 3600
     max_ttl     = 86400
+  }
+
+  # --- API Behavior 1: /api/v1/* -> ALB ---
+  ordered_cache_behavior {
+    path_pattern     = "/api/v1/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods   = ["GET", "HEAD", "OPTIONS"]
+    target_origin_id = "alb-api-origin"
+
+    viewer_protocol_policy = "redirect-to-https"
+    
+    # Forward all headers, cookies, and query strings for your API
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    # Don't cache API responses
+    min_ttl     = 0
+    default_ttl = 0
+    max_ttl     = 0
+  }
+  
+  # --- API Behavior 2: /mcp/api/v1/* -> ALB ---
+  ordered_cache_behavior {
+    path_pattern     = "/mcp/api/v1/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods   = ["GET", "HEAD", "OPTIONS"]
+    target_origin_id = "alb-api-origin"
+
+    viewer_protocol_policy = "redirect-to-https"
+    
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    min_ttl     = 0
+    default_ttl = 0
+    max_ttl     = 0
+  }
+  
+  # --- API Behavior 3: /chat/* -> ALB (for WebSockets) ---
+  ordered_cache_behavior {
+    path_pattern     = "/chat/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods   = ["GET", "HEAD", "OPTIONS"]
+    target_origin_id = "alb-api-origin"
+
+    viewer_protocol_policy = "redirect-to-https"
+    
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    min_ttl     = 0
+    default_ttl = 0
+    max_ttl     = 0
   }
 
   viewer_certificate {
@@ -208,4 +233,37 @@ resource "aws_cloudfront_distribution" "spa" {
     response_page_path    = "/index.html"
     error_caching_min_ttl = 10
   }
+}
+
+# ---------- Route53 alias records for the domain ----------
+resource "aws_route53_record" "www_alias" {
+  zone_id = aws_route53_zone.primary.zone_id
+  name    = "www"
+  type    = "A"
+  alias {
+    name                   = aws_cloudfront_distribution.spa.domain_name
+    zone_id                = aws_cloudfront_distribution.spa.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "root_alias" {
+  zone_id = aws_route53_zone.primary.zone_id
+  name    = var.domain_name
+  type    = "A"
+  alias {
+    name                   = aws_cloudfront_distribution.spa.domain_name
+    zone_id                = aws_cloudfront_distribution.spa.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+# Looks up the AWS-managed policy that forwards all headers/cookies
+data "aws_cloudfront_origin_request_policy" "all_viewer" {
+  name = "Managed-AllViewer"
+}
+
+# look up the AWS-managed policy for "don't cache anything"
+data "aws_cloudfront_cache_policy" "caching_disabled" {
+  name = "Managed-CachingDisabled"
 }
