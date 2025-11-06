@@ -7,7 +7,7 @@ import time
 import base64  # For decoding
 import io      # To handle binary data in memory
 import csv     # For CSV parsing
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, status
 from fastapi.responses import JSONResponse
 from typing import AsyncGenerator
 
@@ -32,6 +32,7 @@ MCP_SERVER_URL = f"{os.getenv("BASE_URL", "http://127.0.0.1:8000")}/mcp"
 compiled_graph = None
 client = None
 FILE_PARSE_TIMEOUT = 60.0
+APP_IS_HEALTHY = False
 
 
 async def _stream_graph_logic(
@@ -93,17 +94,30 @@ app = FastAPI()
 
 
 @app.get("/chat/health")
-async def health_check():
-    """Health check endpoint"""
-    return JSONResponse(
-        status_code=200,
-        content={
-            "status": "healthy",
+async def health_check(response: Response):
+    """
+    Smarter health check endpoint that reflects the
+    *real* application readiness (i.e., are dependencies loaded?)
+    """
+    if APP_IS_HEALTHY:
+        # If startup_event succeeded, return 200 OK
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "status": "healthy",
+                "service": "mcp-client",
+                "graph_initialized": compiled_graph is not None,
+                "client_connected": client is not None
+            }
+        )
+    else:
+        # If startup_event failed, return 503 Service Unavailable
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {
+            "status": "unhealthy",
             "service": "mcp-client",
-            "graph_initialized": compiled_graph is not None,
-            "client_connected": client is not None
+            "reason": "Dependencies (MCP-Server) are not ready."
         }
-    )
 
 
 def parse_file_content(file_name: str, base64_data: str) -> str:
@@ -172,7 +186,7 @@ def parse_file_content(file_name: str, base64_data: str) -> str:
 
 
 async def startup_event():
-    global compiled_graph, client
+    global compiled_graph, client, APP_IS_HEALTHY
     print("Starting MCP Client Server...")
 
     mcp_config = {
@@ -193,10 +207,13 @@ async def startup_event():
             print(f"- {tool.name}")
     except Exception as e:
         print(f"FATAL: Could not load tools via MultiServerMCPClient: {e}")
+        APP_IS_HEALTHY = False
         return
 
     compiled_graph = build_graph(tools)
     print("Chatbot graph compiled successfully.")
+
+    APP_IS_HEALTHY = True
     print("\n--- Jarvis is online. Waiting for frontend connection... ---")
 
 
