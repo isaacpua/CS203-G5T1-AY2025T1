@@ -166,4 +166,16 @@ export const getNewsletter = async () => {
   return await mcpAxiosClient.get(`/newsletter`)
 }
 
+export const getMailingList = async () => {
+  return await mcpAxiosClient.get(`/newsletter/mailinglist`);
+};
+
+export const saveMailingList = async (recipients) => {
+  return await mcpAxiosClient.post(`/newsletter/mailinglist`, { recipients });
+};
+
+export const sendNewsletter = async (markdownContent) => {
+  return await mcpAxiosClient.post(`/newsletter/send`, { markdown_content: markdownContent });
+};
+
 export default axiosClient;
