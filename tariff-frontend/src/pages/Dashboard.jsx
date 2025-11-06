@@ -891,7 +891,7 @@ export default function Dashboard() {
   }, [fromYear, toYear]);
 
   const debouncedQuery = useDebounce(query);
-  // Optional: when filters change, go back to page 1
+  //when filters change, go back to page 1
   useEffect(() => {
     setPage(0);
   }, [mode, debouncedQuery, fromYear, toYear]);
@@ -902,7 +902,7 @@ export default function Dashboard() {
       setIsLoadingLive(true);
       // Fire-and-forget background run
       await loadLive();
-      toast.success("Live load started in background");
+      toast.success("Live load finished");
     } catch (e) {
       console.error(e);
       toast.error("Failed to start live load");
