@@ -1,7 +1,7 @@
 {
     "mcpServers": {
         "dexia_mcp": {
-            "url": "http://mcp_server_backend:8000/mcp/",
+            "url": "http://mcp-server-backend:8000/mcp/",
             "transport": "streamable_http"
         }
     }

@@ -28,7 +28,7 @@ RUN uv pip install -r requirements.txt
 RUN . .venv/bin/activate && crawl4ai-setup
 
 # --- Stage 3: Runtime ---
-FROM base
+FROM base AS runtime
 WORKDIR /app
 COPY --from=builder /app /app
 COPY --from=builder /root/.cache/ms-playwright/ /root/.cache/ms-playwright/
