@@ -11,10 +11,17 @@ services:
     env_file:
       - ../MCP-client/.env
     depends_on:
-      - mcp_server_backend
+      mcp_server_backend:
+        condition: service_healthy
     restart: on-failure
     networks:
       - tariff-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://mcp_chatbot_backend:8001/chat/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   mcp_gateway_backend:
     container_name: mcp-gateway
@@ -25,9 +32,17 @@ services:
       - "8090"
     env_file:
       - ../MCP-Gateway/.env
+    environment:
+      BASE_URL: "http://mcp_server_backend:8000"
     restart: on-failure
     networks:
       - tariff-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://mcp_gateway_backend:8090/mcp/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   mcp_server_backend:
     container_name: mcp-server
@@ -41,6 +56,12 @@ services:
     restart: on-failure
     networks:
       - tariff-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://mcp_server_backend:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   spring_boot_backend:
     container_name: tariff-backend
@@ -54,6 +75,12 @@ services:
     restart: on-failure
     networks:
       - tariff-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://spring_boot_backend:8080/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
    
   nginx-frontend:
     container_name: tariff-frontend
@@ -66,7 +93,8 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - spring_boot_backend
+      spring_boot_backend:
+        condition: service_healthy
     networks:
       - tariff-network
 
