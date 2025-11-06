@@ -3,9 +3,11 @@ package com.tariff.tariff_backend.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tariff.tariff_backend.config.CorsConfig;
 import com.tariff.tariff_backend.config.SecurityConfiguration;
+import com.tariff.tariff_backend.dto.PasswordUpdateDTO;
 import com.tariff.tariff_backend.dto.UserManagementDTO;
 import com.tariff.tariff_backend.dto.UsernameUpdateDTO;
 import com.tariff.tariff_backend.exception.UserManagementException;
+import com.tariff.tariff_backend.model.user_management.UsernameUpdateResponse;
 import com.tariff.tariff_backend.security.JwtAuthenticationEntryPoint;
 import com.tariff.tariff_backend.security.JwtAuthenticationFilter;
 import com.tariff.tariff_backend.service.JwtService;
@@ -26,8 +28,10 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -120,5 +124,249 @@ class UserManagementControllerTest {
                 .content(objectMapper.writeValueAsString(updateDTO)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Username already taken."));
+    }
+
+    // ... add these methods inside UserManagementControllerTest class ...
+
+    // --- New tests for GET / ---
+    
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    public void getAllUsers_AsAdmin_InternalError() throws Exception {
+        when(jwtService.hasRole(any(), eq("admin"))).thenReturn(true);
+        when(userManagementService.getAllUsers()).thenThrow(new RuntimeException("DB is down"));
+
+        mockMvc.perform(get("/api/v1/users/")
+                .header("Authorization", "Bearer fake-token-for-admin"))
+                .andExpect(status().isInternalServerError()) // 500
+                .andExpect(jsonPath("$.message").value("Internal Server Error"));
+    }
+
+    // --- New tests for GET /{requestedUsername} ---
+
+    @Test
+    @WithMockUser(username = "test-user")
+    public void getUser_InternalError() throws Exception {
+        when(jwtService.extractUsername(any())).thenReturn("test-user");
+        when(userManagementService.getUserByUsername("test-user", "test-user"))
+                .thenThrow(new RuntimeException("DB is down"));
+
+        mockMvc.perform(get("/api/v1/users/{requestedUsername}", "test-user")
+                        .header("Authorization", "Bearer fake-token"))
+                .andExpect(status().isInternalServerError()) // 500
+                .andExpect(jsonPath("$").value("Internal Server Error"));
+    }
+
+    // --- New tests for DELETE /{id} ---
+
+    @Test
+    @WithMockUser(roles = "USER") // Test non-admin
+    public void deleteUser_AsUser_ShouldBeForbidden() throws Exception {
+        when(jwtService.hasRole(any(), eq("admin"))).thenReturn(false);
+
+        mockMvc.perform(delete("/api/v1/users/{id}", UUID.randomUUID())
+                        .header("Authorization", "Bearer fake-token"))
+                .andExpect(status().isForbidden()); // 403
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    public void deleteUser_AsAdmin_Success() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(jwtService.hasRole(any(), eq("admin"))).thenReturn(true);
+        doNothing().when(userManagementService).deleteUser(id);
+
+        mockMvc.perform(delete("/api/v1/users/{id}", id)
+                        .header("Authorization", "Bearer fake-token"))
+                .andExpect(status().isOk()) // 200
+                .andExpect(jsonPath("$.message").value("Deleted Successfully"));
+    }
+    
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    public void deleteUser_AsAdmin_UserNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(jwtService.hasRole(any(), eq("admin"))).thenReturn(true);
+        doThrow(new UserManagementException("User not found"))
+            .when(userManagementService).deleteUser(id);
+
+        mockMvc.perform(delete("/api/v1/users/{id}", id)
+                        .header("Authorization", "Bearer fake-token"))
+                .andExpect(status().isBadRequest()) // 400
+                .andExpect(jsonPath("$.message").value("User not found"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    public void deleteUser_AsAdmin_InternalError() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(jwtService.hasRole(any(), eq("admin"))).thenReturn(true);
+        doThrow(new RuntimeException("DB is down"))
+            .when(userManagementService).deleteUser(id);
+
+        mockMvc.perform(delete("/api/v1/users/{id}", id)
+                        .header("Authorization", "Bearer fake-token"))
+                .andExpect(status().isInternalServerError()) // 500
+                .andExpect(jsonPath("$").value("Internal Server Error"));
+    }
+    
+    // --- New tests for PUT /{id} ---
+
+    @Test
+    @WithMockUser(roles = "USER") // Test non-admin
+    public void updateUser_AsUser_ShouldBeForbidden() throws Exception {
+        when(jwtService.hasRole(any(), eq("admin"))).thenReturn(false);
+
+        mockMvc.perform(put("/api/v1/users/{id}", UUID.randomUUID())
+                        .header("Authorization", "Bearer fake-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UserManagementDTO())))
+                .andExpect(status().isForbidden()); // 403
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    public void updateUser_AsAdmin_Success() throws Exception {
+        UUID id = UUID.randomUUID();
+        UserManagementDTO dto = new UserManagementDTO(id, "user", "default");
+
+        when(jwtService.hasRole(any(), eq("admin"))).thenReturn(true);
+        doNothing().when(userManagementService).updateUser(eq(id), any(UserManagementDTO.class));
+
+        mockMvc.perform(put("/api/v1/users/{id}", id)
+                        .header("Authorization", "Bearer fake-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Updated Successfully"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    public void updateUser_AsAdmin_UserNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+        UserManagementDTO dto = new UserManagementDTO(id, "user", "default");
+
+        when(jwtService.hasRole(any(), eq("admin"))).thenReturn(true);
+        doThrow(new UserManagementException("User not found"))
+            .when(userManagementService).updateUser(eq(id), any(UserManagementDTO.class));
+
+        mockMvc.perform(put("/api/v1/users/{id}", id)
+                        .header("Authorization", "Bearer fake-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest()) // 400
+                .andExpect(jsonPath("$.message").value("User not found"));
+    }
+    
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    public void updateUser_AsAdmin_InternalError() throws Exception {
+        UUID id = UUID.randomUUID();
+        UserManagementDTO dto = new UserManagementDTO(id, "user", "default");
+
+        when(jwtService.hasRole(any(), eq("admin"))).thenReturn(true);
+        doThrow(new RuntimeException("DB is down"))
+            .when(userManagementService).updateUser(eq(id), any(UserManagementDTO.class));
+
+        mockMvc.perform(put("/api/v1/users/{id}", id)
+                        .header("Authorization", "Bearer fake-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isInternalServerError()) // 500
+                .andExpect(jsonPath("$").value("Internal Server Error"));
+    }
+    
+    // --- New tests for PUT /{id}/username ---
+
+    // @Test
+    // @WithMockUser(username = "test-user")
+    // public void updateUsername_Success() throws Exception {
+    //     UUID id = UUID.randomUUID();
+    //     UsernameUpdateDTO dto = new UsernameUpdateDTO("newName");
+
+    //     when(jwtService.extractUsername(any())).thenReturn("test-user");
+    //     when(userManagementService.updateUsername(any(), any(), any()))
+    //         .thenReturn(new UsernameUpdateResponse("newName", "Success"));
+
+    //     mockMvc.perform(put("/api/v1/users/{id}/username", id)
+    //             .header("Authorization", "Bearer fake-token")
+    //             .contentType(MediaType.APPLICATION_JSON)
+    //             .content(objectMapper.writeValueAsString(dto)))
+    //             .andExpect(status().isOk())
+    //             .andExpect(jsonPath("$.newUsername").value("newName"));
+    // }
+
+    @Test
+    @WithMockUser(username = "test-user")
+    public void updateUsername_InternalError() throws Exception {
+        UUID id = UUID.randomUUID();
+        UsernameUpdateDTO dto = new UsernameUpdateDTO("newName");
+
+        when(jwtService.extractUsername(any())).thenReturn("test-user");
+        doThrow(new RuntimeException("DB is down"))
+            .when(userManagementService).updateUsername(any(), any(), any());
+
+        mockMvc.perform(put("/api/v1/users/{id}/username", id)
+                .header("Authorization", "Bearer fake-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isInternalServerError()) // 500
+                .andExpect(jsonPath("$.message").value("Internal Server Error"));
+    }
+
+    // --- New tests for PUT /{id}/password ---
+
+    @Test
+    @WithMockUser(username = "self-user")
+    public void updatePassword_Success() throws Exception {
+        UUID id = UUID.randomUUID();
+        PasswordUpdateDTO dto = new PasswordUpdateDTO("newPassword123");
+
+        when(jwtService.extractUsername(any())).thenReturn("self-user");
+        doNothing().when(userManagementService).updatePassword(eq(id), eq("self-user"), eq("newPassword123"));
+        
+        mockMvc.perform(put("/api/v1/users/{id}/password", id)
+                        .header("Authorization", "Bearer fake-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Password updated successfully"));
+    }
+    
+    @Test
+    @WithMockUser(username = "self-user")
+    public void updatePassword_Fail_ServiceError() throws Exception {
+        UUID id = UUID.randomUUID();
+        PasswordUpdateDTO dto = new PasswordUpdateDTO("newPassword123");
+
+        when(jwtService.extractUsername(any())).thenReturn("self-user");
+        doThrow(new UserManagementException("User not authorized"))
+            .when(userManagementService).updatePassword(any(), any(), any());
+        
+        mockMvc.perform(put("/api/v1/users/{id}/password", id)
+                        .header("Authorization", "Bearer fake-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest()) // 400
+                .andExpect(jsonPath("$.message").value("User not authorized"));
+    }
+
+    @Test
+    @WithMockUser(username = "self-user")
+    public void updatePassword_InternalError() throws Exception {
+        UUID id = UUID.randomUUID();
+        PasswordUpdateDTO dto = new PasswordUpdateDTO("newPassword1s");
+
+        when(jwtService.extractUsername(any())).thenReturn("self-user");
+        doThrow(new RuntimeException("DB is down"))
+            .when(userManagementService).updatePassword(any(), any(), any());
+        
+        mockMvc.perform(put("/api/v1/users/{id}/password", id)
+                        .header("Authorization", "Bearer fake-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isInternalServerError()) // 500
+                .andExpect(jsonPath("$.message").value("Internal Server Error"));
     }
 }

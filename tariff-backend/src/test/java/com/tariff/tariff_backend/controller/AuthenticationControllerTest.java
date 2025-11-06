@@ -17,6 +17,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -108,5 +109,65 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                         .content(objectMapper.writeValueAsString(userDTO)))
                 .andExpect(status().isUnauthorized()) // Controller returns 401 for login failure
                 .andExpect(jsonPath("$.message").value("Invalid email or password"));
+    }
+
+    // ... add these methods inside AuthenticationControllerTest class ...
+
+    @Test
+    public void testRegister_InternalError() throws Exception {
+        UserDTO userDTO = new UserDTO("test@example.com", "password");
+        // This simulates a service-layer crash (e.g., database down)
+        AuthResponse authResponse = AuthResponse.builder().success(false).message("Internal Server Error: something bad").build();
+
+        when(authenticationService.register(any(UserDTO.class))).thenReturn(authResponse);
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userDTO)))
+                .andExpect(status().isInternalServerError()) // 500
+                .andExpect(jsonPath("$.message").value("Internal Server Error: something bad"));
+    }
+
+    @Test
+    public void testLogin_InternalError() throws Exception {
+        UserDTO userDTO = new UserDTO("test@example.com", "password");
+        // This simulates a service-layer crash
+        AuthResponse authResponse = AuthResponse.builder().success(false).message("Internal Server Error: something bad").build();
+
+        when(authenticationService.login(any(UserDTO.class))).thenReturn(authResponse);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userDTO)))
+                .andExpect(status().isInternalServerError()) // 500
+                .andExpect(jsonPath("$.message").value("Internal Server Error: something bad"));
+    }
+
+    @Test
+    @WithMockUser // Need this to get past security filter
+    public void testVerifyToken_Valid() throws Exception {
+        String token = "valid.token.jwt";
+        String authHeader = "Bearer " + token;
+
+        when(authenticationService.validateToken(token)).thenReturn(true);
+
+        mockMvc.perform(post("/api/v1/auth/verifyJWT")
+                        .header("Authorization", authHeader))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value("Token is valid"));
+    }
+
+    @Test
+    @WithMockUser
+    public void testVerifyToken_Invalid() throws Exception {
+        String token = "invalid.token.jwt";
+        String authHeader = "Bearer " + token;
+
+        when(authenticationService.validateToken(token)).thenReturn(false);
+
+        mockMvc.perform(post("/api/v1/auth/verifyJWT")
+                        .header("Authorization", authHeader))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$").value("Token is invalid"));
     }
 }
