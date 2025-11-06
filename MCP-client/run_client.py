@@ -210,7 +210,7 @@ async def startup_event():
 
     compiled_graph = build_graph(tools)
     print("Chatbot graph compiled successfully.")
-    print("\n--- Jarvis is online. Waiting for frontend connection... ---")
+    print("\n--- TARIFF is online. Waiting for frontend connection... ---")
 
 # -----------------------------------------------------------------
 # 5. SOCKET.IO EVENT HANDLERS (Unchanged)
@@ -287,7 +287,7 @@ async def chat_message(sid, data):
         print(f"\n[Request from {sid}] User: {user_input}")
         print(f"[Thread] Using persistent thread: {persistent_thread_id}")
     
-    print("Jarvis: ...")
+    print("TARIFF: ...")
 
     try:
         async for event_type, content in _stream_graph_logic(final_input, compiled_graph, run_config):
@@ -302,7 +302,7 @@ async def chat_message(sid, data):
                 await sio.emit('tool_call', {'tool_name': content}, to=sid)
         
         await sio.emit('ai_response_end', to=sid)
-        print("[Jarvis] Response stream complete.")
+        print("[TARIFF] Response stream complete.")
 
     except Exception as e:
         print(f"An error occurred: {e}")
