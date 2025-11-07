@@ -32,7 +32,7 @@ export default function LandingPage() {
             }`}
         >
           <source
-            src="/2025-11-05T12-29-43_continuous_looping_watermarked.mp4"
+            src="/Barn_Animation.mp4"
             type="video/mp4"
           />
         </video>
