@@ -156,11 +156,13 @@ export const getForecast = async () => {
 };
 
 export const updateForecast = async () => {
-  return await mcpAxiosClient.post(`/forecast`);
+  return await axios.post("https://api.tarific.rocks/forecast");
+  // return await mcpAxiosClient.post(`/forecast`);
 };
 
 export const getNewsletter = async () => {
-  return await mcpAxiosClient.get(`/newsletter`)
+  return await axios.get("https://api.tarific.rocks/newsletter");
+  // return await mcpAxiosClient.get(`/newsletter`)
 }
 
 export const getMailingList = async () => {
@@ -176,7 +178,8 @@ export const sendNewsletter = async (markdownContent) => {
 };
 
 export const postAnalyzable = async (analyzable) => {
-  return await mcpAxiosClient.post(`/analyze`, analyzable);
+  return await axios.post("https://api.tarific.rocks/analyze", analyzable);
+  // return await mcpAxiosClient.post(`/analyze`, analyzable);
 }
 
 export default axiosClient;
