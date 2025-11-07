@@ -61,7 +61,10 @@ class NewsletterRequest(BaseModel):
         ..., description="The full raw markdown content of the newsletter.")
 
 
-class TariffMaster(DeclarativeBase):
+class Base(DeclarativeBase):
+    pass
+
+class TariffMaster(Base):
     """
     SQLAlchemy ORM Model for the 'tariff_master' table in the 'tariffs' schema.
     This version matches the screenshot from image_b4387f.png
