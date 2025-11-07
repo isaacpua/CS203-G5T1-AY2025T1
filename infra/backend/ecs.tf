@@ -61,6 +61,30 @@ resource "aws_launch_template" "ecs" {
   }
 }
 
+resource "aws_launch_template" "ecs_mcp_server" {
+  name          = "${var.project_name}-ecs-mcp-server-lt"
+  image_id      = data.aws_ssm_parameter.ecs_optimized_ami.value
+  instance_type = "m7i-flex.large"
+
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.ecs_instance_profile.arn
+  }
+
+  network_interfaces {
+    security_groups = [aws_security_group.ecs_service.id]
+    associate_public_ip_address = false 
+  }
+
+  user_data = base64encode(data.template_file.ecs_user_data.rendered)
+  
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = "${var.project_name}-ecs-mcp-server-instance"
+    }
+  }
+}
+
 # Auto Scaling Group (ASG) for Main Services
 resource "aws_autoscaling_group" "main_services" {
   name = "${var.project_name}-main-services-asg"
@@ -98,7 +122,7 @@ resource "aws_autoscaling_group" "mcp_server" {
   desired_capacity = 1
 
   launch_template {
-    id      = aws_launch_template.ecs.id
+    id      = aws_launch_template.ecs_mcp_server.id
     version = "$Latest"
   }
 
