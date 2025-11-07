@@ -328,13 +328,13 @@ export default function HistoricalTariffExplorer() {
             </div>
           )}
 
-          {/* Success State */}
+{/* Success State */}
           {!loading && !error && data.length > 0 && (
             <div className="h-96 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
                   data={data}
-                  margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                  margin={{ top: 20, right: 20, bottom: 40, left: 20 }} // <--- CHANGED: Left margin increased to 60. Bottom margin increased to 40 for legend.
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
@@ -346,16 +346,23 @@ export default function HistoricalTariffExplorer() {
                     tickCount={data.length < 10 ? data.length : 10}
                   />
                   <YAxis 
-                    label={{ value: yAxisLabel, angle: -90, position: 'insideLeft' }}
+// ADDED: A negative offset to explicitly push the label further away from the tick values.
+                    label={{ value: yAxisLabel, angle: -90, position: 'outside', offset: -20 }} 
                     unit={plotCategory === 'Ad Valorem' ? '%' : ''}
                     tickFormatter={yAxisTickFormatter}
                     domain={['auto', 'auto']}
                   />
                   <Tooltip
                     contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                    wrapperStyle={{ zIndex: 1000 }} 
                     formatter={tooltipFormatter}
+                    position={{ y: 0 }} 
                   />
-                  <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '20px' }} />
+                  <Legend 
+                    verticalAlign="bottom" // <--- CHANGED: Align to bottom
+                    align="right"         // <--- ADDED: Align to right
+                    wrapperStyle={{ paddingTop: '10px' }} // <--- CHANGED: Adjusted style for bottom placement
+                  />
                   {/* We plot 'plotValue' which is set to advalorem or specificperunit */}
                   <Bar dataKey="plotValue" name="Duty" barSize={20} fill="var(--theme-primary, #1E90FF)" />
                   <Line type="monotone" dataKey="plotValue" name="Trend" stroke="var(--theme-secondary, #FF6347)" />

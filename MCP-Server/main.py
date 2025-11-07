@@ -14,7 +14,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(historical_viewer_tool.router)
 
 app.mount("/", mcp_app)
 
