@@ -15,13 +15,6 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
-const chatbotAxiosClient = axios.create({
-  baseURL: 'http://localhost:5000', // Default Flask port
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
 const mcpAxiosClient = axios.create({
   baseURL: "/mcp/api/v1",
   headers: {
@@ -30,10 +23,18 @@ const mcpAxiosClient = axios.create({
 });
 
 const bypassCFClient = axios.create({
-  baseURL: "https://api.tarific.rocks",
+  baseURL: "https://api.tarific.rocks/mcp/api/v1",
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+bypassCFClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem("accessToken");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export const verifyJWT = async (token) => {
