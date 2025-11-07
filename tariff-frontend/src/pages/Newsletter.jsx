@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle, X, CheckCircle2, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Spinner } from '@/components/ui/shadcn-io/spinner';
 
 // --- This function is unchanged ---
 function splitIntoItems(md) {

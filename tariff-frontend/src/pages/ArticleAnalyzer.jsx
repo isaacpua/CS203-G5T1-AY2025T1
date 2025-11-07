@@ -3,6 +3,7 @@ import { postAnalyzable } from "@/api/axiosClient";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTheme } from "@/components/theme-provider";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 export default function Analyzer() {
 
