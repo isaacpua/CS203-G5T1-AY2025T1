@@ -1,12 +1,15 @@
+"use client"
+import React from "react";
 import { useEffect, useState, useId, useCallback, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { createTariff, deleteTariff, getDashboardData, updateTariff, loadLive } from "../api/axiosClient";
+import { createTariff, deleteTariff, getDashboardData, updateTariff } from "../api/axiosClient";
 import { Button } from "@/components/ui/button";
+import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Plus, Edit2, Trash2, X, MoreVertical, Eye, Download, RefreshCw, Check, Bolt } from "lucide-react";
+import { Loader2, Search, Plus, Edit2, Trash2, X, MoreVertical, Eye, Download, RefreshCw, Check, BarChart3, PieChart, TrendingUp, Settings } from "lucide-react";
 import { Grid, useClientRowDataSource } from "@1771technologies/lytenyte-core";
 import "@1771technologies/lytenyte-core/grid.css";
 import { Relogin } from "@/components/Relogin";
@@ -728,17 +731,11 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
 
   const viewInHistorical = () => {
     if (!data) return;
-
-    // prefer display id; fallback to numeric/id
-    const raw = String(data.tariffIdDisplay ?? data.tariffid ?? "").trim();
-    if (!raw) return;
-
-    // strip a trailing 4-digit year, e.g. 151211USIN2020 -> 151211USIN
-    const prefix = raw.replace(/(\d{4})$/, "");
-
-    // send the prefix to the historical explorer
-    navigate(`/historical?prefix=${encodeURIComponent(prefix)}`);
-    onClose();
+    // Prefer the display ID for consistency if available
+    const tariffId = data.tariffIdDisplay ?? data.tariffid;
+    if (!tariffId) return; // Don't navigate if no ID
+    navigate(`/historical?tariffId=${encodeURIComponent(tariffId)}`);
+    onClose(); // Close modal after navigating
   };
 
   if (!data) return null; // Render nothing if no data
@@ -883,7 +880,7 @@ export default function Dashboard() {
   const [loadingCountries, setLoadingCountries] = useState(true);
   const [fromYear, setFromYear] = useState(2002);
   const [toYear, setToYear] = useState(2025);
-  const [isLoadingLive, setIsLoadingLive] = useState(false);
+
   // Build a year list (2002..current year). Change start if you need.
   const yearOptions = useMemo(() => {
     const start = 2002;
@@ -897,25 +894,12 @@ export default function Dashboard() {
   }, [fromYear, toYear]);
 
   const debouncedQuery = useDebounce(query);
-  //when filters change, go back to page 1
+  // Optional: when filters change, go back to page 1
   useEffect(() => {
     setPage(0);
   }, [mode, debouncedQuery, fromYear, toYear]);
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  const handleLoadLive = async () => {
-    try {
-      setIsLoadingLive(true);
-      // Fire-and-forget background run
-      await loadLive();
-      toast.success("Live load finished");
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to start live load");
-    } finally {
-      setIsLoadingLive(false);
-    }
-  };
 
   // Create a lookup map for country names to iso2 codes
   const countryMap = useMemo(() => {
@@ -1225,20 +1209,6 @@ export default function Dashboard() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Export data</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLoadLive}
-                    disabled={isLoadingLive}
-                  >
-                    <Bolt className={`h-4 w-4 ${isLoadingLive ? "animate-pulse" : ""}`} />
-                    <span className="ml-2 hidden sm:inline">Load Live</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Pull & load latest USITC data (background)</TooltipContent>
               </Tooltip>
               {userRole === "admin" && (
                 <Button onClick={handleCreate} size="sm" className="text-sm">

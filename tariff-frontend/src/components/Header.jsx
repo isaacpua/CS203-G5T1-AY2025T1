@@ -1,12 +1,9 @@
+"use client"
+
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -14,20 +11,16 @@ import {
   NavigationMenuList,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { Menu } from "lucide-react"
+import { Menu, Sprout } from "lucide-react"
 import { getUserInitials } from "@/utils/AvatarHelpers"
 import { ModeToggle } from "./mode-toggle"
 import { logout } from "@/utils/logout"
 import { useAuth } from "@/utils/AuthContext"
 import { cn } from "@/lib/utils"
 import AdminPanel from "@/components/AdminPanel"
+import { motion } from "framer-motion"
 
 const navigationItems = [
   { label: "Calculator", path: "/calculator" },
@@ -35,50 +28,71 @@ const navigationItems = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Historical Explorer", path: "/historical" },
   { label: "Forecasts", path: "/forecast" },
-  { label: "MCPAssistant", path: "/chatbot" },
-  { label: "Newsletter", path: "/newsletter"},
-  { label: "Article Analyzer", path: "/analyzer"}
+  { label: "Newsletter", path: "/newsletter" },
+  { label: "MCP Assistant", path: "/chatbot" },
 ]
 
 export default function Header() {
-  const { user, setUser, isAdmin } = useAuth();
-  const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(false);
-  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
+  const { user, setUser, isAdmin } = useAuth()
+  const navigate = useNavigate()
+  const [isOpen, setIsOpen] = useState(false)
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false)
 
   const handleProfileClick = () => {
-    navigate("/profile");
+    navigate("/profile")
   }
 
   const handleLogout = () => {
-    logout(setUser);
+    logout(setUser)
   }
 
   const handleNavigate = (path) => {
-    navigate(path);
-    setIsOpen(false);
+    navigate(path)
+    setIsOpen(false)
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-14 items-center justify-between px-4">
+    <motion.header
+      className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 shadow-sm"
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
+      <div className="flex h-16 items-center justify-between px-4">
         <div className="flex items-center space-x-6">
-          <a className="flex items-center space-x-2" href="#" onClick={() => { navigate("/") }}>
-            <span className="font-bold">TARIFIC</span>
-          </a>
+          <motion.a
+            className="flex items-center space-x-2 group"
+            href="#"
+            onClick={() => {
+              navigate("/")
+            }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Sprout className="w-6 h-6 text-primary transition-transform duration-300 group-hover:rotate-12" />
+            <span className="font-bold text-lg text-primary">TARIFIC</span>
+          </motion.a>
 
-          {/* Desktop Navigation Menu */}
           {user && (
             <NavigationMenu className="hidden md:flex">
               <NavigationMenuList>
-                {navigationItems.map((item) => (
+                {navigationItems.map((item, index) => (
                   <NavigationMenuItem key={item.path}>
-                    <NavigationMenuLink
-                      className={cn(navigationMenuTriggerStyle(), "cursor-pointer")}
-                      onClick={() => navigate(item.path)}
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
                     >
-                      {item.label}
-                    </NavigationMenuLink>
+                      <NavigationMenuLink
+                        className={cn(
+                          navigationMenuTriggerStyle(),
+                          "cursor-pointer transition-all duration-300 hover:bg-primary/10",
+                        )}
+                        onClick={() => navigate(item.path)}
+                      >
+                        {item.label}
+                      </NavigationMenuLink>
+                    </motion.div>
                   </NavigationMenuItem>
                 ))}
               </NavigationMenuList>
@@ -86,7 +100,6 @@ export default function Header() {
           )}
         </div>
 
-        {/* Right-side group: AdminPanel + Mobile menu + Avatar + ModeToggle */}
         <div className="flex items-center space-x-2">
           {user && isAdmin && (
             <div className="hidden md:block">
@@ -94,14 +107,13 @@ export default function Header() {
             </div>
           )}
 
-          {/* Mobile Navigation Menu */}
           {user && (
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="md:hidden"
+                  className="md:hidden hover:bg-primary/10 transition-colors duration-300"
                   aria-label="Open navigation menu"
                 >
                   <Menu className="h-5 w-5" />
@@ -114,44 +126,42 @@ export default function Header() {
                     <Button
                       key={item.path}
                       variant="ghost"
-                      className="justify-start text-left"
+                      className="justify-start text-left hover:bg-primary/10 transition-colors duration-300"
                       onClick={() => handleNavigate(item.path)}
                     >
                       {item.label}
                     </Button>
                   ))}
-                  {/* Admin Panel (mobile version) */}
                   {isAdmin && (
                     <Button
                       variant="ghost"
-                      className="justify-start text-left"
+                      className="justify-start text-left hover:bg-primary/10 transition-colors duration-300"
                       onClick={() => {
-                        setIsOpen(false);
-                        setAdminPanelOpen(true);
+                        setIsOpen(false)
+                        setAdminPanelOpen(true)
                       }}
                     >
                       Admin Panel
                     </Button>
                   )}
-                  {/* Mobile Profile and Logout */}
                   <div className="border-t pt-4 mt-4">
                     <div className="text-sm font-medium mb-2 text-muted-foreground">Account</div>
                     <Button
                       variant="ghost"
-                      className="justify-start text-left w-full"
+                      className="justify-start text-left w-full hover:bg-primary/10 transition-colors duration-300"
                       onClick={() => {
-                        handleProfileClick();
-                        setIsOpen(false);
+                        handleProfileClick()
+                        setIsOpen(false)
                       }}
                     >
                       Profile
                     </Button>
                     <Button
                       variant="ghost"
-                      className="justify-start text-left w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      className="justify-start text-left w-full text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors duration-300"
                       onClick={() => {
-                        handleLogout();
-                        setIsOpen(false);
+                        handleLogout()
+                        setIsOpen(false)
                       }}
                     >
                       Logout
@@ -162,34 +172,32 @@ export default function Header() {
             </Sheet>
           )}
 
-          {/* Desktop Avatar Dropdown */}
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
+                <motion.button
                   aria-label="Open user menu"
-                  className="rounded-full focus:outline-none hidden md:block"
+                  className="rounded-full focus:outline-none hidden md:block ring-2 ring-transparent hover:ring-primary/30 transition-all duration-300"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-9 w-9">
                     {user.avatarUrl ? (
-                      <AvatarImage src={user.avatarUrl} alt={user.username} />
+                      <AvatarImage src={user.avatarUrl || "/placeholder.svg"} alt={user.username} />
                     ) : (
                       <AvatarFallback className="text-lg font-semibold bg-primary text-primary-foreground">
                         {getUserInitials(user.username)}
                       </AvatarFallback>
                     )}
                   </Avatar>
-                </button>
+                </motion.button>
               </DropdownMenuTrigger>
 
               <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem onClick={handleProfileClick}>
+                <DropdownMenuItem onClick={handleProfileClick} className="cursor-pointer">
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="text-red-600"
-                >
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -199,6 +207,6 @@ export default function Header() {
           <ModeToggle />
         </div>
       </div>
-    </header>
-  );
+    </motion.header>
+  )
 }

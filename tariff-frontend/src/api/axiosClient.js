@@ -151,13 +151,6 @@ export const editTransactions = async(transactionID, snapshot) => {
   return await axiosClient.put(`/tariffs/transactionHistory/${transactionID}/snapshot`, snapshot);
 };
 
-// --- ADD THIS NEW FUNCTION ---
-export const getHistoricalData = async (params) => {
-  // params will be an object like { full_tariff_id_prefix: '...' } or { hts6: '...', reporter_id: '...', partner_id: '...' }
-  return await mcpAxiosClient.get(`/historical`, { params });
-};
-// --- END OF NEW FUNCTION ---
-
 export const getForecast = async () => {
   return await mcpAxiosClient.get(`/forecast`);
 };
@@ -166,27 +159,8 @@ export const updateForecast = async () => {
   return await mcpAxiosClient.post(`/forecast`);
 };
 
-export const loadLive = async () =>{
-  return await mcpAxiosClient.post("/data/live")
-};
 export const getNewsletter = async () => {
   return await mcpAxiosClient.get(`/newsletter`)
-}
-
-export const getMailingList = async () => {
-  return await mcpAxiosClient.get(`/newsletter/mailinglist`);
-};
-
-export const saveMailingList = async (recipients) => {
-  return await mcpAxiosClient.post(`/newsletter/mailinglist`, { recipients });
-};
-
-export const sendNewsletter = async (markdownContent) => {
-  return await mcpAxiosClient.post(`/newsletter/send`, { markdown_content: markdownContent });
-};
-
-export const postAnalyzable = async (analyzable) => {
-  return await mcpAxiosClient.post(`/analyze`, analyzable);
 }
 
 export default axiosClient;

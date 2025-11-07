@@ -229,7 +229,6 @@ export default function Forecast() {
                     disabled={isRefreshing}
                   >
                     <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                    (Takes ~5min)
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Refresh</TooltipContent>
