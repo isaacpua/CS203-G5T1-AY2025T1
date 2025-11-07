@@ -361,8 +361,8 @@ function Chatbot() {
             </span>
           </div>
         ))}
-        {/* "Jarvis is typing..." (unchanged) */}
-        {isAiTyping && <div className="text-left text-muted-foreground">Jarvis is typing...</div>}
+        {/* "TARIFF is typing..." (unchanged) */}
+        {isAiTyping && <div className="text-left text-muted-foreground">TARIFF is typing...</div>}
         
         {/* --- NEW: Empty div with ref for auto-scrolling --- */}
         <div ref={messagesEndRef} />

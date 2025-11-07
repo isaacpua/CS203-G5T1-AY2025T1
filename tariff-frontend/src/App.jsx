@@ -13,6 +13,7 @@ import { AuthProvider } from './utils/AuthProvider';
 import ChatbotPage from './pages/Chatbot';
 import Forecast from './pages/Forecast';
 import Newsletter from './pages/Newsletter';
+import Analyzer from './pages/ArticleAnalyzer';
 
 function AppContent() {
 
@@ -63,6 +64,12 @@ function AppContent() {
                 <Route path="/newsletter" element={
                   <section className="container mx-auto py-8 md:py-12 lg:py-24">
                     <Newsletter />
+                  </section>
+                } />
+
+                <Route path="/analyzer" element={
+                  <section className="container mx-auto py-8 md:py-12 lg:py-24">
+                    <Analyzer />
                   </section>
                 } />
 

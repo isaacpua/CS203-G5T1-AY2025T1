@@ -136,23 +136,23 @@ async def send_email(to_email: str, subject: Optional[str] = None, body: Optiona
     """
     # --- Set Default values if not provided ---
     final_subject = subject if subject is not None else "Test Email from MCP Server"
-    final_body = body if body is not None else "Hello! This is a test email sent from the DexiaMCP server."
+    final_body = body if body is not None else "Hello! This is a test email sent from the TARIFFMCP server."
     # -----------------------------------------
 
     # Just call the async logic function you imported
     return await send_email_logic(to_email, final_subject, final_body)
 
 @mcp.tool(name="analyze_article")
-async def analyze_article(md: str) -> dict:
+async def analyze_article(input: str) -> dict:
     """
-    The tool for analyzing tariff articles. Send the provided markdown string of an 
+    The tool for analyzing tariff articles. Send the provided string of an 
     article related to tariffs to OpenAI and return a concise analysis.
 
     Args:
-        md: A string of the markdown of the article to analyze
+        input: A string of the markdown of the article to analyze
 
     Returns:
         Dict with the success state, and error message or response markdown text for
         the analysis of the article.
     """
-    return await analyze(md)
+    return await analyze(input)
