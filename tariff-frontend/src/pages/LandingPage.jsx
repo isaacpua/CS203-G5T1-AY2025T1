@@ -3,13 +3,11 @@ import { Calculator, Wheat, Menu, BarChart3, TrendingUp, History } from "lucide-
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { CardBody, CardContainer, CardItem } from "@/components/ui/3d-card"
 
 export default function LandingPage() {
   const navigate = useNavigate()
   const [contentVisible, setContentVisible] = useState(false)
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -18,70 +16,20 @@ export default function LandingPage() {
     return () => clearTimeout(timer)
   }, [])
 
-  const handleNavigate = (path) => {
-    navigate(path)
-    setIsMenuOpen(false)
-  }
-
-  const navigationItems = [
-    // Reordered to match card order: Dashboard, Newsletter, MCP Assistant, then others
-    { label: "Dashboard", path: "/dashboard", icon: BarChart3 },
-    { label: "Newsletter", path: "/newsletter", icon: Wheat },
-    { label: "MCP Assistant", path: "/assistant", icon: Calculator },
-    { label: "Calculator", path: "/calculator", icon: Calculator },
-    { label: "Historical Explorer", path: "/historical", icon: History },
-    { label: "Forecasts", path: "/forecast", icon: TrendingUp },
-  ]
   const handleOpen = (path) => {
     navigate(path)
-    setIsMenuOpen(false)
   }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-transparent">
-      <div className="fixed top-20 right-4 z-50">
-        <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-          <SheetTrigger asChild>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-3 rounded-full bg-white/90 dark:bg-card/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all border border-white/50"
-              aria-label="Open menu"
-            >
-              <Menu className="h-6 w-6 text-primary" />
-            </motion.button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-80">
-            <SheetTitle className="text-xl font-bold mb-6">Quick Access</SheetTitle>
-            <div className="flex flex-col space-y-3">
-              {navigationItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <motion.button
-                    key={item.path}
-                    whileHover={{ x: 5 }}
-                    onClick={() => handleNavigate(item.path)}
-                    className="flex items-center gap-3 p-4 rounded-lg hover:bg-primary/10 transition-colors text-left group"
-                  >
-                    <Icon className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-                    <span className="font-medium">{item.label}</span>
-                  </motion.button>
-                )
-              })}
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-
       <div className="fixed inset-0 z-0 pointer-events-none">
         <video
           autoPlay
           loop
           muted
           playsInline
-          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${
-            contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
-          }`}
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
+            }`}
         >
           <source
             src="/2025-11-05T12-29-43_continuous_looping_watermarked.mp4"
@@ -89,13 +37,12 @@ export default function LandingPage() {
           />
         </video>
         <div
-          className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${
-            contentVisible ? "opacity-60" : "opacity-30"
-          }`}
+          className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"
+            }`}
         />
       </div>
 
-     <section className="relative z-10 py-20 lg:py-32">
+      <section className="relative z-10 py-20 lg:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <motion.h1
@@ -127,34 +74,46 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
             >
-                <motion.div whileHover={{ y: -6 }} className="w-full">
-                  <CardContainer className="w-full">
-                    <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-120">
-                      <CardItem translateZ={80} className="flex items-center justify-center mb-4">
-                        <BarChart3 className="w-12 h-12 text-primary" />
+              <motion.div whileHover={{ y: -6 }} className="w-full">
+                <CardContainer className="w-full">
+                  <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-120">
+                    <CardItem translateZ={80} className="flex items-center justify-center mb-4">
+                      <BarChart3 className="w-12 h-12 text-primary" />
+                    </CardItem>
+                    <CardItem translateZ={60} className="font-semibold text-2xl mb-2 text-foreground dark:text-white text-center">Live Dashboard</CardItem>
+                    <CardItem as="p" translateZ={40} className="text-sm text-muted-foreground dark:text-neutral-300 text-center mb-4">See a quick snapshot of your tariffs, trends, and key metrics.</CardItem>
+                    <div className="flex gap-3 mt-auto">
+                      <CardItem translateZ={20} className="w-full text-left">
+                        <Button
+                          size="lg"
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                          onClick={() => handleOpen('/dashboard')}
+                        >
+                          Open Dashboard
+                        </Button>
                       </CardItem>
-                        <CardItem translateZ={60} className="font-semibold text-2xl mb-2 text-foreground dark:text-white text-center">Live Dashboard</CardItem>
-                        <CardItem as="p" translateZ={40} className="text-sm text-muted-foreground dark:text-neutral-300 text-center mb-4">See a quick snapshot of your tariffs, trends, and key metrics.</CardItem>
-                      <div className="flex gap-3 mt-auto">
-                          <CardItem as="button" translateZ={20} className="w-full text-left" onClick={() => handleOpen('/dashboard')}>
-                            <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">Open Dashboard</Button>
-                          </CardItem>
-                        </div>
-                    </CardBody>
-                  </CardContainer>
-                </motion.div>
+                    </div>
+                  </CardBody>
+                </CardContainer>
+              </motion.div>
 
               <motion.div whileHover={{ y: -6 }} className="w-full" transition={{ delay: 0.06 }}>
                 <CardContainer className="w-full">
-                    <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-120">
+                  <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-120">
                     <CardItem translateZ={80} className="flex items-center justify-center mb-4">
                       <TrendingUp className="w-12 h-12 text-primary" />
                     </CardItem>
-                      <CardItem translateZ={60} className="font-semibold text-2xl mb-2 text-foreground dark:text-white text-center">Newsletter</CardItem>
-                      <CardItem as="p" translateZ={40} className="text-sm text-muted-foreground dark:text-neutral-300 text-center mb-4">Subscribe for weekly tariff insights and export opportunities.</CardItem>
+                    <CardItem translateZ={60} className="font-semibold text-2xl mb-2 text-foreground dark:text-white text-center">Newsletter</CardItem>
+                    <CardItem as="p" translateZ={40} className="text-sm text-muted-foreground dark:text-neutral-300 text-center mb-4">Subscribe for weekly tariff insights and export opportunities.</CardItem>
                     <div className="flex gap-3 mt-auto">
-                      <CardItem as="button" translateZ={20} className="w-full text-left" onClick={() => handleOpen('/newsletter')}>
-                        <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">Go to Newsletter</Button>
+                      <CardItem translateZ={20} className="w-full text-left">
+                        <Button
+                          size="lg"
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                          onClick={() => handleOpen('/newsletter')}
+                        >
+                          Go to Newsletter
+                        </Button>
                       </CardItem>
                     </div>
                   </CardBody>
@@ -163,15 +122,21 @@ export default function LandingPage() {
 
               <motion.div whileHover={{ y: -6 }} className="w-full" transition={{ delay: 0.12 }}>
                 <CardContainer className="w-full">
-                    <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-120">
+                  <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-120">
                     <CardItem translateZ={80} className="flex items-center justify-center mb-4">
                       <Calculator className="w-12 h-12 text-primary" />
                     </CardItem>
-                      <CardItem translateZ={60} className="font-semibold text-2xl mb-2 text-foreground dark:text-white text-center">MCP Assistant</CardItem>
-                      <CardItem as="p" translateZ={40} className="text-sm text-muted-foreground dark:text-neutral-300 text-center mb-4">Chat with the assistant for tariff guidance, policy checks and automation.</CardItem>
+                    <CardItem translateZ={60} className="font-semibold text-2xl mb-2 text-foreground dark:text-white text-center">MCP Assistant</CardItem>
+                    <CardItem as="p" translateZ={40} className="text-sm text-muted-foreground dark:text-neutral-300 text-center mb-4">Chat with the assistant for tariff guidance, policy checks and automation.</CardItem>
                     <div className="flex gap-3 mt-auto">
-                      <CardItem as="button" translateZ={20} className="w-full text-left" onClick={() => handleOpen('/assistant')}>
-                        <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">Open Assistant</Button>
+                      <CardItem translateZ={20} className="w-full text-left">
+                        <Button
+                          size="lg"
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                          onClick={() => handleOpen('/chat')}
+                        >
+                          Open Assistant
+                        </Button>
                       </CardItem>
                     </div>
                   </CardBody>
