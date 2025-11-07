@@ -459,8 +459,14 @@ export default function TariffCalc() {
                                         setSearchTick((n) => n + 1);
                                     }}
                                 >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={loadingCountries ? "Loading…" : "Select country"} />
+                                    <SelectTrigger
+                                        className="w-full max-w-[240px] overflow-hidden"
+                                        title={getFromLabel(fromId, fromOptions)}
+                                    >
+                                        <SelectValue
+                                            placeholder={loadingCountries ? "Loading…" : "Select country"}
+                                            className="truncate"
+                                        />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value={NONE}>None</SelectItem>
@@ -486,9 +492,16 @@ export default function TariffCalc() {
                                         setSearchTick((n) => n + 1);
                                     }}
                                 >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={loadingCountries ? "Loading…" : "Select country"} />
+                                    <SelectTrigger
+                                        className="w-full max-w-[240px] overflow-hidden"
+                                        title={getToLabel(toId, toOptions)}
+                                    >
+                                        <SelectValue
+                                            placeholder={loadingCountries ? "Loading…" : "Select country"}
+                                            className="truncate"
+                                        />
                                     </SelectTrigger>
+
                                     <SelectContent>
                                         <SelectItem value={NONE}>None</SelectItem>
                                         {toOptions
@@ -911,3 +924,16 @@ function isUnitCount(selected) {
     const unit = (selected?.unitname || "").toLowerCase();
     return unit.includes("unit") || unit.includes("piece") || unit.includes("item");
 }
+
+function getFromLabel(id, list) {
+    if (!id || id === NONE) return "";
+    const c = list?.find((x) => String(x.countryId) === String(id));
+    return c ? `${c.name} (${c.iso2})` : "";
+}
+
+function getToLabel(id, list) {
+    if (!id || id === NONE) return "";
+    const c = list?.find((x) => String(x.countryId) === String(id));
+    return c ? `${c.name} (${c.iso2})` : "";
+}
+
