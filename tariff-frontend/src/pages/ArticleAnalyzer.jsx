@@ -95,7 +95,7 @@ export default function Analyzer() {
             }`}
           >
             {loading ?
-            <div className="flex items-center justify-center p-8">
+            <div className="flex items-center justify-center">
               <div>Analyzing...</div>
               <Spinner />
             </div> : "Analyze"}

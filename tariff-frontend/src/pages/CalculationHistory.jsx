@@ -335,23 +335,25 @@ export default function CalculationHistory() {
           <div className="px-4 md:px-6">
             <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-xl border mb-3">
               <Label>Search</Label>
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-10 pr-8"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Description, tariff ID…"
-              />
-              {q && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                  onClick={() => setQ("")}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-10 pr-8"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Description, tariff ID…"
+                />
+                {q && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                    onClick={() => setQ("")}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Select-all / Clear selection */}
