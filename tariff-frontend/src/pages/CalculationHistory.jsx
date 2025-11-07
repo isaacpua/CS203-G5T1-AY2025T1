@@ -79,7 +79,20 @@ export default function CalculationHistory() {
 
   useEffect(() => { load(false); }, []);
   const filtered = filterItems(items, q);
+  const selectableIds = filtered
+    .map(r => r.transactionId)
+    .filter(Boolean); // only rows that actually have an id
 
+  const allSelected =
+    selectableIds.length > 0 &&
+    selectableIds.every(id => selectedIds.includes(id));
+
+  const handleSelectAll = () => {
+    if (selectableIds.length === 0) return;
+    setSelectedIds(selectableIds);
+  };
+
+  const handleClearSelection = () => setSelectedIds([]);
   const exportCSV = async () => {
     try {
       setIsExporting(true);
@@ -322,25 +335,40 @@ export default function CalculationHistory() {
           <div className="px-4 md:px-6">
             <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-xl border mb-3">
               <Label>Search</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  className="pl-10 pr-8"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Description, tariff ID…"
-                />
-                {q && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                    onClick={() => setQ("")}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-10 pr-8"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Description, tariff ID…"
+              />
+              {q && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                  onClick={() => setQ("")}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+
+            {/* Select-all / Clear selection */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={allSelected ? handleClearSelection : handleSelectAll}
+                disabled={selectableIds.length === 0}
+              >
+                {allSelected ? "Clear selection" : `Select all (${selectableIds.length})`}
+              </Button>
+              {selectedIds.length > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {selectedIds.length} selected
+                </Badge>
+              )}
             </div>
 
             {/* Bulk delete controls (unchanged) */}
