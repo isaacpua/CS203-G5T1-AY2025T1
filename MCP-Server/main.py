@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from mcp_server import mcp as mcp_server
-from tools.historical_viewer import historical_viewer_tool
 
 mcp_app = mcp_server.http_app()
 
