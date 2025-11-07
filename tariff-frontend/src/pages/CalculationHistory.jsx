@@ -302,7 +302,7 @@ export default function CalculationHistory() {
       {showRelogin && <Relogin />}
 
       <Card className="border-0 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 md:p-6">
+        <CardHeader className="bg-linear-to-r from-primary/10 to-primary/5 rounded-xl p-4 md:p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <CardTitle className="text-xl md:text-2xl font-bold text-foreground">Calculation History</CardTitle>
@@ -335,6 +335,7 @@ export default function CalculationHistory() {
           <div className="px-4 md:px-6">
             <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-xl border mb-3">
               <Label>Search</Label>
+               <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 className="pl-10 pr-8"
@@ -353,7 +354,7 @@ export default function CalculationHistory() {
                 </Button>
               )}
             </div>
-
+          </div>
             {/* Select-all / Clear selection */}
             <div className="flex items-center gap-2">
               <Button
@@ -364,23 +365,18 @@ export default function CalculationHistory() {
               >
                 {allSelected ? "Clear selection" : `Select all (${selectableIds.length})`}
               </Button>
-              {selectedIds.length > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  {selectedIds.length} selected
-                </Badge>
-              )}
-            </div>
+              </div>
 
             {/* Bulk delete controls (unchanged) */}
             {selectedIds.length > 0 && (
               <div className="px-0 mb-4">
                 <div className="flex items-center gap-2">
-                  <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+                  <Button variant="destructive" size="sm" className="px-3 py-1.5" onClick={handleBulkDelete}>
                     Delete selected ({selectedIds.length})
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])}>
-                    Clear selection
-                  </Button>
+                  <Badge variant="outline" className="text-xs">
+                    {selectedIds.length} selected
+                  </Badge>
                 </div>
               </div>
             )}
