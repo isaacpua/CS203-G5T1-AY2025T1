@@ -26,7 +26,7 @@
   --ring: oklch(0.55 0.18 145);
   --chart-1: oklch(0.55 0.18 145);
   --chart-2: oklch(0.65 0.16 145);
-  --chart-3: oklch(0.45 0.2 145);
+  --chart-3: #3b82f6;
   --chart-4: oklch(0.75 0.14 145);
   --chart-5: oklch(0.35 0.22 145);
   --radius: 0.75rem;
@@ -38,6 +38,8 @@
   --sidebar-accent-foreground: oklch(0.2 0 0);
   --sidebar-border: oklch(0.9 0.01 145);
   --sidebar-ring: oklch(0.55 0.18 145);
+  --chart-axis: oklch(0.45 0.22 145);                 /* light: black */
+  --chart-grid: rgba(0,0,0,.18);      /* light: subtle grid */
 }
 
 .dark {
@@ -63,7 +65,7 @@
   --ring: oklch(0.65 0.18 145);
   --chart-1: oklch(0.65 0.18 145);
   --chart-2: oklch(0.75 0.16 145);
-  --chart-3: oklch(0.55 0.2 145);
+  --chart-3: #3b82f6;
   --chart-4: oklch(0.85 0.14 145);
   --chart-5: oklch(0.45 0.22 145);
   --sidebar: oklch(0.2 0.02 145);
@@ -74,6 +76,8 @@
   --sidebar-accent-foreground: oklch(0.98 0 0);
   --sidebar-border: oklch(0.3 0.03 145);
   --sidebar-ring: oklch(0.65 0.18 145);
+  --chart-axis: oklch(100% 0.00011 271.152);                 /* dark: white */
+  --chart-grid: rgba(255,255,255,.28);
 }
 
 @theme inline {
@@ -188,4 +192,8 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+html, body, #root, #__next {
+  background: transparent !important;
 }

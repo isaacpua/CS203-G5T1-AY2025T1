@@ -136,7 +136,7 @@ const Login = () => {
   return (
     <div className="relative flex items-center justify-center min-h-screen overflow-hidden">
       {/* Video Background */}
-      <div className="fixed inset-0 -z-10">
+      <div className="fixed inset-0 z-0 pointer-events-none">
         <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover">
           <source src="/2025-11-05T12-29-43_continuous_looping_watermarked.mp4" type="video/mp4" />
         </video>
@@ -147,9 +147,8 @@ const Login = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="w-full max-w-md mx-4"
-      >
-        <div className="bg-white/95 dark:bg-card/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border border-white/20">
+        className="    w-[min(92vw,900px)] sm:w-[min(92vw,800px)] mx-4">
+        <div className="bg-white/95 dark:bg-card/95 backdrop-blur-xl rounded-3xl shadow-3xl overflow-hidden border border-white/20 p-2 md:p-4">
           {/* Logo and branding */}
           <div className="p-8 pb-6 text-center border-b border-border/50">
             <motion.div

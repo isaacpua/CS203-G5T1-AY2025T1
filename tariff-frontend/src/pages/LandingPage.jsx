@@ -1,6 +1,5 @@
-"use client"
 import { Button } from "@/components/ui/button"
-import { Calculator, Wheat, Egg, Menu, BarChart3, TrendingUp, History } from "lucide-react"
+import { Calculator, Wheat, Menu, BarChart3, TrendingUp, History } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
@@ -39,7 +38,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden bg-transparent">
       <div className="fixed top-20 right-4 z-50">
         <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
           <SheetTrigger asChild>
@@ -74,7 +73,7 @@ export default function LandingPage() {
         </Sheet>
       </div>
 
-      <div className="fixed inset-0 -z-10">
+      <div className="fixed inset-0 z-0 pointer-events-none">
         <video
           autoPlay
           loop
@@ -96,7 +95,7 @@ export default function LandingPage() {
         />
       </div>
 
-      <section className="relative py-20 lg:py-32">
+     <section className="relative z-10 py-20 lg:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <motion.h1
@@ -130,7 +129,7 @@ export default function LandingPage() {
             >
                 <motion.div whileHover={{ y: -6 }} className="w-full">
                   <CardContainer className="w-full">
-                    <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-[30rem]">
+                    <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-120">
                       <CardItem translateZ={80} className="flex items-center justify-center mb-4">
                         <BarChart3 className="w-12 h-12 text-primary" />
                       </CardItem>
@@ -147,7 +146,7 @@ export default function LandingPage() {
 
               <motion.div whileHover={{ y: -6 }} className="w-full" transition={{ delay: 0.06 }}>
                 <CardContainer className="w-full">
-                    <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-[30rem]">
+                    <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-120">
                     <CardItem translateZ={80} className="flex items-center justify-center mb-4">
                       <TrendingUp className="w-12 h-12 text-primary" />
                     </CardItem>
@@ -164,7 +163,7 @@ export default function LandingPage() {
 
               <motion.div whileHover={{ y: -6 }} className="w-full" transition={{ delay: 0.12 }}>
                 <CardContainer className="w-full">
-                    <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-[30rem]">
+                    <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-120">
                     <CardItem translateZ={80} className="flex items-center justify-center mb-4">
                       <Calculator className="w-12 h-12 text-primary" />
                     </CardItem>
