@@ -1,5 +1,4 @@
-import os
-import json
+import os,json
 import logging
 import httpx
 from fastapi import APIRouter, HTTPException, Body, Request
@@ -10,6 +9,7 @@ import pandas as pd
 from sqlalchemy import create_engine, Column, String, Integer, Float, Date, Text # Added 'Text'
 # --- END OF FIX ---
 from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase # Added ORM imports
+from load_data import main as data
 import datetime
 import asyncio
 from pydantic import BaseModel, Field
@@ -507,3 +507,14 @@ async def get_historical_data_endpoint(
     finally:
         db_session.close() # Always close the session
 # --- END OF NEW ENDPOINT ---
+
+@router.post("/data/live")
+async def load_live_data():
+    try:
+        logging.info("Starting data load")
+        data.load_usitc_data()
+        return {"message": "Load completed"}
+    except Exception as e:
+        logging.error(f"Error loading live data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

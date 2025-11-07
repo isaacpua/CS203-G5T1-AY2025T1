@@ -456,61 +456,6 @@ def parse_rate(rate_str: str) -> tuple:
     return (final_advalorem, final_specificperunit)
 
 
-def load_into_db(input_df: pd.DataFrame, db_connection_string: str, year: int):
-    """
-    Loads the dataframe into the AWS RDS Postgres DB
-    """
-
-    table_name = f'tariff_hts{year}'
-    schema = 'tariffs'
-
-    old_table_name = 'tariffs.tariff_htsYYYY'
-    if old_table_name in Base.metadata.tables:
-        Base.metadata.remove(Base.metadata.tables[old_table_name])
-
-    Tariff.__tablename__ = table_name
-    Tariff.__table_args__ = {"extend_existing": True, "schema": schema}
-
-    # Clear the cached table
-    Tariff.__table__ = None
-
-    engine = create_engine(db_connection_string)
-
-    # Define explicit dtype mapping for pandas
-    dtype_mapping = {
-        'tariffid': Text,
-        'descriptionwcountry': Text,
-        'unitname': Text,
-        'category': Text,
-        'advalorem': Float,
-        'specificperunit': Float,
-        'effectivedate': Date,
-        'expirydate': Date,
-        'partnercountry': Text,
-        'reportercountry': Text,
-        'datasource': Text
-    }
-
-    # Convert DataFrame to SQL with explicit dtypes
-    input_df.to_sql(
-        name=table_name,
-        con=engine,
-        schema=schema,
-        if_exists='replace',
-        index=False,
-        dtype=dtype_mapping,
-        method='multi',
-        chunksize=1000
-    )
-
-    with engine.connect() as conn:
-        query = f'ALTER TABLE {schema}.{table_name} ADD PRIMARY KEY (tariffid);'
-        conn.execute(text(query))
-        conn.commit()
-
-    print(
-        f"Successfully loaded {len(input_df)} rows into table '{schema}.{table_name}'.")
-
 COUNTRY_MAP = {
     "SG": 1, "AF": 2, "AL": 3, "DZ": 4, "AD": 5, "AO": 6, "AG": 7, "AR": 8, "AM": 9, "AU": 10,
     "AT": 11, "AZ": 12, "BS": 13, "BH": 14, "BD": 15, "BB": 16, "BY": 17, "BE": 18, "BZ": 19, "BJ": 20,
