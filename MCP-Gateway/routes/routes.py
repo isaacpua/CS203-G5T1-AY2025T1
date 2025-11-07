@@ -6,13 +6,13 @@ from fastapi import APIRouter, HTTPException, Body
 from fastapi.responses import JSONResponse
 from fastmcp import Client
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import datetime
 import asyncio
 from pydantic import BaseModel, Field
 from typing import List
 from openai import OpenAI
-from pathlib import Path  # <-- NEW IMPORT
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
@@ -23,15 +23,12 @@ DB_CONFIG = {
     "DB_PASSWORD": os.getenv("DB_PASSWORD"),
 }
 
-# --- CORRECTED FILE PATHS ---
+# --- FILE PATHS ---
 DATA_DIR = Path("data")
-# This is for your scraped content
-NEWSLETTER_CONTENT_PATH = DATA_DIR / "newsletter.json"
 # This is for the new mailing list
-MAILING_LIST_PATH = DATA_DIR / "mailinglist.json" 
+MAILING_LIST_PATH = DATA_DIR / "mailinglist.json"
 # Ensure the data directory exists
 DATA_DIR.mkdir(exist_ok=True)
-# --- END CORRECTION ---
 
 
 router = APIRouter(prefix="/mcp/api/v1")
@@ -41,7 +38,9 @@ client = Client(MCP_SERVER_URL)
 class NewsletterRequest(BaseModel):
     # The server will get the list from its file
     # recipients: List[str] = Field(..., description="A list of email addresses to send the newsletter to.")
-    markdown_content: str = Field(..., description="The full raw markdown content of the newsletter.")
+    markdown_content: str = Field(
+        ..., description="The full raw markdown content of the newsletter.")
+
 
 async def _get_mailing_list() -> List[str]:
     """Reads the mailing list from data/mailinglist.json."""
@@ -57,6 +56,7 @@ async def _get_mailing_list() -> List[str]:
         logging.warning("Could not read or parse data/mailinglist.json")
         return []
 
+
 async def _save_mailing_list(recipients: List[str]) -> bool:
     """Saves the mailing list to data/mailinglist.json."""
     try:
@@ -67,7 +67,7 @@ async def _save_mailing_list(recipients: List[str]) -> bool:
         logging.error(f"Failed to write to data/mailinglist.json: {e}")
         return False
 
-# --- YOUR UPDATED summarize_newsletter FUNCTION ---
+
 async def summarize_newsletter(content: str) -> str:
     """
     Uses OpenAI to summarize the newsletter markdown into a plain-text email body.
@@ -115,7 +115,7 @@ async def greet(name: str):
     except Exception as e:
         logging.error(f"Error details: {e}")
         raise HTTPException(status_code=404, detail=str(e))
-    
+
 
 @router.get("/health")
 async def healthcheck():
@@ -160,72 +160,80 @@ async def forecast_tariffs():
     except Exception as e:
         logging.error(f"Error details: {e}")
         raise HTTPException(status_code=409, detail=str(e))
-    
 
-# --- THIS ENDPOINT IS NOW FIXED ---
+
 @router.get("/newsletter")
 async def get_newsletter():
     try:
+        connection_string = f"postgresql://{DB_CONFIG["DB_USERNAME"]}:{DB_CONFIG["DB_PASSWORD"]}@{DB_CONFIG["DB_URL"]}"
+        db_engine = create_engine(connection_string)
+        today = datetime.date.today()
+
+        # Try to fetch today's newsletter from the database (cache hit)
+        try:
+            query = text("SELECT content FROM tariffs.tariff_newsletters WHERE date = :today")
+            with db_engine.connect() as connection:
+                result = connection.execute(query, {"today": today}).fetchone()
+
+            if result:
+                print("Found today's newsletter in DB! Returning that...")
+                response = {
+                    "success": True,
+                    "error": None,
+                    "markdown": result.content
+                }
+                return response
+            else:
+                print("Stored newsletter is old or not found in DB!")
+
+        except Exception as e:
+            # If DB read fails, log it and fall through to scraping
+            print(f"Failed to read from DB: {e}. Fetching new content...")
+
+        # scrape it
         async with client:
-            try:
-                # Use the correct file path
-                with open(NEWSLETTER_CONTENT_PATH, "r", encoding="utf-8") as file:
-                    print("Reading stored newsletter")
-                    curr_newsletter_json = json.load(file)
-                
-                # This logic will work again
-                if datetime.datetime.strptime(curr_newsletter_json["date"], "%d/%m/%Y").date() == datetime.date.today():
-                    print("Stored newsletter is updated! Returning that...")
-                    response = {
-                        "success": True,
-                        "error": None,
-                        "markdown": curr_newsletter_json["content"]
-                    }
-                    # print(response)
-                    return response
-                else:
-                    print("Stored newsletter is old!")
-            except(FileNotFoundError, json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
-                # Added TypeError to catch the bug you saw
-                print(f"Failed to read stored newsletter or date: {e}")
-
-
             logging.info(f"Calling newsletter tool on {MCP_SERVER_URL} ...")
             mcp_response = await client.call_tool("newsletter_scrape")
             logging.info(f"Successfully called newsletter tool!")
             response = json.loads(mcp_response.content[0].text)
-            # print(response)
-
 
             if not response["success"]:
                 raise Exception(response["error"])
 
+            # save the newly scraped content to the database
+            print("Writing today's Newsletter to DB...")
+            new_markdown = response["markdown"]
 
-            print("Creating newsletter json...")
-            new_newsletter_json = {
-                "date": datetime.date.today().strftime("%d/%m/%Y"),
-                "content": response["markdown"]
-            }
-            # Use the correct file path
-            with open(NEWSLETTER_CONTENT_PATH, "w", encoding="utf-8") as file:
-                print("Writing today's Newsletter to file...")
-                json.dump(new_newsletter_json, file, indent = 4)
+            # INSERT a new row or UPDATE the existing row for today
+            insert_query = text("""
+                INSERT INTO tariffs.tariff_newsletters (date, content)
+                VALUES (:today, :content)
+                ON CONFLICT (date)
+                DO UPDATE SET content = EXCLUDED.content;
+            """)
 
+            # .begin() automatically commits on success or rolls back on error
+            with db_engine.begin() as connection:
+                connection.execute(insert_query, {"today": today, "content": new_markdown})
 
+            print("Successfully wrote to DB.")
+
+            # Return the freshly scraped response
             return response
-        
+
     except Exception as e:
         logging.error(f"Error details: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/newsletter/mailinglist")
 async def get_mailing_list():
     recipients = await _get_mailing_list()
     return {"recipients": recipients}
 
+
 @router.post("/newsletter/mailinglist")
 async def update_mailing_list(recipients: List[str] = Body(..., embed=True)):
-    # We expect a body like: {"recipients": ["email1@test.com", "email2@test.com"]}
     if await _save_mailing_list(recipients):
         return {"status": "success", "message": "Mailing list updated."}
     else:
@@ -240,94 +248,85 @@ async def send_newsletter(request: NewsletterRequest = Body(...)):
     2. Summarizes the markdown content using OpenAI.
     3. Sends the summary to each recipient using the MCP-Server's email tool.
     """
-    
-    # --- MODIFIED: Get recipients from file ---
+
     recipients = await _get_mailing_list()
     if not recipients:
-        raise HTTPException(status_code=400, detail="No recipients in mailing list. Please add emails first.")
-    
+        raise HTTPException(
+            status_code=400, detail="No recipients in mailing list. Please add emails first.")
+
     if not request.markdown_content:
-        raise HTTPException(status_code=400, detail="No markdown content provided.")
-    # --- END OF MODIFICATION ---
+        raise HTTPException(
+            status_code=400, detail="No markdown content provided.")
 
     # Step 1: Summarize the content
     logging.info("Summarizing newsletter content...")
     try:
         email_body = await summarize_newsletter(request.markdown_content)
-        subject = "Your Weekly Tariff Newsletter Digest"
+        # Suggestion: Change "Weekly" to "Daily" if it's a daily newsletter
+        subject = "Your Daily Tariff Newsletter Digest"
     except HTTPException as e:
-        return e # Re-raise the exception from the helper
-    
+        return e
+
     logging.info("Summary complete. Starting email dispatch...")
 
-    # Step 2: Send emails concurrently using the existing global client
+    # Step 2: Send emails concurrently
     tasks = []
     try:
         async with client:
-            for email in recipients:  # <-- Use recipients from file
-                # Create a payload for the 'send_email' tool
-                #
+            for email in recipients:
                 tool_payload = {
                     "to_email": email,
                     "subject": subject,
                     "body": email_body
                 }
-                # Add the coroutine to the task list
                 tasks.append(client.call_tool("send_email", tool_payload))
-            
-            # Run all email-sending tasks concurrently
+
             mcp_results = await asyncio.gather(*tasks, return_exceptions=True)
 
     except Exception as e:
         logging.error(f"Error connecting to MCP server: {e}")
-        raise HTTPException(status_code=503, detail=f"Failed to connect to MCP-Server: {e}")
-    
+        raise HTTPException(
+            status_code=503, detail=f"Failed to connect to MCP-Server: {e}")
+
     logging.info("Email dispatch complete. Compiling results...")
 
     # Step 3: Report results
     dispatch_results = []
     success_count = 0
-    
-    for email, result in zip(recipients, mcp_results): # <-- Use recipients from file
+
+    for email, result in zip(recipients, mcp_results):
         if isinstance(result, Exception):
-            # Error calling the tool itself (e.g., timeout, MCP error)
             dispatch_results.append({
-                "email": email, 
-                "status": "error", 
+                "email": email,
+                "status": "error",
                 "detail": f"Task failed: {result}"
             })
         else:
             try:
-                # The tool call succeeded, now parse its JSON response
-                # This follows your pattern from /newsletter and /analyze
-                tool_output = json.loads(result.content[0].text) 
-                
-                # Check the 'status' from the gmail_tool.py
-                #
+                tool_output = json.loads(result.content[0].text)
+
                 if tool_output.get("status") == "success":
                     success_count += 1
                     dispatch_results.append({
-                        "email": email, 
-                        "status": "success", 
+                        "email": email,
+                        "status": "success",
                         "message_id": tool_output.get("message_id")
                     })
                 else:
-                    # The tool ran but returned an error (e.g., auth failed)
                     dispatch_results.append({
-                        "email": email, 
-                        "status": "error", 
+                        "email": email,
+                        "status": "error",
                         "detail": tool_output.get("detail", "Unknown error from email tool")
                     })
             except Exception as e:
-                 # The tool returned something that wasn't valid JSON
-                 dispatch_results.append({
-                    "email": email, 
-                    "status": "error", 
+                dispatch_results.append({
+                    "email": email,
+                    "status": "error",
                     "detail": f"Failed to parse tool response: {e}"
                 })
 
-    failed_count = len(recipients) - success_count # <-- Use recipients from file
-    
+    failed_count = len(recipients) - success_count
+
     return {
         "status": "complete",
         "total_sent": success_count,
@@ -365,9 +364,9 @@ async def analyze(data: dict):
 
             if not response["success"]:
                 raise Exception(response["error"])
-            
+
             return response
-        
+
     except Exception as e:
         logging.error(f"Error details: {e}")
         raise HTTPException(status_code=500, detail=str(e))

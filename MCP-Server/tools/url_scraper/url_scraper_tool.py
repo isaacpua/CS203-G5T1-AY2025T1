@@ -2,7 +2,7 @@ import re
 from typing import Callable
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, UndetectedAdapter
 from crawl4ai.async_crawler_strategy import AsyncPlaywrightCrawlerStrategy
-from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator 
+from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
 from crawl4ai.cache_context import CacheMode
 from tenacity import AsyncRetrying, stop_after_attempt, wait_exponential
@@ -10,14 +10,6 @@ from tenacity import AsyncRetrying, stop_after_attempt, wait_exponential
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
 
-
-browser_config = BrowserConfig(
-    headless=True,
-    browser_type="chromium",
-    verbose=True,
-    user_agent=USER_AGENT,
-    text_mode=True
-)
 
 
 async def _scrape_url_internal(
@@ -37,7 +29,16 @@ async def _scrape_url_internal(
     }
 
     try:
-        # Crawler config
+        # 1. Create a new BrowserConfig for this specific request
+        browser_config = BrowserConfig(
+            headless=True,
+            browser_type="chromium",
+            verbose=True,
+            user_agent=USER_AGENT,
+            text_mode=True
+        )
+
+        # 2. Create Crawler config
         crawler_run_config = CrawlerRunConfig(
             cache_mode=CacheMode.BYPASS,
             verbose=True,
@@ -45,10 +46,10 @@ async def _scrape_url_internal(
             stream=False
         )
 
-        # Create the undetected adapter
+        # 3. Create the undetected adapter
         undetected_adapter = UndetectedAdapter()
 
-        # Create the crawler strategy with undetected adapter
+        # 4. Create the crawler strategy
         crawler_strategy = AsyncPlaywrightCrawlerStrategy(
             browser_config=browser_config,
             browser_adapter=undetected_adapter
@@ -110,9 +111,12 @@ async def newsletter_scrape() -> dict:
 
     # 2. Define the specific post-processing
     def post_process(md: str) -> str:
-        md = re.split("## Tariffs", md)[1]
-        md = re.split(
-            r"\[\s*\]\(https://finance\.yahoo\.com/\)", md)[0]
+        # Added a check to prevent index error if split fails
+        parts = re.split("## Tariffs", md, 1)
+        md = parts[1] if len(parts) > 1 else md
+        
+        parts = re.split(r"\[\s*\]\(https://finance\.yahoo\.com/\)", md, 1)
+        md = parts[0] if len(parts) > 0 else md
         return md
 
     # 3. Call the helper
