@@ -35,6 +35,8 @@ export default function CalculationHistory() {
   // edit → popup that only allows DV/Qty (ID & countries read-only / not editable)
   const [editRow, setEditRow] = useState(null);
   const [editInputs, setEditInputs] = useState({ customsValue: "", quantity: "", saveAfterCompute: true });
+  const [confirmDeleteRow, setConfirmDeleteRow] = useState(null);
+  const [confirmBulkOpen, setConfirmBulkOpen] = useState(false);
 
   const load = async (asRefresh = false) => {
     setError("");
@@ -122,16 +124,31 @@ export default function CalculationHistory() {
     }
   };
 
-  // single delete
+
+  const askDelete = (row) => setConfirmDeleteRow(row);
+
+  const confirmDeleteNow = async () => {
+    if (!confirmDeleteRow) return;
+    await handleDelete(confirmDeleteRow);
+    setConfirmDeleteRow(null);
+  };
+
+  const confirmBulkDeleteNow = async () => {
+    await handleBulkDelete();
+    setConfirmBulkOpen(false);
+  };
+
   const handleDelete = async (row) => {
     const id = row?.transactionId;
-    if (!id) { toast.error("Invalid record id"); return; }
-    if (!window.confirm("Delete this calculation? This cannot be undone.")) return;
+    if (!id) {
+      toast.error("Invalid record id");
+      return;
+    }
     try {
       setDeletingId(id);
       await deleteTransactionByID(id);
-      setItems((prev) => prev.filter((r) => r.transactionId !== id));
-      setSelectedIds((prev) => prev.filter((x) => x !== id));
+      setItems(prev => prev.filter(r => r.transactionId !== id));
+      setSelectedIds(prev => prev.filter(x => x !== id));
       toast.success("Deleted");
     } catch (e) {
       if (e?.response?.status === 401) { setShowRelogin(true); return; }
@@ -141,7 +158,6 @@ export default function CalculationHistory() {
       setDeletingId(null);
     }
   };
-
   // select + bulk delete
   const toggleSelect = (row) => {
     const id = row?.transactionId;
@@ -151,7 +167,6 @@ export default function CalculationHistory() {
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    if (!window.confirm(`Delete ${selectedIds.length} selected item(s)? This cannot be undone.`)) return;
     try {
       await bulkDeleteTransactions(selectedIds);
       setItems((prev) => prev.filter((r) => !selectedIds.includes(r.transactionId)));
@@ -275,14 +290,11 @@ export default function CalculationHistory() {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => handleDelete(row)}
+            onClick={() => askDelete(row)}
             disabled={deletingId === rid || !rid}
             aria-label="Delete"
           >
-            <Trash2
-              className={`h-4 w-4 ${deletingId === rid ? "animate-pulse" : ""
-                }`}
-            />
+            <Trash2 className={`h-4 w-4 ${deletingId === rid ? "animate-pulse" : ""}`} />
           </Button>
         </div>
       </div>
@@ -335,26 +347,26 @@ export default function CalculationHistory() {
           <div className="px-4 md:px-6">
             <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-xl border mb-3">
               <Label>Search</Label>
-               <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-10 pr-8"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Description, tariff ID…"
-              />
-              {q && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                  onClick={() => setQ("")}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-10 pr-8"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Description, tariff ID…"
+                />
+                {q && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                    onClick={() => setQ("")}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
             {/* Select-all / Clear selection */}
             <div className="flex items-center gap-2">
               <Button
@@ -365,13 +377,18 @@ export default function CalculationHistory() {
               >
                 {allSelected ? "Clear selection" : `Select all (${selectableIds.length})`}
               </Button>
-              </div>
+            </div>
 
             {/* Bulk delete controls (unchanged) */}
             {selectedIds.length > 0 && (
               <div className="px-0 mb-4">
                 <div className="flex items-center gap-2">
-                  <Button variant="destructive" size="sm" className="px-3 py-1.5" onClick={handleBulkDelete}>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="px-3 py-1.5"
+                    onClick={() => setConfirmBulkOpen(true)}
+                  >
                     Delete selected ({selectedIds.length})
                   </Button>
                   <Badge variant="outline" className="text-xs">
@@ -421,6 +438,68 @@ export default function CalculationHistory() {
           )}
         </CardContent>
       </Card>
+      <Dialog open={!!confirmDeleteRow} onOpenChange={() => setConfirmDeleteRow(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete calculation?</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              This action cannot be undone. The selected calculation will be permanently deleted.
+            </p>
+          </DialogHeader>
+
+          {confirmDeleteRow && (
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+              <div className="font-medium">{getDescription(confirmDeleteRow)}</div>
+              <div className="text-muted-foreground">
+                Tariff ID: <span className="font-mono">{getTariffId(confirmDeleteRow) ?? "—"}</span>
+              </div>
+              {confirmDeleteRow.createdAt && (
+                <div className="text-muted-foreground">
+                  Created: {new Date(confirmDeleteRow.createdAt).toLocaleString()}
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeleteRow(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteNow}
+              disabled={deletingId === confirmDeleteRow?.transactionId}
+            >
+              {deletingId === confirmDeleteRow?.transactionId ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- Bulk Delete Confirmation Dialog --- */}
+      <Dialog open={confirmBulkOpen} onOpenChange={setConfirmBulkOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete {selectedIds.length} selected?</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              This will permanently remove all selected calculations.
+            </p>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmBulkOpen(false)}>
+              Cancel
+            </Button>
+            {/* was setConfirmBulkOpen(true) */}
+            <Button variant="destructive" onClick={async () => {
+              await handleBulkDelete();
+              setConfirmBulkOpen(false);
+            }}>
+              Delete selected
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* details modal */}
       <Dialog open={!!viewRow} onOpenChange={() => setViewRow(null)}>
@@ -510,7 +589,7 @@ export default function CalculationHistory() {
               <div className="grid grid-cols-2 gap-4">
                 {showDV && (
                   <div className="col-span-2 sm:col-span-1">
-                    <Label>Declared Value ($)</Label>
+                    <Label className="mb-2">Declared Value ($)</Label>
                     <Input
                       value={editInputs.customsValue}
                       onChange={(e) => setEditInputs((s) => ({ ...s, customsValue: e.target.value }))}

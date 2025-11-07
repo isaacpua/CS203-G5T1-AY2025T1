@@ -460,7 +460,7 @@ export default function TariffCalc() {
                                     }}
                                 >
                                     <SelectTrigger
-                                        className="w-full max-w-[240px] overflow-hidden"
+                                        className="w-full max-w-60 overflow-hidden"
                                         title={getFromLabel(fromId, fromOptions)}
                                     >
                                         <SelectValue
@@ -493,7 +493,7 @@ export default function TariffCalc() {
                                     }}
                                 >
                                     <SelectTrigger
-                                        className="w-full max-w-[240px] overflow-hidden"
+                                        className="w-full max-w-60 overflow-hidden"
                                         title={getToLabel(toId, toOptions)}
                                     >
                                         <SelectValue
@@ -724,7 +724,7 @@ export default function TariffCalc() {
                                 <div className="grid grid-cols-3 gap-4">
                                     {needsDV && (
                                         <div className="col-span-1">
-                                            <Label>Declared Value ($)</Label>
+                                            <Label className = "mb-2">Declared Value ($)</Label>
                                             <Input
                                                 value={declaredValue}
                                                 onChange={(e) => setDeclaredValue(e.target.value)}
