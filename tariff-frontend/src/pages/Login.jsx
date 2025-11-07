@@ -138,7 +138,7 @@ const Login = () => {
       {/* Video Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover">
-          <source src="/2025-11-05T12-29-43_continuous_looping_watermarked.mp4" type="video/mp4" />
+          <source src="/Serenity_Animation.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-black/50" />
       </div>

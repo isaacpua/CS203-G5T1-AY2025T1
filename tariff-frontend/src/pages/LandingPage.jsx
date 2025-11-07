@@ -39,40 +39,6 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-transparent">
-      <div className="fixed top-20 right-4 z-50">
-        <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-          <SheetTrigger asChild>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-3 rounded-full bg-white/90 dark:bg-card/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all border border-white/50"
-              aria-label="Open menu"
-            >
-              <Menu className="h-6 w-6 text-primary" />
-            </motion.button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-80">
-            <SheetTitle className="text-xl font-bold mb-6">Quick Access</SheetTitle>
-            <div className="flex flex-col space-y-3">
-              {navigationItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <motion.button
-                    key={item.path}
-                    whileHover={{ x: 5 }}
-                    onClick={() => handleNavigate(item.path)}
-                    className="flex items-center gap-3 p-4 rounded-lg hover:bg-primary/10 transition-colors text-left group"
-                  >
-                    <Icon className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-                    <span className="font-medium">{item.label}</span>
-                  </motion.button>
-                )
-              })}
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-
       <div className="fixed inset-0 z-0 pointer-events-none">
         <video
           autoPlay
@@ -84,7 +50,7 @@ export default function LandingPage() {
           }`}
         >
           <source
-            src="/2025-11-05T12-29-43_continuous_looping_watermarked.mp4"
+            src="/Barn_Animation.mp4"
             type="video/mp4"
           />
         </video>
@@ -170,7 +136,7 @@ export default function LandingPage() {
                       <CardItem translateZ={60} className="font-semibold text-2xl mb-2 text-foreground dark:text-white text-center">MCP Assistant</CardItem>
                       <CardItem as="p" translateZ={40} className="text-sm text-muted-foreground dark:text-neutral-300 text-center mb-4">Chat with the assistant for tariff guidance, policy checks and automation.</CardItem>
                     <div className="flex gap-3 mt-auto">
-                      <CardItem as="button" translateZ={20} className="w-full text-left" onClick={() => handleOpen('/assistant')}>
+                      <CardItem as="button" translateZ={20} className="w-full text-left" onClick={() => handleOpen('/chatbot')}>
                         <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">Open Assistant</Button>
                       </CardItem>
                     </div>
