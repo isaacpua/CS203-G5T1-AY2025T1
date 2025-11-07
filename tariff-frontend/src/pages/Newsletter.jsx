@@ -182,7 +182,12 @@ function Newsletter() {
     }
   };
 
-  if (loading) return <div>Loading newsletter...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center p-8">
+      <div>Loading newsletter...</div>
+      <Spinner />
+    </div>
+  );
   if (error) return <div>Error loading newsletter.</div>;
 
   return (

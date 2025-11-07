@@ -93,7 +93,11 @@ export default function Analyzer() {
               isDark ? "bg-primary text-black" : "bg-primary text-white"
             }`}
           >
-            {loading ? "Analyzing…" : "Analyze"}
+            {loading ?
+            <div className="flex items-center justify-center p-8">
+              <div>Analyzing...</div>
+              <Spinner />
+            </div> : "Analyze"}
           </button>
 
           <button
