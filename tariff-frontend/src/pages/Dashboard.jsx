@@ -728,11 +728,17 @@ const ViewDetailsModal = ({ isOpen, onClose, data }) => {
 
   const viewInHistorical = () => {
     if (!data) return;
-    // Prefer the display ID for consistency if available
-    const tariffId = data.tariffIdDisplay ?? data.tariffid;
-    if (!tariffId) return; // Don't navigate if no ID
-    navigate(`/historical?tariffId=${encodeURIComponent(tariffId)}`);
-    onClose(); // Close modal after navigating
+
+    // prefer display id; fallback to numeric/id
+    const raw = String(data.tariffIdDisplay ?? data.tariffid ?? "").trim();
+    if (!raw) return;
+
+    // strip a trailing 4-digit year, e.g. 151211USIN2020 -> 151211USIN
+    const prefix = raw.replace(/(\d{4})$/, "");
+
+    // send the prefix to the historical explorer
+    navigate(`/historical?prefix=${encodeURIComponent(prefix)}`);
+    onClose();
   };
 
   if (!data) return null; // Render nothing if no data

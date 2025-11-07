@@ -1,19 +1,24 @@
 import os,json
 import logging
 import httpx
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Request
+from fastapi.responses import JSONResponse, StreamingResponse # Added Request
 from fastmcp import Client
 import pandas as pd
-from sqlalchemy import create_engine
+# --- THIS IS THE FIX ---
+from sqlalchemy import create_engine, Column, String, Integer, Float, Date, Text # Added 'Text'
+# --- END OF FIX ---
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase # Added ORM imports
 from load_data import main as data
 import datetime
 import asyncio
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional, Dict, Any # Added Optional, Dict, Any
 from openai import OpenAI
-from pathlib import Path  # <-- NEW IMPORT
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__) # <-- This is the logger definition
 BASE_URL = "http://127.0.0.1:8000"
 MCP_SERVER_URL = f"{BASE_URL}/mcp/"
 DB_CONFIG = {
@@ -24,28 +29,138 @@ DB_CONFIG = {
 
 # --- CORRECTED FILE PATHS ---
 DATA_DIR = Path("data")
-# This is for your scraped content
 NEWSLETTER_CONTENT_PATH = DATA_DIR / "newsletter.json"
-# This is for the new mailing list
 MAILING_LIST_PATH = DATA_DIR / "mailinglist.json" 
-# Ensure the data directory exists
 DATA_DIR.mkdir(exist_ok=True)
 # --- END CORRECTION ---
 
+# --- NEW: GLOBAL DB CONNECTION (for all endpoints) ---
+try:
+    if not DB_CONFIG["DB_URL"] or not DB_CONFIG["DB_USERNAME"] or not DB_CONFIG["DB_PASSWORD"]:
+        raise ValueError("DB_URL, DB_USER, or DB_PASSWORD is not set in .env")
+    
+    db_url_cleaned = DB_CONFIG["DB_URL"]
+    if db_url_cleaned.startswith("jdbc:postgresql://"):
+        db_url_cleaned = db_url_cleaned.replace("jdbc:postgresql://", "")
+        
+    connection_string = f"postgresql://{DB_CONFIG['DB_USERNAME']}:{DB_CONFIG['DB_PASSWORD']}@{db_url_cleaned}"
+    
+    sqlalchemy_engine = create_engine(connection_string, pool_pre_ping=True)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sqlalchemy_engine)
+    logger.info("MCP-Gateway: SQLAlchemy engine and SessionLocal created.")
+except Exception as e:
+    logger.error(f"MCP-Gateway: Failed to create SQLAlchemy engine: {e}")
+    sqlalchemy_engine = None
+    SessionLocal = None
+# --- END NEW DB CONNECTION ---
 
-router = APIRouter(prefix="/mcp/api/v1")
+
+router = APIRouter(prefix="/mcp/api/v1") # This prefix is correct
 client = Client(MCP_SERVER_URL)
 
 
 class NewsletterRequest(BaseModel):
-    # The server will get the list from its file
-    # recipients: List[str] = Field(..., description="A list of email addresses to send the newsletter to.")
     markdown_content: str = Field(..., description="The full raw markdown content of the newsletter.")
+
+# --- NEW: ORM Base and Model for Historical Data ---
+class Base(DeclarativeBase):
+    pass
+
+class TariffMaster(Base):
+    """
+    SQLAlchemy ORM Model for the 'tariff_master' table in the 'tariffs' schema.
+    This version matches the screenshot from image_b4387f.png
+    """
+    __tablename__ = 'tariff_master'
+    __table_args__ = {'schema': 'tariffs'}
+
+    tariffid = Column(String, primary_key=True)
+    descriptionwcountry = Column(String)
+    reportercountry = Column(Integer)
+    partnercountry = Column(Integer)
+    year = Column(Integer)
+    advalorem = Column(Float)
+    specificperunit = Column(Float)
+    category = Column(String)
+    unitname = Column(String)
+    effectivedate = Column(Date)
+    expirydate = Column(Date) # This column is in the screenshot
+    datasource = Column(Text) # This column is in the screenshot
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the ORM object to a JSON-serializable dictionary."""
+        return {
+            "tariffid": self.tariffid,
+            "descriptionwcountry": self.descriptionwcountry,
+            "reportercountry": self.reportercountry,
+            "partnercountry": self.partnercountry,
+            "year": self.year,
+            "advalorem": self.advalorem,
+            "specificperunit": self.specificperunit,
+            "category": self.category,
+            "unitname": self.unitname,
+            "effectivedate": self.effectivedate.strftime('%Y-%m-%d') if self.effectivedate else None,
+            "expirydate": self.expirydate.strftime('%Y-%m-%d') if self.expirydate else None,
+            "datasource": self.datasource
+        }
+# --- END NEW ORM MODEL ---
+
+# --- NEW: Data Access Function for Historical Data ---
+def get_historical_data(
+    db_session: Session,
+    full_tariff_id_prefix: Optional[str] = None,
+    hts6: Optional[str] = None,
+    reporter_id: Optional[int] = None,
+    partner_id: Optional[int] = None
+) -> List[Dict[str, Any]]:
+    """
+    Fetches historical tariff data from the database using an ORM session.
+    """
+    query = db_session.query(TariffMaster)
+    
+    if full_tariff_id_prefix:
+        # --- Mode 1: Search by Full Tariff ID Prefix (e.g., '170211USAU') ---
+        logger.info(f"Querying by full_tariff_id_prefix: {full_tariff_id_prefix}")
+        query = query.filter(TariffMaster.tariffid.like(f"{full_tariff_id_prefix}%"))
+        
+    elif hts6 and reporter_id is not None and partner_id is not None:
+        # --- Mode 2: Search by Parameters (using INT IDs and hts6 prefix) ---
+        logger.info(f"Querying by params: hts6 prefix={hts6}, reporter_id={reporter_id}, partner_id={partner_id}")
+        query = query.filter(
+            TariffMaster.tariffid.like(f"{hts6}%"), # Match prefix of tariffid
+            TariffMaster.reportercountry == reporter_id,  # Match integer ID
+            TariffMaster.partnercountry == partner_id   # Match integer ID
+        )
+    
+    else:
+        # No valid search parameters provided
+        logger.warning("No valid search parameters provided for historical data.")
+        return []
+
+    # Add ordering and a safety limit
+    query = query.order_by(TariffMaster.year.asc(), TariffMaster.effectivedate.asc()).limit(1000)
+
+    try:
+        # Execute the query
+        results = query.all()
+        
+        # Convert results to list of dictionaries
+        data_points = [row.to_dict() for row in results]
+        
+        logger.info(f"Found {len(data_points)} data points.")
+        return data_points
+
+    except Exception as e:
+        logger.error(f"Error executing historical tariff query: {e}")
+        # Re-raise the exception so the endpoint can return a 500
+        raise
+# --- END NEW DATA ACCESS FUNCTION ---
+
 
 async def _get_mailing_list() -> List[str]:
     """Reads the mailing list from data/mailinglist.json."""
     if not MAILING_LIST_PATH.exists():
-        return []  # Return empty list if file doesn't exist
+        return []
     try:
         with open(MAILING_LIST_PATH, "r", encoding="utf-8") as file:
             data = json.load(file)
@@ -66,7 +181,6 @@ async def _save_mailing_list(recipients: List[str]) -> bool:
         logging.error(f"Failed to write to data/mailinglist.json: {e}")
         return False
 
-# --- YOUR UPDATED summarize_newsletter FUNCTION ---
 async def summarize_newsletter(content: str) -> str:
     """
     Uses OpenAI to summarize the newsletter markdown into a plain-text email body.
@@ -77,7 +191,6 @@ async def summarize_newsletter(content: str) -> str:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not set.")
 
     try:
-        # Run the blocking OpenAI call in a separate thread
         def blocking_openai_call():
             client = OpenAI(api_key=api_key)
             completion = client.chat.completions.create(
@@ -113,22 +226,25 @@ async def greet(name: str):
 
     except Exception as e:
         logging.error(f"Error details: {e}")
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=444, detail=str(e)) # Changed status to avoid clash with 404
 
 
 @router.get("/forecast")
 async def get_forecast():
     try:
-        connection_string = f"postgresql://{DB_CONFIG["DB_USERNAME"]}:{DB_CONFIG["DB_PASSWORD"]}@{DB_CONFIG["DB_URL"]}"
-        db_engine = create_engine(connection_string)
-
-        df = pd.read_sql("SELECT * FROM tariffs.tariff_forecasts", db_engine)
+        # --- MODIFIED: Use global engine ---
+        if sqlalchemy_engine is None:
+            raise HTTPException(status_code=503, detail="Database connection not initialized.")
+            
+        with sqlalchemy_engine.connect() as db_engine:
+            df = pd.read_sql("SELECT * FROM tariffs.tariff_forecasts", db_engine)
+        # --- END MODIFICATION ---
 
         return json.loads(df.to_json())
 
     except Exception as e:
         logging.error(f"Error details: {e}")
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=444, detail=str(e)) # Changed status to avoid clash with 404
 
 
 @router.post("/forecast")
@@ -156,18 +272,15 @@ async def forecast_tariffs():
         raise HTTPException(status_code=409, detail=str(e))
     
 
-# --- THIS ENDPOINT IS NOW FIXED ---
 @router.get("/newsletter")
 async def get_newsletter():
     try:
         async with client:
             try:
-                # Use the correct file path
                 with open(NEWSLETTER_CONTENT_PATH, "r", encoding="utf-8") as file:
                     print("Reading stored newsletter")
                     curr_newsletter_json = json.load(file)
                 
-                # This logic will work again
                 if datetime.datetime.strptime(curr_newsletter_json["date"], "%d/%m/%Y").date() == datetime.date.today():
                     print("Stored newsletter is updated! Returning that...")
                     response = {
@@ -175,12 +288,10 @@ async def get_newsletter():
                         "error": None,
                         "markdown": curr_newsletter_json["content"]
                     }
-                    # print(response)
                     return response
                 else:
                     print("Stored newsletter is old!")
             except(FileNotFoundError, json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
-                # Added TypeError to catch the bug you saw
                 print(f"Failed to read stored newsletter or date: {e}")
 
 
@@ -188,29 +299,24 @@ async def get_newsletter():
             mcp_response = await client.call_tool("newsletter_scrape")
             logging.info(f"Successfully called newsletter tool!")
             response = json.loads(mcp_response.content[0].text)
-            # print(response)
-
 
             if not response["success"]:
                 raise Exception(response["error"])
-
 
             print("Creating newsletter json...")
             new_newsletter_json = {
                 "date": datetime.date.today().strftime("%d/%m/%Y"),
                 "content": response["markdown"]
             }
-            # Use the correct file path
             with open(NEWSLETTER_CONTENT_PATH, "w", encoding="utf-8") as file:
                 print("Writing today's Newsletter to file...")
                 json.dump(new_newsletter_json, file, indent = 4)
-
 
             return response
         
     except Exception as e:
         logging.error(f"Error details: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=444, detail=str(e)) # Changed status to avoid clash with 404
 
 @router.get("/newsletter/mailinglist")
 async def get_mailing_list():
@@ -219,7 +325,6 @@ async def get_mailing_list():
 
 @router.post("/newsletter/mailinglist")
 async def update_mailing_list(recipients: List[str] = Body(..., embed=True)):
-    # We expect a body like: {"recipients": ["email1@test.com", "email2@test.com"]}
     if await _save_mailing_list(recipients):
         return {"status": "success", "message": "Mailing list updated."}
     else:
@@ -228,48 +333,33 @@ async def update_mailing_list(recipients: List[str] = Body(..., embed=True)):
 
 @router.post("/newsletter/send")
 async def send_newsletter(request: NewsletterRequest = Body(...)):
-    """
-    This endpoint orchestrates the newsletter sending process:
-    1. Reads the mailing list from data/mailinglist.json.
-    2. Summarizes the markdown content using OpenAI.
-    3. Sends the summary to each recipient using the MCP-Server's email tool.
-    """
-    
-    # --- MODIFIED: Get recipients from file ---
     recipients = await _get_mailing_list()
     if not recipients:
         raise HTTPException(status_code=400, detail="No recipients in mailing list. Please add emails first.")
     
     if not request.markdown_content:
         raise HTTPException(status_code=400, detail="No markdown content provided.")
-    # --- END OF MODIFICATION ---
 
-    # Step 1: Summarize the content
     logging.info("Summarizing newsletter content...")
     try:
         email_body = await summarize_newsletter(request.markdown_content)
         subject = "Your Weekly Tariff Newsletter Digest"
     except HTTPException as e:
-        return e # Re-raise the exception from the helper
+        return e
     
     logging.info("Summary complete. Starting email dispatch...")
 
-    # Step 2: Send emails concurrently using the existing global client
     tasks = []
     try:
         async with client:
-            for email in recipients:  # <-- Use recipients from file
-                # Create a payload for the 'send_email' tool
-                #
+            for email in recipients:
                 tool_payload = {
                     "to_email": email,
                     "subject": subject,
                     "body": email_body
                 }
-                # Add the coroutine to the task list
                 tasks.append(client.call_tool("send_email", tool_payload))
             
-            # Run all email-sending tasks concurrently
             mcp_results = await asyncio.gather(*tasks, return_exceptions=True)
 
     except Exception as e:
@@ -278,13 +368,11 @@ async def send_newsletter(request: NewsletterRequest = Body(...)):
     
     logging.info("Email dispatch complete. Compiling results...")
 
-    # Step 3: Report results
     dispatch_results = []
     success_count = 0
     
-    for email, result in zip(recipients, mcp_results): # <-- Use recipients from file
+    for email, result in zip(recipients, mcp_results):
         if isinstance(result, Exception):
-            # Error calling the tool itself (e.g., timeout, MCP error)
             dispatch_results.append({
                 "email": email, 
                 "status": "error", 
@@ -292,12 +380,8 @@ async def send_newsletter(request: NewsletterRequest = Body(...)):
             })
         else:
             try:
-                # The tool call succeeded, now parse its JSON response
-                # This follows your pattern from /newsletter and /analyze
                 tool_output = json.loads(result.content[0].text) 
                 
-                # Check the 'status' from the gmail_tool.py
-                #
                 if tool_output.get("status") == "success":
                     success_count += 1
                     dispatch_results.append({
@@ -306,21 +390,19 @@ async def send_newsletter(request: NewsletterRequest = Body(...)):
                         "message_id": tool_output.get("message_id")
                     })
                 else:
-                    # The tool ran but returned an error (e.g., auth failed)
                     dispatch_results.append({
                         "email": email, 
                         "status": "error", 
                         "detail": tool_output.get("detail", "Unknown error from email tool")
                     })
             except Exception as e:
-                 # The tool returned something that wasn't valid JSON
-                 dispatch_results.append({
+                dispatch_results.append({
                     "email": email, 
                     "status": "error", 
                     "detail": f"Failed to parse tool response: {e}"
                 })
 
-    failed_count = len(recipients) - success_count # <-- Use recipients from file
+    failed_count = len(recipients) - success_count
     
     return {
         "status": "complete",
@@ -364,7 +446,67 @@ async def analyze(data: dict):
         
     except Exception as e:
         logging.error(f"Error details: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) 
+
+# --- THIS IS THE NEW ENDPOINT THAT FIXES THE 404 ---
+@router.get("/historical")
+async def get_historical_data_endpoint(
+    full_tariff_id_prefix: Optional[str] = None,
+    hts6: Optional[str] = None,
+    reporter_id: Optional[int] = None,
+    partner_id: Optional[int] = None
+):
+    """
+    Endpoint to get historical tariff data.
+    Accessible via: /mcp/api/v1/historical
+    
+    Supports two search modes:
+    1. ?full_tariff_id_prefix=170211USAU
+    2. ?hts6=170211&reporter_id=188&partner_id=10
+    """
+    if SessionLocal is None:
+        raise HTTPException(
+            status_code=503, 
+            detail="Database connection is not configured. Check server logs."
+        )
+
+    # Basic parameter validation
+    is_mode_a = bool(full_tariff_id_prefix)
+    is_mode_b = bool(hts6 and reporter_id is not None and partner_id is not None)
+
+    if not is_mode_a and not is_mode_b:
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid parameters. Provide either 'full_tariff_id_prefix' OR all of 'hts6', 'reporter_id', and 'partner_id'."
+        )
+    
+    if is_mode_a and is_mode_b:
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid parameters. Provide EITHER 'full_tariff_id_prefix' OR the other parameters, not both."
+        )
+
+    db_session: Session = SessionLocal()
+    try:
+        # Run the synchronous SQLAlchemy query in a separate thread
+        data_points = await asyncio.to_thread(
+            get_historical_data,
+            db_session,
+            full_tariff_id_prefix=full_tariff_id_prefix,
+            hts6=hts6,
+            reporter_id=reporter_id,
+            partner_id=partner_id
+        )
+        
+        return JSONResponse(content=data_points)
+
+    except Exception as e:
+        logger.error(f"Error in /historical endpoint: {e}")
+        db_session.rollback() # Rollback on error
+        raise HTTPException(status_code=500, detail=f"Error fetching historical data: {str(e)}")
+    finally:
+        db_session.close() # Always close the session
+# --- END OF NEW ENDPOINT ---
 
 @router.post("/data/live")
 async def load_live_data():
