@@ -5,38 +5,16 @@ on:
     branches:
       # - main
       - feat/infra
-    paths:
-      - 'tariff-backend/**'
-      - 'MCP-Gateway/**'
-      - 'MCP-client/**'
-      - 'MCP-Server/**'
-      - '.github/workflows/deploy-backend.yml'
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER_NAME }}
+  IMAGE_TAG: latest
 
 jobs:
-  detect-changes:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    outputs:
-      changed_services: ${{ steps.filter.outputs.changes }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3 # determine which paths changed
-        id: filter
-        with:
-          filters: |
-            tariff:
-              - 'tariff-backend/**'
-            gateway:
-              - 'MCP-Gateway/**'
-            chatbot:
-              - 'MCP-client/**'
-            server:
-              - 'MCP-Server/**'
-
-  deploy-service:
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    # run only if the paths-filter job indicated changes
-    if: ${{ toJson(needs.detect-changes.outputs.changed_services) != '{}' }}
+    
     strategy:
       matrix:
         service:
@@ -60,11 +38,7 @@ jobs:
             dockerfile: Dockerfile.dev
             ecr_repo: tarific-mcp-server-backend
             ecs_service: tarific-mcp-server
-    
-    # run the deployment job if the service directory was flagged as changed
-    # if matrix.service.name == 'tariff' and changed_services.tariff exists
-    if: contains(fromJson(needs.detect-changes.outputs.changed_services), matrix.service.name)
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -74,24 +48,33 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-southeast-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build and push ${{ matrix.service.name }} image tagged as 'latest'
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ matrix.service.ecr_repo }}
-          IMAGE_TAG: latest
+          SERVICE_CONTEXT: ${{ matrix.service.context }}
+          DOCKERFILE: ${{ matrix.service.dockerfile }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
-          docker build -f ${{ matrix.service.context }}/${{ matrix.service.dockerfile }} -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ${{ matrix.service.context }}
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          
+          docker build -t $IMAGE_URI \
+                       -f $SERVICE_CONTEXT/$DOCKERFILE \
+                       $SERVICE_CONTEXT
+          
+          docker push $IMAGE_URI
+          
+          echo "Successfully pushed $IMAGE_URI to ECR."
 
-      - name: Force new deployment on ECS
+      - name: Force new deployment for ${{ matrix.service.ecs_service }}
         run: |
           aws ecs update-service \
-            --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+            --cluster ${{ env.ECS_CLUSTER }} \
             --service ${{ matrix.service.ecs_service }} \
             --force-new-deployment
