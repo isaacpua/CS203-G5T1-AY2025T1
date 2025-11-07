@@ -1,0 +1,97 @@
+name: Deploy Backend Services to ECR and ECS
+
+on:
+  push:
+    branches:
+      # - main
+      - feat/infra
+    paths:
+      - 'tariff-backend/**'
+      - 'MCP-Gateway/**'
+      - 'MCP-client/**'
+      - 'MCP-Server/**'
+      - '.github/workflows/deploy-backend.yml'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed_services: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3 # determine which paths changed
+        id: filter
+        with:
+          filters: |
+            tariff:
+              - 'tariff-backend/**'
+            gateway:
+              - 'MCP-Gateway/**'
+            chatbot:
+              - 'MCP-client/**'
+            server:
+              - 'MCP-Server/**'
+
+  deploy-service:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    # run only if the paths-filter job indicated changes
+    if: ${{ toJson(needs.detect-changes.outputs.changed_services) != '{}' }}
+    strategy:
+      matrix:
+        service:
+          - name: tariff
+            context: ./tariff-backend
+            dockerfile: Dockerfile.dev
+            ecr_repo: tarific-tariff-backend
+            ecs_service: tarific-tariff
+          - name: gateway
+            context: ./MCP-Gateway
+            dockerfile: Dockerfile.dev
+            ecr_repo: tarific-mcp-gateway-backend
+            ecs_service: tarific-mcp-gateway
+          - name: chatbot
+            context: ./MCP-client
+            dockerfile: Dockerfile.dev
+            ecr_repo: tarific-mcp-chatbot-backend
+            ecs_service: tarific-mcp-chatbot
+          - name: server
+            context: ./MCP-Server
+            dockerfile: Dockerfile.dev
+            ecr_repo: tarific-mcp-server-backend
+            ecs_service: tarific-mcp-server
+    
+    # run the deployment job if the service directory was flagged as changed
+    # if matrix.service.name == 'tariff' and changed_services.tariff exists
+    if: contains(fromJson(needs.detect-changes.outputs.changed_services), matrix.service.name)
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ matrix.service.ecr_repo }}
+          IMAGE_TAG: latest
+        run: |
+          docker build -f ${{ matrix.service.context }}/${{ matrix.service.dockerfile }} -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ${{ matrix.service.context }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Force new deployment on ECS
+        run: |
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+            --service ${{ matrix.service.ecs_service }} \
+            --force-new-deployment
