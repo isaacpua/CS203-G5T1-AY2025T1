@@ -446,7 +446,7 @@ async def analyze(data: dict):
         
     except Exception as e:
         logging.error(f"Error details: {e}")
-        raise HTTPException(status_code=444, detail=str(e)) # Changed status to avoid clash with 404
+        raise HTTPException(status_code=500, detail=str(e)) 
 
 # --- THIS IS THE NEW ENDPOINT THAT FIXES THE 404 ---
 @router.get("/historical")

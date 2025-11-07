@@ -12,8 +12,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 
 // Import API functions
-import { getAllReporterCountries, getAllPartnerCountries } from "../api/axiosClient.js";
-import { getHistoricalData } from "../api/axiosClient.js";
+import { getAllReporterCountries, getAllPartnerCountries, getHistoricalData  } from "../api/axiosClient.js";
 
 export default function HistoricalTariffExplorer() {
   const [searchParams] = useSearchParams();
