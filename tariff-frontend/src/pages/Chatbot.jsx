@@ -52,16 +52,13 @@ function Chatbot() {
   const [fileError, setFileError] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  // --- NEW: Ref for the end of the messages list ---
   const messagesEndRef = useRef(null);
 
-  // --- NEW: Auto-scroll effect ---
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]); // Trigger every time messages array changes
+  }, [messages]);
 
   useEffect(() => {
-    // ... (Socket.IO listeners unchanged) ...
     function onConnect() {
       console.log('Connected to chatbot server!');
       setIsConnected(true);
@@ -225,9 +222,7 @@ function Chatbot() {
   };
 
   const handleNewChat = () => {
-    // ... (unchanged) ...
     console.log("Starting new chat session...");
-    // notify server to cancel any in-progress processing for this socket
     try {
       socket.emit("cancel_processing", { thread_id: threadId });
     } catch (e) {
@@ -283,8 +278,22 @@ function Chatbot() {
   
   return (
     <div className="flex items-center justify-center p-6">
-      <div className="w-full max-w-3xl bg-card/80 dark:bg-card rounded-lg shadow-xl overflow-hidden ring-1 ring-border">
-        {/* Header */}
+      <div 
+        className="relative w-full max-w-3xl bg-card/80 dark:bg-card rounded-lg shadow-xl overflow-hidden ring-1 ring-border"
+        onDragOver={handleDragOver}
+      >
+        
+        {isDragging && (
+          <div 
+            className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center z-10 border-4 border-dashed border-primary/50 rounded-lg"
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <UploadIcon />
+            <p className="mt-2 text-lg font-medium">Drop file to attach</p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/10 to-transparent border-b border-border">
           <div className="flex items-center gap-3">
             <img src="/eve-avatar.svg" alt="T.A.R.I.F.F" className="w-10 h-10 rounded-full object-cover" />
@@ -304,7 +313,6 @@ function Chatbot() {
           </div>
         </div>
 
-        {/* Messages area */}
         <div className="h-[60vh] overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-background">
           {messages.length === 0 && (
             <div className="text-center text-sm text-muted-foreground mt-8">No messages yet — say hello 👋</div>
@@ -347,7 +355,7 @@ function Chatbot() {
                       </div>
                     </div>
                   ) : (
-                    <div className="prose dark:prose-invert prose-sm break-words">
+                    <div className="prose dark:prose-invert prose-sm wrap-break-word">
                       <Markdown options={{ overrides: { a: { props: { target: '_blank', rel: 'noopener noreferrer', className: 'text-blue-600 dark:text-blue-400' } } } }}>
                         {msg.text || ''}
                       </Markdown>
@@ -359,14 +367,13 @@ function Chatbot() {
                   {formatTime(msg.id)}
                 </div>
               </div>
-
-              {/* User avatar removed when chatting with T.A.R.I.F.F (cleaner UI) */}
             </div>
           ))}
 
           {isAiTyping && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <img src="/eve-avatar.svg" alt="T.A.R.I.F.F" className="w-8 h-8 rounded-full object-cover" />
+              <SpinnerIcon />
               <div className="inline-block px-4 py-2 rounded-lg bg-white/90 dark:bg-muted text-foreground">T.A.R.I.F.F is typing...</div>
             </div>
           )}
@@ -374,7 +381,6 @@ function Chatbot() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input area */}
         <div className="px-4 py-3 border-t border-border bg-card">
           {selectedFile && (
             <div className="mb-2 flex items-center gap-2">
@@ -385,6 +391,12 @@ function Chatbot() {
                   <XIcon />
                 </button>
               </div>
+            </div>
+          )}
+
+          {fileError && (
+            <div className="mb-2 text-red-600 text-sm">
+              <strong>Error:</strong> {fileError}
             </div>
           )}
 
