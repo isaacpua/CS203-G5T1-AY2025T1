@@ -1,3 +1,4 @@
+import asyncio
 import re
 from typing import Callable
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, UndetectedAdapter
@@ -104,7 +105,7 @@ async def _scrape_url_internal(
         if temp_dir:
             try:
                 print(f"Cleaning up profile: {temp_dir}")
-                shutil.rmtree(temp_dir, ignore_errors=True)
+                await asyncio.to_thread(shutil.rmtree, temp_dir, ignore_errors=True)
             except Exception as e:
                 print(f"Warning: Failed to clean up temp dir {temp_dir}: {e}")
 

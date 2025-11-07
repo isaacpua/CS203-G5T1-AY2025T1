@@ -124,7 +124,11 @@ async def _stream_graph_logic(
             yield ("debug", debug_msg)
 
 
-sio = socketio.AsyncServer(async_mode="asgi")
+sio = socketio.AsyncServer(
+    async_mode="asgi",
+    ping_timeout=600,
+    ping_interval=30
+)
 app = FastAPI()
 
 
