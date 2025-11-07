@@ -85,9 +85,9 @@ resource "aws_launch_template" "ecs_mcp_server" {
   }
 }
 
-# Auto Scaling Group (ASG) for Main Services
-resource "aws_autoscaling_group" "main_services" {
-  name = "${var.project_name}-main-services-asg"
+# Auto Scaling Group (ASG) for tariff-backend
+resource "aws_autoscaling_group" "tariff" {
+  name = "${var.project_name}-tariff-asg"
   
   # run in private, secure subnets
   vpc_zone_identifier = [aws_subnet.private_a.id, aws_subnet.private_b.id]
@@ -103,6 +103,50 @@ resource "aws_autoscaling_group" "main_services" {
   }
 
   # this tag is CRITICAL. It tells ECS which instances to use.
+  tag {
+    key                 = "AmazonECSManaged"
+    value               = ""
+    propagate_at_launch = true
+  }
+}
+
+# Auto Scaling Group (ASG) for MCP-Gateway
+resource "aws_autoscaling_group" "mcp_gateway" {
+  name = "${var.project_name}-mcp-gateway-asg"
+  
+  vpc_zone_identifier = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+  
+  min_size         = 1
+  max_size         = 2
+  desired_capacity = 1
+
+  launch_template {
+    id      = aws_launch_template.ecs.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "AmazonECSManaged"
+    value               = ""
+    propagate_at_launch = true
+  }
+}
+
+# Auto Scaling Group (ASG) for MCP-Chatbot
+resource "aws_autoscaling_group" "mcp_chatbot" {
+  name = "${var.project_name}-mcp-chatbot-asg"
+  
+  vpc_zone_identifier = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+  
+  min_size         = 1
+  max_size         = 2
+  desired_capacity = 1
+
+  launch_template {
+    id      = aws_launch_template.ecs.id # Uses the t3.small template
+    version = "$Latest"
+  }
+
   tag {
     key                 = "AmazonECSManaged"
     value               = ""
@@ -134,10 +178,35 @@ resource "aws_autoscaling_group" "mcp_server" {
 }
 
 # ECS Capacity Providers (Link ASGs to Cluster)
-resource "aws_ecs_capacity_provider" "main_services_cp" {
-  name = "main-services-cp"
+resource "aws_ecs_capacity_provider" "tariff_cp" {
+  name = "tariff-cp"
   auto_scaling_group_provider {
-    auto_scaling_group_arn = aws_autoscaling_group.main_services.arn
+    auto_scaling_group_arn = aws_autoscaling_group.tariff.arn
+    managed_scaling {
+      status = "ENABLED"
+      target_capacity = 100
+    }
+  }
+}
+
+
+# Capacity Provider for MCP-Gateway
+resource "aws_ecs_capacity_provider" "mcp_gateway_cp" {
+  name = "mcp-gateway-cp"
+  auto_scaling_group_provider {
+    auto_scaling_group_arn = aws_autoscaling_group.mcp_gateway.arn
+    managed_scaling {
+      status = "ENABLED"
+      target_capacity = 100
+    }
+  }
+}
+
+# Capacity Provider for MCP-Chatbot
+resource "aws_ecs_capacity_provider" "mcp_chatbot_cp" {
+  name = "mcp-chatbot-cp"
+  auto_scaling_group_provider {
+    auto_scaling_group_arn = aws_autoscaling_group.mcp_chatbot.arn
     managed_scaling {
       status = "ENABLED"
       target_capacity = 100
@@ -162,13 +231,15 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
   cluster_name = aws_ecs_cluster.main.name
 
   capacity_providers = [
-    aws_ecs_capacity_provider.main_services_cp.name,
+    aws_ecs_capacity_provider.tariff_cp.name,
+    aws_ecs_capacity_provider.mcp_gateway_cp.name,
+    aws_ecs_capacity_provider.mcp_chatbot_cp.name,
     aws_ecs_capacity_provider.mcp_server_cp.name
   ]
 
   # We also set a default strategy for any services that don't specify one
   default_capacity_provider_strategy {
-    capacity_provider = aws_ecs_capacity_provider.main_services_cp.name
+    capacity_provider = aws_ecs_capacity_provider.tariff_cp.name
     weight            = 1
   }
 }
@@ -185,7 +256,7 @@ resource "aws_ecs_task_definition" "tariff" {
   container_definitions = jsonencode([{
     name  = "tariff-backend"
     image = "${aws_ecr_repository.backend_repos["tariff-backend"].repository_url}:latest"
-    memoryReservation = 768 # Reserve 768 MB
+    memoryReservation = 1664
     portMappings = [{
       containerPort = 8080
       hostPort      = 8080
@@ -223,7 +294,7 @@ resource "aws_ecs_task_definition" "mcp_gateway" {
   container_definitions = jsonencode([{
     name  = "mcp-gateway-backend"
     image = "${aws_ecr_repository.backend_repos["mcp-gateway-backend"].repository_url}:latest"
-    memoryReservation = 384 # Reserve 384 MB
+    memoryReservation = 1664
     portMappings = [{
       containerPort = 8090
       hostPort      = 8090
@@ -266,7 +337,7 @@ resource "aws_ecs_task_definition" "mcp_chatbot" {
   container_definitions = jsonencode([{
     name  = "mcp-chatbot-backend"
     image = "${aws_ecr_repository.backend_repos["mcp-chatbot-backend"].repository_url}:latest"
-    memoryReservation = 384 # Reserve 384 MB
+    memoryReservation = 1664
     portMappings = [{
       containerPort = 8001
       hostPort      = 8001
@@ -348,7 +419,7 @@ resource "aws_ecs_service" "tariff" {
   enable_execute_command = true
 
   capacity_provider_strategy {
-    capacity_provider = aws_ecs_capacity_provider.main_services_cp.name
+    capacity_provider = aws_ecs_capacity_provider.tariff_cp.name
     weight            = 1
   }
 
@@ -376,7 +447,7 @@ resource "aws_ecs_service" "mcp_gateway" {
   enable_execute_command = true
 
   capacity_provider_strategy {
-    capacity_provider = aws_ecs_capacity_provider.main_services_cp.name
+    capacity_provider = aws_ecs_capacity_provider.mcp_gateway_cp.name
     weight            = 1
   }
 
@@ -404,7 +475,7 @@ resource "aws_ecs_service" "mcp_chatbot" {
   enable_execute_command = true
 
   capacity_provider_strategy {
-    capacity_provider = aws_ecs_capacity_provider.main_services_cp.name
+    capacity_provider = aws_ecs_capacity_provider.mcp_chatbot_cp.name
     weight            = 1
   }
 
