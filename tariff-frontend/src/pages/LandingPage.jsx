@@ -1,5 +1,14 @@
 import { Button } from "@/components/ui/button"
-import { Calculator, Wheat, Menu, BarChart3, TrendingUp, History } from "lucide-react"
+import {
+  Calculator,
+  History,
+  BarChart3,
+  Database,
+  TrendingUp,
+  Newspaper,
+  ScanText,
+  Bot,
+} from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
@@ -20,6 +29,57 @@ export default function LandingPage() {
     navigate(path)
   }
 
+  const features = [
+    {
+      label: "Calculator",
+      path: "/calculator",
+      icon: <Calculator className="w-12 h-12 text-primary" />,
+      description: "Perform instant, accurate tariff calculations for any agricultural product.",
+    },
+    {
+      label: "Calculation History",
+      path: "/calc-history",
+      icon: <History className="w-12 h-12 text-primary" />,
+      description: "Review and manage your past tariff calculations and saved reports.",
+    },
+    {
+      label: "Dashboard",
+      path: "/dashboard",
+      icon: <BarChart3 className="w-12 h-12 text-primary" />,
+      description: "See a quick snapshot of your tariffs, trends, and key metrics.",
+    },
+    {
+      label: "Historical Explorer",
+      path: "/historical",
+      icon: <Database className="w-12 h-12 text-primary" />,
+      description: "Explore and analyze historical tariff data to identify trends and patterns.",
+    },
+    {
+      label: "Forecasts",
+      path: "/forecast",
+      icon: <TrendingUp className="w-12 h-12 text-primary" />,
+      description: "Access predictive analytics and tariff forecasts to plan your future trades.",
+    },
+    {
+      label: "Newsletter",
+      path: "/newsletter",
+      icon: <Newspaper className="w-12 h-12 text-primary" />,
+      description: "Subscribe for weekly tariff insights and export opportunities.",
+    },
+    {
+      label: "Article Analyzer",
+      path: "/analyzer",
+      icon: <ScanText className="w-12 h-12 text-primary" />,
+      description: "Analyze news articles or documents to extract relevant tariff information.",
+    },
+    {
+      label: "MCPAssistant",
+      path: "/chatbot",
+      icon: <Bot className="w-12 h-12 text-primary" />,
+      description: "Chat with an AI assistant for tariff guidance, policy checks, and automation.",
+    },
+  ]
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-transparent">
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -28,8 +88,9 @@ export default function LandingPage() {
           loop
           muted
           playsInline
-          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
-            }`}
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${
+            contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
+          }`}
         >
           <source
             src="/Barn_Animation.mp4"
@@ -37,8 +98,7 @@ export default function LandingPage() {
           />
         </video>
         <div
-          className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"
-            }`}
+          className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"}`}
         />
       </div>
 
@@ -66,85 +126,55 @@ export default function LandingPage() {
               rates, compliance insights, and detailed cost analysis for seamless global commerce.
             </motion.p>
 
-            {/* Hero action buttons removed per request */}
-
             <motion.div
-              className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-6xl mx-auto"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-16 max-w-7xl mx-auto"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
             >
-              <motion.div whileHover={{ y: -6 }} className="w-full">
-                <CardContainer className="w-full">
-                  <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-120">
-                    <CardItem translateZ={80} className="flex items-center justify-center mb-4">
-                      <BarChart3 className="w-12 h-12 text-primary" />
-                    </CardItem>
-                    <CardItem translateZ={60} className="font-semibold text-2xl mb-2 text-foreground dark:text-white text-center">Live Dashboard</CardItem>
-                    <CardItem as="p" translateZ={40} className="text-sm text-muted-foreground dark:text-neutral-300 text-center mb-4">See a quick snapshot of your tariffs, trends, and key metrics.</CardItem>
-                    <div className="flex gap-3 mt-auto">
-                      <CardItem translateZ={20} className="w-full text-left">
-                        <Button
-                          size="lg"
-                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                          onClick={() => handleOpen('/dashboard')}
-                        >
-                          Open Dashboard
-                        </Button>
+              {features.map((feature, index) => (
+                <motion.div
+                  key={feature.path}
+                  whileHover={{ y: -6 }}
+                  className="w-full"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 + index * 0.05 }}
+                >
+                  <CardContainer className="w-full">
+                    <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-[300px]">
+                      <CardItem translateZ={80} className="flex items-center justify-center mb-4">
+                        {feature.icon}
                       </CardItem>
-                    </div>
-                  </CardBody>
-                </CardContainer>
-              </motion.div>
-
-              <motion.div whileHover={{ y: -6 }} className="w-full" transition={{ delay: 0.06 }}>
-                <CardContainer className="w-full">
-                  <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-120">
-                    <CardItem translateZ={80} className="flex items-center justify-center mb-4">
-                      <TrendingUp className="w-12 h-12 text-primary" />
-                    </CardItem>
-                    <CardItem translateZ={60} className="font-semibold text-2xl mb-2 text-foreground dark:text-white text-center">Newsletter</CardItem>
-                    <CardItem as="p" translateZ={40} className="text-sm text-muted-foreground dark:text-neutral-300 text-center mb-4">Subscribe for weekly tariff insights and export opportunities.</CardItem>
-                    <div className="flex gap-3 mt-auto">
-                      <CardItem translateZ={20} className="w-full text-left">
-                        <Button
-                          size="lg"
-                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                          onClick={() => handleOpen('/newsletter')}
-                        >
-                          Go to Newsletter
-                        </Button>
+                      <CardItem
+                        translateZ={60}
+                        className="font-semibold text-2xl mb-2 text-foreground dark:text-white text-center"
+                      >
+                        {feature.label}
                       </CardItem>
-                    </div>
-                  </CardBody>
-                </CardContainer>
-              </motion.div>
-
-              <motion.div whileHover={{ y: -6 }} className="w-full" transition={{ delay: 0.12 }}>
-                <CardContainer className="w-full">
-                  <CardBody className="bg-white/95 dark:bg-card/90 backdrop-blur-md border border-white/50 dark:border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-stretch p-6 rounded-2xl min-h-120">
-                    <CardItem translateZ={80} className="flex items-center justify-center mb-4">
-                      <Calculator className="w-12 h-12 text-primary" />
-                    </CardItem>
-                    <CardItem translateZ={60} className="font-semibold text-2xl mb-2 text-foreground dark:text-white text-center">MCP Assistant</CardItem>
-                    <CardItem as="p" translateZ={40} className="text-sm text-muted-foreground dark:text-neutral-300 text-center mb-4">Chat with the assistant for tariff guidance, policy checks and automation.</CardItem>
-                    <div className="flex gap-3 mt-auto">
-                      <CardItem translateZ={20} className="w-full text-left">
-                        <Button
-                          size="lg"
-                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                          onClick={() => handleOpen('/chat')}
-                        >
-                          Open Assistant
-                        </Button>
+                      <CardItem
+                        as="p"
+                        translateZ={40}
+                        className="text-sm text-muted-foreground dark:text-neutral-300 text-center mb-4 grow"
+                      >
+                        {feature.description}
                       </CardItem>
-                    </div>
-                  </CardBody>
-                </CardContainer>
-              </motion.div>
+                      <div className="flex gap-3 mt-auto">
+                        <CardItem translateZ={20} className="w-full text-left">
+                          <Button
+                            size="lg"
+                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                            onClick={() => handleOpen(feature.path)}
+                          >
+                            Open {feature.label}
+                          </Button>
+                        </CardItem>
+                      </div>
+                    </CardBody>
+                  </CardContainer>
+                </motion.div>
+              ))}
             </motion.div>
-
-            {/* Previews removed per request */}
           </div>
         </div>
       </section>
