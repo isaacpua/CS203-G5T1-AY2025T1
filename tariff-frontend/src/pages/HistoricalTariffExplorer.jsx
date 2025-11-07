@@ -1,4 +1,4 @@
-import {ComposedChart,Line,XAxis,YAxis,CartesianGrid,Tooltip,Legend, ResponsiveContainer,} from "recharts";
+import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.jsx";
 import { Button } from "../components/ui/button.jsx";
 import { Input } from "../components/ui/input.jsx";
@@ -9,12 +9,14 @@ import CountrySelector from "../components/CountrySelector.jsx";
 import { Spinner } from "../components/ui/shadcn-io/spinner/index.jsx";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 
 // Import API functions
 import { getAllReporterCountries, getAllPartnerCountries } from "../api/axiosClient.js";
 import { getHistoricalData } from "../api/axiosClient.js";
 
 export default function HistoricalTariffExplorer() {
+  const [searchParams] = useSearchParams();
   // --- State Management ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -219,7 +221,92 @@ export default function HistoricalTariffExplorer() {
 
   // a few more vertical gridlines too
   const xTickCount = isComposite ? 12 : 10;
+  useEffect(() => {
+    const incomingPrefix = searchParams.get("prefix");
+    if (!incomingPrefix) return;
 
+    // force UI into prefix mode, prefill input
+    setSearchMode("prefix");
+    setPrefixSearch(incomingPrefix);
+
+    // run the search immediately using the same logic as handleSearch (prefix branch)
+    (async () => {
+      setLoading(true);
+      setError(null);
+      setData([]);
+      setYAxisLabel("Ad Valorem Duty (%)");
+      setPlotCategory("Ad Valorem");
+      setPoint(null);
+      setLocked(false);
+
+      try {
+        const params = { full_tariff_id_prefix: incomingPrefix.trim().toUpperCase() };
+        const response = await getHistoricalData(params);
+
+        if (response.data && response.data.length > 0) {
+          let primaryCategory = "AD_VALOREM";
+          let primaryUnitName = "USD";
+          const firstPaidPoint = response.data.find((item) => item.category !== "FREE");
+          if (firstPaidPoint) {
+            primaryCategory = firstPaidPoint.category;
+            primaryUnitName = firstPaidPoint.unitname || "USD";
+          } else if (response.data.length > 0) {
+            primaryCategory = "FREE";
+          }
+
+          let formattedData = [];
+          if (primaryCategory === "SPECIFIC_PER_UNIT") {
+            const unitSym = toUnitSymbol(primaryUnitName);
+            setYAxisLabel(`Specific Duty ($/${unitSym})`);
+            setPlotCategory("Specific");
+            formattedData = response.data.map((item) => ({
+              ...item,
+              year: Number(item.year),
+              plotValue: parseFloat(item.specificperunit) || 0.0,
+            }));
+            if (firstPaidPoint) toast.info("Displaying Specific Duty.");
+          } else if (primaryCategory === "COMPOSITE") {
+            setYAxisLabel("Ad Valorem (%)  ·  Specific ($/unit)");
+            setPlotCategory("Composite");
+            formattedData = response.data.map((item) => {
+              const av = Number(item.advalorem || 0);
+              const sp = Number(item.specificperunit || 0);
+              return {
+                ...item,
+                year: Number(item.year),
+                plotAV: av,
+                plotSP: sp,
+                unitname: item.unitname || "unit",
+              };
+            });
+            if (firstPaidPoint) toast.info("Composite: showing Ad Valorem (left) + Specific (right).");
+          } else {
+            setYAxisLabel("Ad Valorem Duty (%)");
+            setPlotCategory("Ad Valorem");
+            formattedData = response.data.map((item) => ({
+              ...item,
+              year: Number(item.year),
+              plotValue: parseFloat(item.advalorem) || 0.0,
+            }));
+          }
+
+          setData(formattedData);
+          toast.success(`Found ${formattedData.length} data points.`);
+        } else {
+          setData([]);
+          toast.info("No data found for this query.", { description: "Please try a different search." });
+        }
+      } catch (err) {
+        console.error("Error fetching historical data:", err);
+        const errorMessage = err.response?.data?.detail || err.message || "Failed to fetch data";
+        setError(errorMessage);
+        toast.error("Search Failed", { description: errorMessage });
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div className="flex flex-col gap-8">
       <Card>
