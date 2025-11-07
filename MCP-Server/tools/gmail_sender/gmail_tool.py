@@ -148,4 +148,3 @@ async def send_email_logic(to_email: str, subject: str, body: str) -> dict:
         "message_id": msg_id,
         "to": to_email
     }
-

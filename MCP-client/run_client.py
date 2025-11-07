@@ -224,6 +224,19 @@ async def connect(sid, environ):
 async def disconnect(sid):
     print(f"[Socket.IO] Frontend disconnected: {sid}")
 
+# Frontend can request cancellation of in-progress processing for this socket
+@sio.event
+async def cancel_processing(sid, data):
+    task = active_tasks.pop(sid, None)
+    if task and not task.done():
+        print(f"[{sid}] Received cancel request from frontend. Cancelling task...")
+        task.cancel()
+    else:
+        print(f"[{sid}] Received cancel request but no active task found.")
+
+# Track active processing tasks per socket id so they can be cancelled by the frontend
+active_tasks: dict[str, asyncio.Task] = {}
+
 @sio.event
 async def chat_message(sid, data):
     """
@@ -289,25 +302,44 @@ async def chat_message(sid, data):
     
     print("Jarvis: ...")
 
-    try:
-        async for event_type, content in _stream_graph_logic(final_input, compiled_graph, run_config):
-            
-            if event_type == "ai":
-                await sio.emit('ai_response', {'chunk': content}, to=sid)
-            
-            elif event_type == "debug":
-                print(content.strip())
+    # Cancel any existing task for this sid (we'll start a fresh one)
+    if sid in active_tasks:
+        task = active_tasks.pop(sid)
+        if not task.done():
+            print(f"[{sid}] Cancelling previous task before starting a new one...")
+            task.cancel()
 
-            elif event_type == "tool_call":
-                await sio.emit('tool_call', {'tool_name': content}, to=sid)
-        
-        await sio.emit('ai_response_end', to=sid)
-        print("[Jarvis] Response stream complete.")
+    async def _process_and_stream():
+        try:
+            async for event_type, content in _stream_graph_logic(final_input, compiled_graph, run_config):
+                if event_type == "ai":
+                    await sio.emit('ai_response', {'chunk': content}, to=sid)
+                elif event_type == "debug":
+                    print(content.strip())
+                elif event_type == "tool_call":
+                    await sio.emit('tool_call', {'tool_name': content}, to=sid)
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        await sio.emit('ai_response', {'chunk': f'An error occurred: {e}'}, to=sid)
-        await sio.emit('ai_response_end', to=sid)
+            await sio.emit('ai_response_end', to=sid)
+            print("[Jarvis] Response stream complete.")
+
+        except asyncio.CancelledError:
+            # Task was cancelled by the frontend
+            print(f"[{sid}] Processing cancelled by frontend.")
+            try:
+                await sio.emit('ai_response_end', to=sid)
+            except Exception:
+                pass
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            try:
+                await sio.emit('ai_response', {'chunk': f'An error occurred: {e}'}, to=sid)
+                await sio.emit('ai_response_end', to=sid)
+            except Exception:
+                pass
+
+    # Start the processing in a background task and store it so it can be cancelled
+    task = asyncio.create_task(_process_and_stream())
+    active_tasks[sid] = task
 
 # -----------------------------------------------------------------
 # 6. SERVER RUNNER (Unchanged)

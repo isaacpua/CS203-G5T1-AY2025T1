@@ -1,12 +1,15 @@
+"use client"
+import React from "react";
 import { useEffect, useState, useId, useCallback, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { createTariff, deleteTariff, getDashboardData, updateTariff } from "../api/axiosClient";
 import { Button } from "@/components/ui/button";
+import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Plus, Edit2, Trash2, X, MoreVertical, Eye, Download, RefreshCw, Check } from "lucide-react";
+import { Loader2, Search, Plus, Edit2, Trash2, X, MoreVertical, Eye, Download, RefreshCw, Check, BarChart3, PieChart, TrendingUp, Settings } from "lucide-react";
 import { Grid, useClientRowDataSource } from "@1771technologies/lytenyte-core";
 import "@1771technologies/lytenyte-core/grid.css";
 import { Relogin } from "@/components/Relogin";
