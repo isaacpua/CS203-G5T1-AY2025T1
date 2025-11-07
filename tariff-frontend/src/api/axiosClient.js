@@ -159,6 +159,10 @@ export const editTransactions = async(transactionID, snapshot) => {
   return await axiosClient.put(`/tariffs/transactionHistory/${transactionID}/snapshot`, snapshot);
 };
 
+export const getHistoricalData = async (params) => {
+  return await mcpAxiosClient.get(`/historical`, { params });
+};
+
 export const getForecast = async () => {
   return await mcpAxiosClient.get(`/forecast`);
 };
@@ -166,6 +170,10 @@ export const getForecast = async () => {
 export const updateForecast = async () => {
   return await bypassCFClient.post("/forecast");
   // return await mcpAxiosClient.post(`/forecast`);
+};
+
+export const loadLive = async () =>{
+  return await bypassCFClient.post("/data/live")
 };
 
 export const getNewsletter = async () => {

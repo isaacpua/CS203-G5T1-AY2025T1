@@ -1,20 +1,22 @@
-import os
-import json
+import os,json
 import logging
 import httpx
 from fastapi import APIRouter, HTTPException, Body
 from fastapi.responses import JSONResponse
 from fastmcp import Client
 import pandas as pd
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, Column, String, Integer, Float, Date, Text, text
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase # Added ORM imports
+from load_data import main as data
 import datetime
 import asyncio
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional, Dict, Any # Added Optional, Dict, Any
 from openai import OpenAI
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 MCP_SERVER_URL = f"{BASE_URL}/mcp/"
 DB_CONFIG = {
@@ -23,12 +25,29 @@ DB_CONFIG = {
     "DB_PASSWORD": os.getenv("DB_PASSWORD"),
 }
 
-# --- FILE PATHS ---
 DATA_DIR = Path("data")
 # This is for the new mailing list
 MAILING_LIST_PATH = DATA_DIR / "mailinglist.json"
 # Ensure the data directory exists
 DATA_DIR.mkdir(exist_ok=True)
+
+try:
+    if not DB_CONFIG["DB_URL"] or not DB_CONFIG["DB_USERNAME"] or not DB_CONFIG["DB_PASSWORD"]:
+        raise ValueError("DB_URL, DB_USER, or DB_PASSWORD is not set in .env")
+    
+    db_url_cleaned = DB_CONFIG["DB_URL"]
+    if db_url_cleaned.startswith("jdbc:postgresql://"):
+        db_url_cleaned = db_url_cleaned.replace("jdbc:postgresql://", "")
+        
+    connection_string = f"postgresql://{DB_CONFIG['DB_USERNAME']}:{DB_CONFIG['DB_PASSWORD']}@{db_url_cleaned}"
+    
+    sqlalchemy_engine = create_engine(connection_string, pool_pre_ping=True)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sqlalchemy_engine)
+    logger.info("MCP-Gateway: SQLAlchemy engine and SessionLocal created.")
+except Exception as e:
+    logger.error(f"MCP-Gateway: Failed to create SQLAlchemy engine: {e}")
+    sqlalchemy_engine = None
+    SessionLocal = None
 
 
 router = APIRouter(prefix="/mcp/api/v1")
@@ -42,10 +61,100 @@ class NewsletterRequest(BaseModel):
         ..., description="The full raw markdown content of the newsletter.")
 
 
+class TariffMaster(DeclarativeBase):
+    """
+    SQLAlchemy ORM Model for the 'tariff_master' table in the 'tariffs' schema.
+    This version matches the screenshot from image_b4387f.png
+    """
+    __tablename__ = 'tariff_master'
+    __table_args__ = {'schema': 'tariffs'}
+
+    tariffid = Column(String, primary_key=True)
+    descriptionwcountry = Column(String)
+    reportercountry = Column(Integer)
+    partnercountry = Column(Integer)
+    year = Column(Integer)
+    advalorem = Column(Float)
+    specificperunit = Column(Float)
+    category = Column(String)
+    unitname = Column(String)
+    effectivedate = Column(Date)
+    expirydate = Column(Date) # This column is in the screenshot
+    datasource = Column(Text) # This column is in the screenshot
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the ORM object to a JSON-serializable dictionary."""
+        return {
+            "tariffid": self.tariffid,
+            "descriptionwcountry": self.descriptionwcountry,
+            "reportercountry": self.reportercountry,
+            "partnercountry": self.partnercountry,
+            "year": self.year,
+            "advalorem": self.advalorem,
+            "specificperunit": self.specificperunit,
+            "category": self.category,
+            "unitname": self.unitname,
+            "effectivedate": self.effectivedate.strftime('%Y-%m-%d') if self.effectivedate else None,
+            "expirydate": self.expirydate.strftime('%Y-%m-%d') if self.expirydate else None,
+            "datasource": self.datasource
+        }
+
+
+def get_historical_data(
+    db_session: Session,
+    full_tariff_id_prefix: Optional[str] = None,
+    hts6: Optional[str] = None,
+    reporter_id: Optional[int] = None,
+    partner_id: Optional[int] = None
+) -> List[Dict[str, Any]]:
+    """
+    Fetches historical tariff data from the database using an ORM session.
+    """
+    query = db_session.query(TariffMaster)
+    
+    if full_tariff_id_prefix:
+        # --- Mode 1: Search by Full Tariff ID Prefix (e.g., '170211USAU') ---
+        logger.info(f"Querying by full_tariff_id_prefix: {full_tariff_id_prefix}")
+        query = query.filter(TariffMaster.tariffid.like(f"{full_tariff_id_prefix}%"))
+        
+    elif hts6 and reporter_id is not None and partner_id is not None:
+        # --- Mode 2: Search by Parameters (using INT IDs and hts6 prefix) ---
+        logger.info(f"Querying by params: hts6 prefix={hts6}, reporter_id={reporter_id}, partner_id={partner_id}")
+        query = query.filter(
+            TariffMaster.tariffid.like(f"{hts6}%"), # Match prefix of tariffid
+            TariffMaster.reportercountry == reporter_id,  # Match integer ID
+            TariffMaster.partnercountry == partner_id   # Match integer ID
+        )
+    
+    else:
+        # No valid search parameters provided
+        logger.warning("No valid search parameters provided for historical data.")
+        return []
+
+    # Add ordering and a safety limit
+    query = query.order_by(TariffMaster.year.asc(), TariffMaster.effectivedate.asc()).limit(1000)
+
+    try:
+        # Execute the query
+        results = query.all()
+        
+        # Convert results to list of dictionaries
+        data_points = [row.to_dict() for row in results]
+        
+        logger.info(f"Found {len(data_points)} data points.")
+        return data_points
+
+    except Exception as e:
+        logger.error(f"Error executing historical tariff query: {e}")
+        # Re-raise the exception so the endpoint can return a 500
+        raise
+# --- END NEW DATA ACCESS FUNCTION ---
+
+
 async def _get_mailing_list() -> List[str]:
     """Reads the mailing list from data/mailinglist.json."""
     if not MAILING_LIST_PATH.exists():
-        return []  # Return empty list if file doesn't exist
+        return []
     try:
         with open(MAILING_LIST_PATH, "r", encoding="utf-8") as file:
             data = json.load(file)
@@ -67,7 +176,6 @@ async def _save_mailing_list(recipients: List[str]) -> bool:
         logging.error(f"Failed to write to data/mailinglist.json: {e}")
         return False
 
-
 async def summarize_newsletter(content: str) -> str:
     """
     Uses OpenAI to summarize the newsletter markdown into a plain-text email body.
@@ -78,7 +186,6 @@ async def summarize_newsletter(content: str) -> str:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not set.")
 
     try:
-        # Run the blocking OpenAI call in a separate thread
         def blocking_openai_call():
             client = OpenAI(api_key=api_key)
             completion = client.chat.completions.create(
@@ -114,7 +221,7 @@ async def greet(name: str):
 
     except Exception as e:
         logging.error(f"Error details: {e}")
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=444, detail=str(e)) # Changed status to avoid clash with 404
 
 
 @router.get("/health")
@@ -125,16 +232,19 @@ async def healthcheck():
 @router.get("/forecast")
 async def get_forecast():
     try:
-        connection_string = f"postgresql://{DB_CONFIG["DB_USERNAME"]}:{DB_CONFIG["DB_PASSWORD"]}@{DB_CONFIG["DB_URL"]}"
-        db_engine = create_engine(connection_string)
-
-        df = pd.read_sql("SELECT * FROM tariffs.tariff_forecasts", db_engine)
+        # --- MODIFIED: Use global engine ---
+        if sqlalchemy_engine is None:
+            raise HTTPException(status_code=503, detail="Database connection not initialized.")
+            
+        with sqlalchemy_engine.connect() as db_engine:
+            df = pd.read_sql("SELECT * FROM tariffs.tariff_forecasts", db_engine)
+        # --- END MODIFICATION ---
 
         return json.loads(df.to_json())
 
     except Exception as e:
         logging.error(f"Error details: {e}")
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=444, detail=str(e)) # Changed status to avoid clash with 404
 
 
 @router.post("/forecast")
@@ -160,7 +270,6 @@ async def forecast_tariffs():
     except Exception as e:
         logging.error(f"Error details: {e}")
         raise HTTPException(status_code=409, detail=str(e))
-
 
 @router.get("/newsletter")
 async def get_newsletter():
@@ -223,7 +332,7 @@ async def get_newsletter():
 
     except Exception as e:
         logging.error(f"Error details: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=444, detail=str(e)) # Changed status to avoid clash with 404
 
 
 @router.get("/newsletter/mailinglist")
@@ -258,7 +367,6 @@ async def send_newsletter(request: NewsletterRequest = Body(...)):
         raise HTTPException(
             status_code=400, detail="No markdown content provided.")
 
-    # Step 1: Summarize the content
     logging.info("Summarizing newsletter content...")
     try:
         email_body = await summarize_newsletter(request.markdown_content)
@@ -280,7 +388,6 @@ async def send_newsletter(request: NewsletterRequest = Body(...)):
                     "body": email_body
                 }
                 tasks.append(client.call_tool("send_email", tool_payload))
-
             mcp_results = await asyncio.gather(*tasks, return_exceptions=True)
 
     except Exception as e:
@@ -290,10 +397,8 @@ async def send_newsletter(request: NewsletterRequest = Body(...)):
 
     logging.info("Email dispatch complete. Compiling results...")
 
-    # Step 3: Report results
     dispatch_results = []
     success_count = 0
-
     for email, result in zip(recipients, mcp_results):
         if isinstance(result, Exception):
             dispatch_results.append({
@@ -326,7 +431,6 @@ async def send_newsletter(request: NewsletterRequest = Body(...)):
                 })
 
     failed_count = len(recipients) - success_count
-
     return {
         "status": "complete",
         "total_sent": success_count,
@@ -369,4 +473,72 @@ async def analyze(data: dict):
 
     except Exception as e:
         logging.error(f"Error details: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 
+
+@router.get("/historical")
+async def get_historical_data_endpoint(
+    full_tariff_id_prefix: Optional[str] = None,
+    hts6: Optional[str] = None,
+    reporter_id: Optional[int] = None,
+    partner_id: Optional[int] = None
+):
+    """
+    Endpoint to get historical tariff data.
+    
+    Supports two search modes:
+    1. ?full_tariff_id_prefix=170211USAU
+    2. ?hts6=170211&reporter_id=188&partner_id=10
+    """
+    if SessionLocal is None:
+        raise HTTPException(
+            status_code=503, 
+            detail="Database connection is not configured. Check server logs."
+        )
+
+    # Basic parameter validation
+    is_mode_a = bool(full_tariff_id_prefix)
+    is_mode_b = bool(hts6 and reporter_id is not None and partner_id is not None)
+
+    if not is_mode_a and not is_mode_b:
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid parameters. Provide either 'full_tariff_id_prefix' OR all of 'hts6', 'reporter_id', and 'partner_id'."
+        )
+    
+    if is_mode_a and is_mode_b:
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid parameters. Provide EITHER 'full_tariff_id_prefix' OR the other parameters, not both."
+        )
+
+    db_session: Session = SessionLocal()
+    try:
+        # Run the synchronous SQLAlchemy query in a separate thread
+        data_points = await asyncio.to_thread(
+            get_historical_data,
+            db_session,
+            full_tariff_id_prefix=full_tariff_id_prefix,
+            hts6=hts6,
+            reporter_id=reporter_id,
+            partner_id=partner_id
+        )
+        
+        return JSONResponse(content=data_points)
+
+    except Exception as e:
+        logger.error(f"Error in /historical endpoint: {e}")
+        db_session.rollback() # Rollback on error
+        raise HTTPException(status_code=500, detail=f"Error fetching historical data: {str(e)}")
+    finally:
+        db_session.close() # Always close the session
+
+@router.post("/data/live")
+async def load_live_data():
+    try:
+        logging.info("Starting data load")
+        data.load_usitc_data()
+        return {"message": "Load completed"}
+    except Exception as e:
+        logging.error(f"Error loading live data: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+

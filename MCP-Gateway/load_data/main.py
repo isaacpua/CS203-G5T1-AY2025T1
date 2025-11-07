@@ -1,5 +1,5 @@
 import os
-from helpers import get_csv_from_usitc, process_csv, load_into_master
+from .helpers import get_csv_from_usitc, process_csv, load_into_master
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -9,7 +9,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 
 # YEAR = 2025
 
-def main():
+def load_usitc_data():
     for YEAR in range(2002, 2026):
         df = get_csv_from_usitc(YEAR)
         df = process_csv(df, YEAR)
@@ -18,4 +18,4 @@ def main():
     
 
 if __name__ == "__main__":
-    main()
+    load_usitc_data()
