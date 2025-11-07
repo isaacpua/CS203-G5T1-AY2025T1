@@ -32,8 +32,43 @@ MCP_SERVER_URL = f"{os.getenv("BASE_URL", "http://127.0.0.1:8000")}/mcp"
 compiled_graph = None
 client = None
 FILE_PARSE_TIMEOUT = 60.0
-APP_IS_HEALTHY = False
 
+async def check_and_initialize_mcp() -> bool:
+    """
+    Attempts to connect to the MCP server, fetch tools, and build the graph.
+    Returns True on success, False on failure.
+    Updates global 'client' and 'compiled_graph'.
+    """
+    global compiled_graph, client
+
+    mcp_config = {
+        "mcpServers": {
+            "MCP-Server": {
+                "url": MCP_SERVER_URL,
+                "transport": "streamable_http",
+            }
+        }
+    }
+
+    try:
+        print("Attempting connection to MCP servers and fetching tools...")
+        # 1. Attempt connection and tool fetch
+        temp_client = MultiServerMCPClient(mcp_config["mcpServers"])
+        tools = await temp_client.get_tools()
+        
+        # 2. Build graph and update globals only on success
+        compiled_graph = build_graph(tools)
+        client = temp_client # Update the global client instance
+        
+        print(f"Successfully loaded {len(tools)} tools. Graph compiled.")
+        return True
+        
+    except Exception as e:
+        print(f"ERROR: MCP/Graph Initialization Failed: {e}")
+        # Ensure globals are reset on failure
+        compiled_graph = None
+        client = None
+        return False
 
 async def _stream_graph_logic(
     input_text: str,
@@ -96,11 +131,19 @@ app = FastAPI()
 @app.get("/chat/health")
 async def health_check(response: Response):
     """
-    Smarter health check endpoint that reflects the
-    *real* application readiness (i.e., are dependencies loaded?)
+    If the graph/client are not ready, it attempts to re-initialize the connection.
+    This ensures that transient MCP server issues are recovered from.
     """
-    if APP_IS_HEALTHY:
-        # If startup_event succeeded, return 200 OK
+    global compiled_graph, client
+    
+    is_ready = compiled_graph is not None and client is not None
+
+    if not is_ready:
+        print("Health Check: System detected as not ready. Attempting re-initialization...")
+        # Attempt to reconnect and re-initialize
+        is_ready = await check_and_initialize_mcp()
+
+    if is_ready:
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
@@ -123,7 +166,6 @@ async def health_check(response: Response):
 def parse_file_content(file_name: str, base64_data: str) -> str:
     """
     Decodes Base64 data and extracts text based on file extension.
-    This runs in a separate thread to avoid blocking asyncio.
     """
     try:
         binary_data = base64.b64decode(base64_data)
@@ -132,7 +174,6 @@ def parse_file_content(file_name: str, base64_data: str) -> str:
 
         text_content = []
 
-        # --- MODIFIED: Added specific try/except for pypdf ---
         if extension == '.pdf':
             try:
                 reader = pypdf.PdfReader(file_stream)
@@ -144,7 +185,6 @@ def parse_file_content(file_name: str, base64_data: str) -> str:
                 print(
                     f"[ERROR] pypdf failed to parse {file_name}: {pdf_error}")
                 return f"[Error: Failed to parse PDF file '{file_name}'. It may be corrupted, password-protected, or have an unsupported format.]"
-        # --- END MODIFIED ---
 
         elif extension == '.docx':
             doc = docx.Document(file_stream)
@@ -186,33 +226,17 @@ def parse_file_content(file_name: str, base64_data: str) -> str:
 
 
 async def startup_event():
-    global compiled_graph, client, APP_IS_HEALTHY
+    """
+    Initializes the MCP client and graph on application startup.
+    """
     print("Starting MCP Client Server...")
+    
+    success = await check_and_initialize_mcp()
 
-    mcp_config = {
-        "mcpServers": {
-            "MCP-Server": {
-                "url": MCP_SERVER_URL,
-                "transport": "streamable_http",
-            }
-        }
-    }
-
-    print("Connecting to MCP servers and fetching tools...")
-    try:
-        client = MultiServerMCPClient(mcp_config["mcpServers"])
-        tools = await client.get_tools()
-        print(f"Successfully loaded {len(tools)} tools:")
-        for tool in tools:
-            print(f"- {tool.name}")
-    except Exception as e:
-        print(f"FATAL: Could not load tools via MultiServerMCPClient: {e}")
-        APP_IS_HEALTHY = False
-        return
-
-    compiled_graph = build_graph(tools)
-    print("Chatbot graph compiled successfully.")
-    print("\n--- TARIFF is online. Waiting for frontend connection... ---")
+    if success:
+        print("\n--- TARIFF is online. Waiting for frontend connection... ---")
+    else:
+        print("\n--- TARIFF is starting in an unhealthy state. Will attempt reconnection on health checks. ---")
 
 
 @sio.event
