@@ -6,10 +6,10 @@ from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
 from crawl4ai.cache_context import CacheMode
 from tenacity import AsyncRetrying, stop_after_attempt, wait_exponential
+import tempfile
+import shutil
 
-
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
-
+USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15"
 
 
 async def _scrape_url_internal(
@@ -28,14 +28,20 @@ async def _scrape_url_internal(
         "markdown": None
     }
 
+    temp_dir = None
+    
     try:
+        temp_dir = tempfile.mkdtemp()
+        print(f"Creating new WebKit profile in: {temp_dir}")
+
         # 1. Create a new BrowserConfig for this specific request
         browser_config = BrowserConfig(
             headless=True,
-            browser_type="chromium",
+            browser_type="webkit",
             verbose=True,
             user_agent=USER_AGENT,
-            text_mode=True
+            text_mode=True,
+            user_data_dir=temp_dir
         )
 
         # 2. Create Crawler config
@@ -63,7 +69,7 @@ async def _scrape_url_internal(
                 reraise=True
             ):
                 with attempt:
-                    print(f"Attempting crawl on: {url}")
+                    print(f"Attempting crawl on: {url} (Profile: {temp_dir})")
                     results_list = await crawler.arun(url=url, config=crawler_run_config)
                     result = results_list[0]
 
@@ -93,6 +99,14 @@ async def _scrape_url_internal(
         response["success"] = False
         response["error"] = e
         return response
+    
+    finally:
+        if temp_dir:
+            try:
+                print(f"Cleaning up profile: {temp_dir}")
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            except Exception as e:
+                print(f"Warning: Failed to clean up temp dir {temp_dir}: {e}")
 
 
 async def newsletter_scrape() -> dict:
