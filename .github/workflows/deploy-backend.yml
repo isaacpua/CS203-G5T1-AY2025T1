@@ -5,6 +5,12 @@ on:
     branches:
       # - main
       - feat/infra
+    paths:
+      - 'tariff-backend/**'
+      - 'MCP-client/**'
+      - 'MCP-Gateway/**'
+      - 'MCP-Server/**'
+      - '.github/workflows/deploy-backend.yml'
 
 env:
   AWS_REGION: ap-southeast-1
