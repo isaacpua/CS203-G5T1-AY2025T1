@@ -29,6 +29,13 @@ const mcpAxiosClient = axios.create({
   },
 });
 
+const bypassCFClient = axios.create({
+  baseURL: "https://api.tarific.rocks",
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 export const verifyJWT = async (token) => {
   await axiosClient.post("/auth/verifyJWT", {}, {
     headers: {
@@ -156,12 +163,12 @@ export const getForecast = async () => {
 };
 
 export const updateForecast = async () => {
-  return await axios.post("https://api.tarific.rocks/forecast");
+  return await bypassCFClient.post("/forecast");
   // return await mcpAxiosClient.post(`/forecast`);
 };
 
 export const getNewsletter = async () => {
-  return await axios.get("https://api.tarific.rocks/newsletter");
+  return await bypassCFClient.get("/newsletter");
   // return await mcpAxiosClient.get(`/newsletter`)
 }
 
@@ -178,7 +185,7 @@ export const sendNewsletter = async (markdownContent) => {
 };
 
 export const postAnalyzable = async (analyzable) => {
-  return await axios.post("https://api.tarific.rocks/analyze", analyzable);
+  return await bypassCFClient.post("/analyze", analyzable);
   // return await mcpAxiosClient.post(`/analyze`, analyzable);
 }
 
