@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'; // useRef is imported
 import { io } from 'socket.io-client';
 import Markdown from 'markdown-to-jsx';
+import { useTheme } from "@/components/theme-provider";
 
 // Connect to your MCP-client server
 const socket = io('http://127.0.0.1:8001');
@@ -41,6 +42,7 @@ const ACCEPTED_FILE_TYPES = [
 ];
 
 function Chatbot() {
+  const { theme } = useTheme();
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [messages, setMessages] = useState([]);
   const [currentInput, setCurrentInput] = useState('');
@@ -279,6 +281,7 @@ function Chatbot() {
       return "";
     }
   };
+  const isDark = theme === "dark" || (theme === "system" && prefersDark);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-transparent">
@@ -288,10 +291,15 @@ function Chatbot() {
           loop
           muted
           playsInline
+          key={isDark ? "dark-video" : "light-video"} // ensures React reloads video when theme changes
+
           className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
             }`}
         >
-          <source src="/Barn_Animation.mp4" type="video/mp4" />
+          <source
+            src={isDark ? "/Barn_Night.mp4" : "/Barn_Animation.mp4"}
+            type="video/mp4"
+          />
         </video>
         <div
           className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"

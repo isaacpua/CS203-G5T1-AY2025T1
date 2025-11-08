@@ -22,7 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Search, RefreshCw, Download } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import Papa from "papaparse";
-
+import { useTheme } from "@/components/theme-provider";
 // NEW: card shell
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
@@ -47,6 +47,12 @@ export default function Forecast() {
   });
   const [resizing, setResizing] = useState(null);
   const [contentVisible, setContentVisible] = useState(false);
+  const { theme } = useTheme();
+  const prefersDark =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = theme === "dark" || (theme === "system" && prefersDark);
 
   const fetchForecast = async (asRefresh = false) => {
     try {
@@ -219,9 +225,14 @@ export default function Forecast() {
           loop
           muted
           playsInline
-          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"}`}
+          key={isDark ? "dark-video" : "light-video"} // ensures React reloads video when theme changes
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
+            }`}
         >
-          <source src="/Barn_Animation.mp4" type="video/mp4" />
+          <source
+            src={isDark ? "/Barn_Night.mp4" : "/Barn_Animation.mp4"}
+            type="video/mp4"
+          />
         </video>
         <div
           className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"}`}

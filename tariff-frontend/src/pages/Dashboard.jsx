@@ -18,6 +18,7 @@ import Papa from 'papaparse';
 import CountrySelector from "@/components/CountrySelector";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "@/components/theme-provider";
 
 function useDebounce(value, delayMs = 500) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -884,6 +885,12 @@ export default function Dashboard() {
   const [fromYear, setFromYear] = useState(2002);
   const [toYear, setToYear] = useState(2025);
   const [isLoadingLive, setIsLoadingLive] = useState(false);
+  const { theme } = useTheme();
+  const prefersDark =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = theme === "dark" || (theme === "system" && prefersDark);
   // Build a year list (2002..current year). Change start if you need.
   const yearOptions = useMemo(() => {
     const start = 2002;
@@ -1210,11 +1217,14 @@ export default function Dashboard() {
           autoPlay
           loop
           muted
-          playsInline
+          key={isDark ? "dark-video" : "light-video"} // ensures React reloads video when theme changes
           className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
             }`}
         >
-          <source src="/Barn_Animation.mp4" type="video/mp4" />
+          <source
+            src={isDark ? "/Barn_Night.mp4" : "/Barn_Animation.mp4"}
+            type="video/mp4"
+          />
         </video>
         <div
           className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"

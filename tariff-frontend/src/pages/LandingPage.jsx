@@ -13,11 +13,17 @@ import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { CardBody, CardContainer, CardItem } from "@/components/ui/3d-card"
+import { useTheme } from "@/components/theme-provider";
 
 export default function LandingPage() {
   const navigate = useNavigate()
   const [contentVisible, setContentVisible] = useState(false)
-
+  const { theme } = useTheme();
+  const prefersDark =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = theme === "dark" || (theme === "system" && prefersDark);
   useEffect(() => {
     const timer = setTimeout(() => {
       setContentVisible(true)
@@ -88,12 +94,12 @@ export default function LandingPage() {
           loop
           muted
           playsInline
-          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${
-            contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
-          }`}
+           key={isDark ? "dark-video" : "light-video"} // ensures React reloads video when theme changes
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
+            }`}
         >
           <source
-            src="/Barn_Animation.mp4"
+            src={isDark ? "/Barn_Night.mp4" : "/Barn_Animation.mp4"}
             type="video/mp4"
           />
         </video>

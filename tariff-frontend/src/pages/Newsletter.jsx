@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle, X, CheckCircle2, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useTheme } from "@/components/theme-provider";
 
 // --- This function is unchanged ---
 function splitIntoItems(md) {
@@ -147,6 +148,12 @@ function Newsletter() {
     }
   };
 
+  const { theme } = useTheme();
+  const prefersDark =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = theme === "dark" || (theme === "system" && prefersDark);
 
   // --- Handler for sending the newsletter  ---
   const handleSendNewsletter = async () => {
@@ -197,11 +204,14 @@ function Newsletter() {
           autoPlay
           loop
           muted
-          playsInline
+         key={isDark ? "dark-video" : "light-video"} // ensures React reloads video when theme changes
           className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
             }`}
         >
-          <source src="/Barn_Animation.mp4" type="video/mp4" />
+          <source
+            src={isDark ? "/Barn_Night.mp4" : "/Barn_Animation.mp4"}
+            type="video/mp4"
+          />
         </video>
         <div
           className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"

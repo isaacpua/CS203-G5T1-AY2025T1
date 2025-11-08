@@ -57,16 +57,18 @@ export default function Analyzer() {
           loop
           muted
           playsInline
-          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${
-            contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
-          }`}
+          key={isDark ? "dark-video" : "light-video"} // ensures React reloads video when theme changes
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
+            }`}
         >
-          <source src="/Barn_Animation.mp4" type="video/mp4" />
+          <source
+            src={isDark ? "/Barn_Night.mp4" : "/Barn_Animation.mp4"}
+            type="video/mp4"
+          />
         </video>
         <div
-          className={`absolute inset-0 transition-opacity duration-1000 ${
-            contentVisible ? (isDark ? "bg-black/70" : "bg-black/40") : "bg-black/30"
-          }`}
+          className={`absolute inset-0 transition-opacity duration-1000 ${contentVisible ? (isDark ? "bg-black/70" : "bg-black/40") : "bg-black/30"
+            }`}
         />
       </div>
 
