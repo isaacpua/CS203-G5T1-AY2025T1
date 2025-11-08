@@ -20,7 +20,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { Menu, ChevronDown } from "lucide-react"
+import { Menu, ChevronDown, Sprout } from "lucide-react"
 import { getUserInitials } from "@/utils/AvatarHelpers"
 import { ModeToggle } from "./mode-toggle"
 import { logout } from "@/utils/logout"
@@ -93,7 +93,8 @@ export default function Header() {
             replace
             className="flex items-center space-x-2 transition-colors focus:outline-none"
           >
-            <span className="font-bold">TARIFIC</span>
+            <Sprout className="w-8 h-8 text-primary" />
+            <span className="font-bold text-primary">TARIFIC</span>
           </NavLink>
 
           {user && (
