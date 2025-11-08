@@ -98,7 +98,12 @@ export default function TariffCalc() {
     // Debounce q
     const debouncedQ = useDebounce(q, 300);
     const prevDQRef = useRef(debouncedQ);
+    const [contentVisible, setContentVisible] = useState(false);
 
+    useEffect(() => {
+        const t = setTimeout(() => setContentVisible(true), 500);
+        return () => clearTimeout(t);
+    }, []);
     /** Helpers to load country lists */
     const loadAllFrom = async () => {
         setLoadingCountries(true);
@@ -430,444 +435,463 @@ export default function TariffCalc() {
     const hasBackendTotal = Number.isFinite(backendTotal);
 
     return (
-        <>
-            {showRelogin && <Relogin />}
-            <div className="grid gap-6 md:grid-cols-2">
-                {/* Search Card */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Search className="h-5 w-5" />
-                            Find Tariffs
-                        </CardTitle>
-                        <CardDescription>
-                            Pick origin/destination, optionally add text, then search.
-                        </CardDescription>
-                    </CardHeader>
+        <>    <div className="relative min-h-screen overflow-hidden bg-transparent">
+            <div className="fixed inset-0 z-10 pointer-events-none">
+                <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
+                        }`}
+                >
+                    <source src="/Barn_Animation.mp4" type="video/mp4" />
+                </video>
+                <div
+                    className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"
+                        }`}
+                />
+            </div>
+            <div className="relative z-10">
+                {showRelogin && <Relogin />}
+                <div className="grid gap-6 md:grid-cols-2">
+                    {/* Search Card */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Search className="h-5 w-5" />
+                                Find Tariffs
+                            </CardTitle>
+                            <CardDescription>
+                                Pick origin/destination, optionally add text, then search.
+                            </CardDescription>
+                        </CardHeader>
 
-                    <CardContent className="space-y-4">
-                        {/* From / To / Year row */}
-                        <div className="grid gap-6 grid-cols-2 md:grid-cols-4">
-                            {/* From Country */}
-                            <div className="space-y-2">
-                                <Label>From Country (origin)</Label>
-                                <Select
-                                    value={String(fromId)}
-                                    onValueChange={(v) => {
-                                        setFromId(v);
-                                        setPage(0);
-                                        setSearchTick((n) => n + 1);
-                                    }}
-                                >
-                                    <SelectTrigger
-                                        className="w-full max-w-60 overflow-hidden"
-                                        title={getFromLabel(fromId, fromOptions)}
+                        <CardContent className="space-y-4">
+                            {/* From / To / Year row */}
+                            <div className="grid gap-6 grid-cols-2 md:grid-cols-4">
+                                {/* From Country */}
+                                <div className="space-y-2">
+                                    <Label>From Country (origin)</Label>
+                                    <Select
+                                        value={String(fromId)}
+                                        onValueChange={(v) => {
+                                            setFromId(v);
+                                            setPage(0);
+                                            setSearchTick((n) => n + 1);
+                                        }}
                                     >
-                                        <SelectValue
-                                            placeholder={loadingCountries ? "Loading…" : "Select country"}
-                                            className="truncate"
-                                        />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={NONE}>None</SelectItem>
-                                        {fromOptions
-                                            .filter((c) => c?.countryId != null)
-                                            .map((c) => (
-                                                <SelectItem key={c.countryId} value={String(c.countryId)}>
-                                                    {c.name} ({c.iso2})
-                                                </SelectItem>
-                                            ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                                        <SelectTrigger
+                                            className="w-full max-w-60 overflow-hidden"
+                                            title={getFromLabel(fromId, fromOptions)}
+                                        >
+                                            <SelectValue
+                                                placeholder={loadingCountries ? "Loading…" : "Select country"}
+                                                className="truncate"
+                                            />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={NONE}>None</SelectItem>
+                                            {fromOptions
+                                                .filter((c) => c?.countryId != null)
+                                                .map((c) => (
+                                                    <SelectItem key={c.countryId} value={String(c.countryId)}>
+                                                        {c.name} ({c.iso2})
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
 
-                            {/* To Country */}
-                            <div className="space-y-2">
-                                <Label>To Country (destination)</Label>
-                                <Select
-                                    value={String(toId)}
-                                    onValueChange={(v) => {
-                                        setToId(v);
-                                        setPage(0);
-                                        setSearchTick((n) => n + 1);
-                                    }}
-                                >
-                                    <SelectTrigger
-                                        className="w-full max-w-60 overflow-hidden"
-                                        title={getToLabel(toId, toOptions)}
+                                {/* To Country */}
+                                <div className="space-y-2">
+                                    <Label>To Country (destination)</Label>
+                                    <Select
+                                        value={String(toId)}
+                                        onValueChange={(v) => {
+                                            setToId(v);
+                                            setPage(0);
+                                            setSearchTick((n) => n + 1);
+                                        }}
                                     >
-                                        <SelectValue
-                                            placeholder={loadingCountries ? "Loading…" : "Select country"}
-                                            className="truncate"
-                                        />
-                                    </SelectTrigger>
+                                        <SelectTrigger
+                                            className="w-full max-w-60 overflow-hidden"
+                                            title={getToLabel(toId, toOptions)}
+                                        >
+                                            <SelectValue
+                                                placeholder={loadingCountries ? "Loading…" : "Select country"}
+                                                className="truncate"
+                                            />
+                                        </SelectTrigger>
 
-                                    <SelectContent>
-                                        <SelectItem value={NONE}>None</SelectItem>
-                                        {toOptions
-                                            .filter((c) => c?.countryId != null)
-                                            .map((c) => (
-                                                <SelectItem key={c.countryId} value={String(c.countryId)}>
-                                                    {c.name} ({c.iso2})
-                                                </SelectItem>
-                                            ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                                        <SelectContent>
+                                            <SelectItem value={NONE}>None</SelectItem>
+                                            {toOptions
+                                                .filter((c) => c?.countryId != null)
+                                                .map((c) => (
+                                                    <SelectItem key={c.countryId} value={String(c.countryId)}>
+                                                        {c.name} ({c.iso2})
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
 
-                            {/* From Year */}
-                            <div className="space-y-2">
-                                <Label>From Year</Label>
-                                <Select
-                                    value={String(yearFrom)}
-                                    onValueChange={(v) => {
-                                        const newFrom = v === NONE ? NONE : Number(v);
-                                        let newTo = yearTo === NONE ? NONE : Number(yearTo);
-                                        // enforce: To >= From
-                                        if (newTo !== NONE && newFrom !== NONE && newTo < newFrom) {
-                                            newTo = newFrom;
-                                            setYearTo(String(newTo));
-                                        }
-                                        setYearFrom(String(newFrom));
-                                        setPage(0);
-                                        setSearchTick((n) => n + 1); // auto-refresh
-                                    }}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Any" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={NONE}>Any</SelectItem>
-                                        {YEARS.map((y) => (
-                                            <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* To Year */}
-                            <div className="space-y-2">
-                                <Label>To Year</Label>
-                                <Select
-                                    value={String(yearTo)}
-                                    onValueChange={(v) => {
-                                        const newTo = v === NONE ? NONE : Number(v);
-                                        let newFrom = yearFrom === NONE ? NONE : Number(yearFrom);
-                                        // enforce: To >= From
-                                        if (newFrom !== NONE && newTo !== NONE && newTo < newFrom) {
-                                            newFrom = newTo;
+                                {/* From Year */}
+                                <div className="space-y-2">
+                                    <Label>From Year</Label>
+                                    <Select
+                                        value={String(yearFrom)}
+                                        onValueChange={(v) => {
+                                            const newFrom = v === NONE ? NONE : Number(v);
+                                            let newTo = yearTo === NONE ? NONE : Number(yearTo);
+                                            // enforce: To >= From
+                                            if (newTo !== NONE && newFrom !== NONE && newTo < newFrom) {
+                                                newTo = newFrom;
+                                                setYearTo(String(newTo));
+                                            }
                                             setYearFrom(String(newFrom));
-                                        }
-                                        setYearTo(String(newTo));
-                                        setPage(0);
-                                        setSearchTick((n) => n + 1); // auto-refresh
-                                    }}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Any" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={NONE}>Any</SelectItem>
-                                        {YEARS.map((y) => (
-                                            <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-
-                        {/* Query + page size + Search */}
-                        <div className="grid grid-cols-12 gap-4 items-end">
-                            <div className="col-span-7">
-                                <Label>Search by description / ID</Label>
-                                <Input
-                                    placeholder="e.g., Electronics"
-                                    value={q}
-                                    onChange={(e) => setQ(e.target.value)}
-                                />
-                            </div>
-                            <div className="col-span-2">
-                                <Label>Page size</Label>
-                                <Select
-                                    value={String(size)}
-                                    onValueChange={(v) => {
-                                        setSize(Number(v));
-                                        setPage(0);
-                                    }}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="10">10</SelectItem>
-                                        <SelectItem value="20">20</SelectItem>
-                                        <SelectItem value="50">50</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="col-span-3 flex items-end justify-end">
-                                <Button
-                                    className="w-full"
-                                    onClick={() => setSearchTick((n) => n + 1)}
-                                    disabled={searching}
-                                >
-                                    {searching ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Searching…
-                                        </>
-                                    ) : (
-                                        "Search"
-                                    )}
-                                </Button>
-                            </div>
-                        </div>
-
-                        {/* Results */}
-                        <div className="border rounded-md divide-y">
-                            {results.content.length === 0 && !searching && (
-                                <div className="p-4 text-sm text-muted-foreground">No results.</div>
-                            )}
-                            {results.content.map((row) => {
-                                const rawId = row.id ?? row.tariffId ?? row.tariffid;
-                                const id = String(rawId); // ⬅️ normalize
-                                const normalized = {
-                                    id,
-                                    descriptionwcountry: row.descriptionwcountry ?? row.descriptionWCountry ?? row.description,
-                                    category: row.category,
-                                    advalorem: row.advalorem ?? row.adValorem,
-                                    specificperunit: row.specificperunit ?? row.specificPerUnit,
-                                    unitname: row.unitname ?? row.unitName,
-                                };
-                                const isActive = String(selected?.id) === id; // ⬅️ compare as strings
-
-                                return (
-                                    <button
-                                        key={id}
-                                        className={`w-full text-left p-3 hover:bg-muted/50 ${isActive ? "bg-muted/70" : ""}`}
-                                        onClick={() => setSelected(normalized)}
+                                            setPage(0);
+                                            setSearchTick((n) => n + 1); // auto-refresh
+                                        }}
                                     >
-                                        <div className="flex justify-between">
-                                            <div className="font-medium">ID: {id}</div>
-                                            <div className="text-xs">
-                                                {(normalized.category || "").toString()}
-                                            </div>
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {normalized.descriptionwcountry}
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Pagination */}
-                        <div className="flex justify-between items-center">
-                            <Button
-                                variant="outline"
-                                disabled={!canPrev}
-                                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                            >
-                                Prev
-                            </Button>
-                            <div className="text-sm">
-                                Page {pageIdx + 1} / {totalPages}
-                            </div>
-                            <Button
-                                variant="outline"
-                                disabled={!canNext}
-                                onClick={() => setPage((p) => p + 1)}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                        {searchError && (
-                            <Alert variant="destructive">
-                                <AlertTitle>Search Error</AlertTitle>
-                                <AlertDescription>{searchError}</AlertDescription>
-                            </Alert>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Compute Card */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Calculator className="h-5 w-5" />
-                            Compute Duty
-                        </CardTitle>
-                        <CardDescription>
-                            Select a tariff on the left, then enter required inputs.
-                        </CardDescription>
-                    </CardHeader>
-
-                    <CardContent className="space-y-4">
-                        {!selected ? (
-                            <div className="text-sm text-muted-foreground">
-                                Select a tariff from search results.
-                            </div>
-                        ) : (
-                            <>
-                                <div className="text-sm">
-                                    <div className="font-medium">ID: {selected.id}</div>
-                                    <div className="text-muted-foreground">
-                                        {selected.descriptionwcountry}
-                                    </div>
-                                    {/* Rate summary (shows before compute) */}
-                                    <div className="mt-1 text-xs text-muted-foreground">
-                                        <span className="font-medium">Rate:</span>{" "}
-                                        {rateSummary(selected) || "—"}
-                                    </div>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Any" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={NONE}>Any</SelectItem>
+                                            {YEARS.map((y) => (
+                                                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-4">
-                                    {needsDV && (
-                                        <div className="col-span-1">
-                                            <Label className = "mb-2">Declared Value ($)</Label>
-                                            <Input
-                                                value={declaredValue}
-                                                onChange={(e) => setDeclaredValue(e.target.value)}
-                                                placeholder="e.g. 1000"
-                                                inputMode="decimal"
-                                            />
-                                        </div>
-                                    )}
-                                    {needsQty && (
-                                        <div className="col-span-1">
-                                            <Label>
-                                                Quantity{selected.unitname ? ` (${selected.unitname})` : ""}
-                                            </Label>
-                                            <Input
-                                                type="number"
-                                                step={isUnitCount(selected) ? 1 : "any"}
-                                                inputMode={isUnitCount(selected) ? "numeric" : "decimal"}
-                                                pattern={
-                                                    isUnitCount(selected) ? "\\d*" : "[0-9]*[.,]?[0-9]*"
-                                                }
-                                                value={quantity}
-                                                onChange={(e) => setQuantity(e.target.value)}
-                                                placeholder={isUnitCount(selected) ? "e.g. 10" : "e.g. 1.25"}
-                                            />
-                                        </div>
-                                    )}
+                                {/* To Year */}
+                                <div className="space-y-2">
+                                    <Label>To Year</Label>
+                                    <Select
+                                        value={String(yearTo)}
+                                        onValueChange={(v) => {
+                                            const newTo = v === NONE ? NONE : Number(v);
+                                            let newFrom = yearFrom === NONE ? NONE : Number(yearFrom);
+                                            // enforce: To >= From
+                                            if (newFrom !== NONE && newTo !== NONE && newTo < newFrom) {
+                                                newFrom = newTo;
+                                                setYearFrom(String(newFrom));
+                                            }
+                                            setYearTo(String(newTo));
+                                            setPage(0);
+                                            setSearchTick((n) => n + 1); // auto-refresh
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Any" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={NONE}>Any</SelectItem>
+                                            {YEARS.map((y) => (
+                                                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="saveResult"
-                                        checked={saveResult}
-                                        onCheckedChange={(checked) => setSaveResult(!!checked)}
+                            </div>
+
+
+                            {/* Query + page size + Search */}
+                            <div className="grid grid-cols-12 gap-4 items-end">
+                                <div className="col-span-7">
+                                    <Label>Search by description / ID</Label>
+                                    <Input
+                                        placeholder="e.g., Electronics"
+                                        value={q}
+                                        onChange={(e) => setQ(e.target.value)}
                                     />
-                                    <Label htmlFor="saveResult">Save this calculation</Label>
+                                </div>
+                                <div className="col-span-2">
+                                    <Label>Page size</Label>
+                                    <Select
+                                        value={String(size)}
+                                        onValueChange={(v) => {
+                                            setSize(Number(v));
+                                            setPage(0);
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="10">10</SelectItem>
+                                            <SelectItem value="20">20</SelectItem>
+                                            <SelectItem value="50">50</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="col-span-3 flex items-end justify-end">
+                                    <Button
+                                        className="w-full"
+                                        onClick={() => setSearchTick((n) => n + 1)}
+                                        disabled={searching}
+                                    >
+                                        {searching ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Searching…
+                                            </>
+                                        ) : (
+                                            "Search"
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Results */}
+                            <div className="border rounded-md divide-y">
+                                {results.content.length === 0 && !searching && (
+                                    <div className="p-4 text-sm text-muted-foreground">No results.</div>
+                                )}
+                                {results.content.map((row) => {
+                                    const rawId = row.id ?? row.tariffId ?? row.tariffid;
+                                    const id = String(rawId); // ⬅️ normalize
+                                    const normalized = {
+                                        id,
+                                        descriptionwcountry: row.descriptionwcountry ?? row.descriptionWCountry ?? row.description,
+                                        category: row.category,
+                                        advalorem: row.advalorem ?? row.adValorem,
+                                        specificperunit: row.specificperunit ?? row.specificPerUnit,
+                                        unitname: row.unitname ?? row.unitName,
+                                    };
+                                    const isActive = String(selected?.id) === id; // ⬅️ compare as strings
+
+                                    return (
+                                        <button
+                                            key={id}
+                                            className={`w-full text-left p-3 hover:bg-muted/50 ${isActive ? "bg-muted/70" : ""}`}
+                                            onClick={() => setSelected(normalized)}
+                                        >
+                                            <div className="flex justify-between">
+                                                <div className="font-medium">ID: {id}</div>
+                                                <div className="text-xs">
+                                                    {(normalized.category || "").toString()}
+                                                </div>
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">
+                                                {normalized.descriptionwcountry}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Pagination */}
+                            <div className="flex justify-between items-center">
+                                <Button
+                                    variant="outline"
+                                    disabled={!canPrev}
+                                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                                >
+                                    Prev
+                                </Button>
+                                <div className="text-sm">
+                                    Page {pageIdx + 1} / {totalPages}
                                 </div>
                                 <Button
-                                    className="w-full"
-                                    onClick={onCompute}
-                                    disabled={
-                                        computing ||
-                                        (needsDV &&
-                                            (toNumberOrNull(declaredValue) == null ||
-                                                toNumberOrNull(declaredValue) <= 0)) ||
-                                        (needsQty &&
-                                            (toNumberOrNull(quantity) == null ||
-                                                toNumberOrNull(quantity) <= 0 ||
-                                                (isUnitCount(selected) &&
-                                                    !Number.isInteger(Number(quantity)))))
-                                    }
+                                    variant="outline"
+                                    disabled={!canNext}
+                                    onClick={() => setPage((p) => p + 1)}
                                 >
-                                    {computing ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Computing…
-                                        </>
-                                    ) : (
-                                        "Compute Duty"
-                                    )}
+                                    Next
                                 </Button>
+                            </div>
+                            {searchError && (
+                                <Alert variant="destructive">
+                                    <AlertTitle>Search Error</AlertTitle>
+                                    <AlertDescription>{searchError}</AlertDescription>
+                                </Alert>
+                            )}
+                        </CardContent>
+                    </Card>
 
-                                {/* WORKINGS — final number comes from backendTotal */}
-                                {showWorkings && (
-                                    <div className="mt-3 bg-zinc-900 text-white rounded-lg p-4 font-mono text-sm whitespace-pre-wrap">
-                                        <div>Tariff ID: {selected.id}</div>
-                                        <div>Category: {cat}</div>
+                    {/* Compute Card */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Calculator className="h-5 w-5" />
+                                Compute Duty
+                            </CardTitle>
+                            <CardDescription>
+                                Select a tariff on the left, then enter required inputs.
+                            </CardDescription>
+                        </CardHeader>
 
-                                        {/* AD_VALOREM (backend: total = DeclaredValue × (1 + rate)) */}
-                                        {cat === "AD_VALOREM" && avDec != null && dvNum != null && (
-                                            <>
-                                                <div>
-                                                    Ad Valorem Rate: {fmtPct(avPct)} (multiplier = 1 +{" "}
-                                                    {fmt(avDec)} = {fmt(avMult)})
-                                                </div>
-                                                <div> </div>
-                                                <div>Total = Declared Value × (1 + rate)</div>
-                                                <div>= ${fmt(dvNum)} × {fmt(avMult)}</div>
-                                                <div>= {hasBackendTotal ? `$${fmt(backendTotal)}` : "—"}</div>
-                                            </>
+                        <CardContent className="space-y-4">
+                            {!selected ? (
+                                <div className="text-sm text-muted-foreground">
+                                    Select a tariff from search results.
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="text-sm">
+                                        <div className="font-medium">ID: {selected.id}</div>
+                                        <div className="text-muted-foreground">
+                                            {selected.descriptionwcountry}
+                                        </div>
+                                        {/* Rate summary (shows before compute) */}
+                                        <div className="mt-1 text-xs text-muted-foreground">
+                                            <span className="font-medium">Rate:</span>{" "}
+                                            {rateSummary(selected) || "—"}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {needsDV && (
+                                            <div className="col-span-1">
+                                                <Label className="mb-2">Declared Value ($)</Label>
+                                                <Input
+                                                    value={declaredValue}
+                                                    onChange={(e) => setDeclaredValue(e.target.value)}
+                                                    placeholder="e.g. 1000"
+                                                    inputMode="decimal"
+                                                />
+                                            </div>
                                         )}
-
-                                        {/* SPECIFIC_PER_UNIT (backend: total = Quantity × Rate per unit) */}
-                                        {cat === "SPECIFIC_PER_UNIT" && sp != null && qtyNum != null && (
-                                            <>
-                                                <div>
-                                                    Specific Rate: ${fmt(sp)} per {unit}
-                                                </div>
-                                                <div> </div>
-                                                <div>Total = Quantity × Rate per {unit}</div>
-                                                <div>
-                                                    = {fmt(qtyNum)} × ${fmt(sp)} / {unit}
-                                                </div>
-                                                <div>= {hasBackendTotal ? `$${fmt(backendTotal)}` : "—"}</div>
-                                            </>
+                                        {needsQty && (
+                                            <div className="col-span-1">
+                                                <Label>
+                                                    Quantity{selected.unitname ? ` (${selected.unitname})` : ""}
+                                                </Label>
+                                                <Input
+                                                    type="number"
+                                                    step={isUnitCount(selected) ? 1 : "any"}
+                                                    inputMode={isUnitCount(selected) ? "numeric" : "decimal"}
+                                                    pattern={
+                                                        isUnitCount(selected) ? "\\d*" : "[0-9]*[.,]?[0-9]*"
+                                                    }
+                                                    value={quantity}
+                                                    onChange={(e) => setQuantity(e.target.value)}
+                                                    placeholder={isUnitCount(selected) ? "e.g. 10" : "e.g. 1.25"}
+                                                />
+                                            </div>
                                         )}
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id="saveResult"
+                                            checked={saveResult}
+                                            onCheckedChange={(checked) => setSaveResult(!!checked)}
+                                        />
+                                        <Label htmlFor="saveResult">Save this calculation</Label>
+                                    </div>
+                                    <Button
+                                        className="w-full"
+                                        onClick={onCompute}
+                                        disabled={
+                                            computing ||
+                                            (needsDV &&
+                                                (toNumberOrNull(declaredValue) == null ||
+                                                    toNumberOrNull(declaredValue) <= 0)) ||
+                                            (needsQty &&
+                                                (toNumberOrNull(quantity) == null ||
+                                                    toNumberOrNull(quantity) <= 0 ||
+                                                    (isUnitCount(selected) &&
+                                                        !Number.isInteger(Number(quantity)))))
+                                        }
+                                    >
+                                        {computing ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Computing…
+                                            </>
+                                        ) : (
+                                            "Compute Duty"
+                                        )}
+                                    </Button>
 
-                                        {/* COMPOSITE (backend: total = (Quantity × Rate) × (1 + rate)) */}
-                                        {cat === "COMPOSITE" &&
-                                            sp != null &&
-                                            qtyNum != null &&
-                                            avDec != null && (
+                                    {/* WORKINGS — final number comes from backendTotal */}
+                                    {showWorkings && (
+                                        <div className="mt-3 bg-zinc-900 text-white rounded-lg p-4 font-mono text-sm whitespace-pre-wrap">
+                                            <div>Tariff ID: {selected.id}</div>
+                                            <div>Category: {cat}</div>
+
+                                            {/* AD_VALOREM (backend: total = DeclaredValue × (1 + rate)) */}
+                                            {cat === "AD_VALOREM" && avDec != null && dvNum != null && (
                                                 <>
-                                                    <div>
-                                                        Specific Rate: ${fmt(sp)} per {unit}
-                                                    </div>
                                                     <div>
                                                         Ad Valorem Rate: {fmtPct(avPct)} (multiplier = 1 +{" "}
                                                         {fmt(avDec)} = {fmt(avMult)})
                                                     </div>
                                                     <div> </div>
+                                                    <div>Total = Declared Value × (1 + rate)</div>
+                                                    <div>= ${fmt(dvNum)} × {fmt(avMult)}</div>
+                                                    <div>= {hasBackendTotal ? `$${fmt(backendTotal)}` : "—"}</div>
+                                                </>
+                                            )}
 
-                                                    {/* Step 1 — show the computed specific part number */}
+                                            {/* SPECIFIC_PER_UNIT (backend: total = Quantity × Rate per unit) */}
+                                            {cat === "SPECIFIC_PER_UNIT" && sp != null && qtyNum != null && (
+                                                <>
                                                     <div>
-                                                        Step 1 — Specific Part = Quantity × Rate per {unit}
+                                                        Specific Rate: ${fmt(sp)} per {unit}
                                                     </div>
+                                                    <div> </div>
+                                                    <div>Total = Quantity × Rate per {unit}</div>
                                                     <div>
                                                         = {fmt(qtyNum)} × ${fmt(sp)} / {unit}
-                                                    </div>
-                                                    <div>= ${fmt(specPart)}</div>
-                                                    <div> </div>
-
-                                                    {/* Step 2 — show the multiplication with the multiplier, then the backend total */}
-                                                    <div>Step 2 — Apply Ad Valorem Multiplier</div>
-                                                    <div>Total = Specific Part × (1 + rate)</div>
-                                                    <div>
-                                                        = ${fmt(specPart)} × {fmt(avMult)}
                                                     </div>
                                                     <div>= {hasBackendTotal ? `$${fmt(backendTotal)}` : "—"}</div>
                                                 </>
                                             )}
-                                    </div>
-                                )}
 
-                                {computeError && (
-                                    <Alert variant="destructive" className="mt-2">
-                                        <AlertTitle>Compute Error</AlertTitle>
-                                        <AlertDescription>{computeError}</AlertDescription>
-                                    </Alert>
-                                )}
-                            </>
-                        )}
-                    </CardContent>
-                    <CardFooter />
-                </Card>
+                                            {/* COMPOSITE (backend: total = (Quantity × Rate) × (1 + rate)) */}
+                                            {cat === "COMPOSITE" &&
+                                                sp != null &&
+                                                qtyNum != null &&
+                                                avDec != null && (
+                                                    <>
+                                                        <div>
+                                                            Specific Rate: ${fmt(sp)} per {unit}
+                                                        </div>
+                                                        <div>
+                                                            Ad Valorem Rate: {fmtPct(avPct)} (multiplier = 1 +{" "}
+                                                            {fmt(avDec)} = {fmt(avMult)})
+                                                        </div>
+                                                        <div> </div>
+
+                                                        {/* Step 1 — show the computed specific part number */}
+                                                        <div>
+                                                            Step 1 — Specific Part = Quantity × Rate per {unit}
+                                                        </div>
+                                                        <div>
+                                                            = {fmt(qtyNum)} × ${fmt(sp)} / {unit}
+                                                        </div>
+                                                        <div>= ${fmt(specPart)}</div>
+                                                        <div> </div>
+
+                                                        {/* Step 2 — show the multiplication with the multiplier, then the backend total */}
+                                                        <div>Step 2 — Apply Ad Valorem Multiplier</div>
+                                                        <div>Total = Specific Part × (1 + rate)</div>
+                                                        <div>
+                                                            = ${fmt(specPart)} × {fmt(avMult)}
+                                                        </div>
+                                                        <div>= {hasBackendTotal ? `$${fmt(backendTotal)}` : "—"}</div>
+                                                    </>
+                                                )}
+                                        </div>
+                                    )}
+
+                                    {computeError && (
+                                        <Alert variant="destructive" className="mt-2">
+                                            <AlertTitle>Compute Error</AlertTitle>
+                                            <AlertDescription>{computeError}</AlertDescription>
+                                        </Alert>
+                                    )}
+                                </>
+                            )}
+                        </CardContent>
+                        <CardFooter />
+                    </Card>
+                </div>
             </div>
+        </div>
         </>
     );
 }

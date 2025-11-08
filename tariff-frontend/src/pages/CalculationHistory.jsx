@@ -37,7 +37,12 @@ export default function CalculationHistory() {
   const [editInputs, setEditInputs] = useState({ customsValue: "", quantity: "", saveAfterCompute: true });
   const [confirmDeleteRow, setConfirmDeleteRow] = useState(null);
   const [confirmBulkOpen, setConfirmBulkOpen] = useState(false);
+  const [contentVisible, setContentVisible] = useState(false);
 
+  useEffect(() => {
+    const t = setTimeout(() => setContentVisible(true), 500);
+    return () => clearTimeout(t);
+  }, []);
   const load = async (asRefresh = false) => {
     setError("");
     asRefresh ? setIsRefreshing(true) : setLoading(true);
@@ -310,325 +315,345 @@ export default function CalculationHistory() {
   const showQty = catForEdit === "SPECIFIC_PER_UNIT" || catForEdit === "COMPOSITE";
 
   return (
-    <TooltipProvider>
-      {showRelogin && <Relogin />}
+    <div className="relative min-h-screen overflow-hidden bg-transparent">
+      <div className="fixed inset-0 z-10 pointer-events-none">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
+            }`}
+        >
+          <source src="/Barn_Animation.mp4" type="video/mp4" />
+        </video>
+        <div
+          className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"
+            }`}
+        />
+      </div>
+      <div className="relative z-10">
+        <TooltipProvider>
+          {showRelogin && <Relogin />}
 
-      <Card className="border-0 shadow-lg">
-        <CardHeader className="bg-linear-to-r from-primary/10 to-primary/5 rounded-xl p-4 md:p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle className="text-xl md:text-2xl font-bold text-foreground">Calculation History</CardTitle>
-              <CardDescription className="text-sm md:text-base text-muted-foreground">
-                View your saved tariff calculations
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={() => load(true)} disabled={isRefreshing}>
-                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Refresh</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={exportCSV} disabled={isExporting || filtered.length === 0}>
-                    <Download className={`h-4 w-4 ${isExporting ? "animate-spin" : ""}`} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Export CSV</TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="px-0 pt-4 md:pt-6 pb-6 md:pb-8">
-          <div className="px-4 md:px-6">
-            <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-xl border mb-3">
-              <Label>Search</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  className="pl-10 pr-8"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Description, tariff ID…"
-                />
-                {q && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                    onClick={() => setQ("")}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="bg-linear-to-r from-primary/10 to-primary/5 rounded-xl p-4 md:p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle className="text-xl md:text-2xl font-bold text-foreground">Calculation History</CardTitle>
+                  <CardDescription className="text-sm md:text-base text-muted-foreground">
+                    View your saved tariff calculations
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={() => load(true)} disabled={isRefreshing}>
+                        <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Refresh</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={exportCSV} disabled={isExporting || filtered.length === 0}>
+                        <Download className={`h-4 w-4 ${isExporting ? "animate-spin" : ""}`} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Export CSV</TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
-            </div>
-            {/* Select-all / Clear selection */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={allSelected ? handleClearSelection : handleSelectAll}
-                disabled={selectableIds.length === 0}
-              >
-                {allSelected ? "Clear selection" : `Select all (${selectableIds.length})`}
-              </Button>
-            </div>
+            </CardHeader>
 
-            {/* Bulk delete controls (unchanged) */}
-            {selectedIds.length > 0 && (
-              <div className="px-0 mb-4">
+            <CardContent className="px-0 pt-4 md:pt-6 pb-6 md:pb-8">
+              <div className="px-4 md:px-6">
+                <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-xl border mb-3">
+                  <Label>Search</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="pl-10 pr-8"
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder="Description, tariff ID…"
+                    />
+                    {q && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                        onClick={() => setQ("")}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {/* Select-all / Clear selection */}
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="sm"
-                    className="px-3 py-1.5"
-                    onClick={() => setConfirmBulkOpen(true)}
+                    onClick={allSelected ? handleClearSelection : handleSelectAll}
+                    disabled={selectableIds.length === 0}
                   >
-                    Delete selected ({selectedIds.length})
+                    {allSelected ? "Clear selection" : `Select all (${selectableIds.length})`}
                   </Button>
-                  <Badge variant="outline" className="text-xs">
-                    {selectedIds.length} selected
-                  </Badge>
                 </div>
-              </div>
-            )}
-          </div>
 
-          {error ? (
-            <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-destructive/10 border border-destructive/20 rounded-xl">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-destructive/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <X className="h-8 w-8 text-destructive" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Error Loading</h3>
-                <p className="text-muted-foreground mb-4">{error}</p>
-                <Button onClick={() => load(false)} variant="outline">
-                  <RefreshCw className="mr-2 h-4 w-4" />Try Again
-                </Button>
+                {/* Bulk delete controls (unchanged) */}
+                {selectedIds.length > 0 && (
+                  <div className="px-0 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="px-3 py-1.5"
+                        onClick={() => setConfirmBulkOpen(true)}
+                      >
+                        Delete selected ({selectedIds.length})
+                      </Button>
+                      <Badge variant="outline" className="text-xs">
+                        {selectedIds.length} selected
+                      </Badge>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ) : loading ? (
-            <div className="border rounded-xl bg-card h-[520px] grid place-items-center">
-              <div className="flex items-center space-x-3">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                <span className="text-muted-foreground">Loading history…</span>
-              </div>
-            </div>
-          ) : filtered.length > 0 ? (
-            <div className="px-4 md:px-6 space-y-3">
-              {filtered.map((row) => (
-                <Row key={row.transactionId ?? row.id} row={row} />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-muted/30 border rounded-xl mx-4 md:mx-6">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">No History</h3>
-                <p className="text-muted-foreground mb-4">No saved calculations found.</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      <Dialog open={!!confirmDeleteRow} onOpenChange={() => setConfirmDeleteRow(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete calculation?</DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              This action cannot be undone. The selected calculation will be permanently deleted.
-            </p>
-          </DialogHeader>
 
-          {confirmDeleteRow && (
-            <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
-              <div className="font-medium">{getDescription(confirmDeleteRow)}</div>
-              <div className="text-muted-foreground">
-                Tariff ID: <span className="font-mono">{getTariffId(confirmDeleteRow) ?? "—"}</span>
-              </div>
-              {confirmDeleteRow.createdAt && (
-                <div className="text-muted-foreground">
-                  Created: {new Date(confirmDeleteRow.createdAt).toLocaleString()}
+              {error ? (
+                <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-destructive/10 border border-destructive/20 rounded-xl">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-destructive/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <X className="h-8 w-8 text-destructive" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Error Loading</h3>
+                    <p className="text-muted-foreground mb-4">{error}</p>
+                    <Button onClick={() => load(false)} variant="outline">
+                      <RefreshCw className="mr-2 h-4 w-4" />Try Again
+                    </Button>
+                  </div>
+                </div>
+              ) : loading ? (
+                <div className="border rounded-xl bg-card h-[520px] grid place-items-center">
+                  <div className="flex items-center space-x-3">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span className="text-muted-foreground">Loading history…</span>
+                  </div>
+                </div>
+              ) : filtered.length > 0 ? (
+                <div className="px-4 md:px-6 space-y-3">
+                  {filtered.map((row) => (
+                    <Row key={row.transactionId ?? row.id} row={row} />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-muted/30 border rounded-xl mx-4 md:mx-6">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Search className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">No History</h3>
+                    <p className="text-muted-foreground mb-4">No saved calculations found.</p>
+                  </div>
                 </div>
               )}
-            </div>
-          )}
+            </CardContent>
+          </Card>
+          <Dialog open={!!confirmDeleteRow} onOpenChange={() => setConfirmDeleteRow(null)}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Delete calculation?</DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  This action cannot be undone. The selected calculation will be permanently deleted.
+                </p>
+              </DialogHeader>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDeleteRow(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDeleteNow}
-              disabled={deletingId === confirmDeleteRow?.transactionId}
-            >
-              {deletingId === confirmDeleteRow?.transactionId ? "Deleting…" : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* --- Bulk Delete Confirmation Dialog --- */}
-      <Dialog open={confirmBulkOpen} onOpenChange={setConfirmBulkOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete {selectedIds.length} selected?</DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              This will permanently remove all selected calculations.
-            </p>
-          </DialogHeader>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmBulkOpen(false)}>
-              Cancel
-            </Button>
-            {/* was setConfirmBulkOpen(true) */}
-            <Button variant="destructive" onClick={async () => {
-              await handleBulkDelete();
-              setConfirmBulkOpen(false);
-            }}>
-              Delete selected
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* details modal */}
-      <Dialog open={!!viewRow} onOpenChange={() => setViewRow(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Badge variant="secondary" className="font-mono">#{getTariffId(viewRow) ?? "—"}</Badge>
-              <span>Calculation Details</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="grid grid-cols-2 gap-4 py-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Time:</span>{" "}
-              {viewRow?.createdAt ? new Date(viewRow.createdAt).toLocaleString() : "—"}
-            </div>
-            <div>
-              <span className="text-muted-foreground">Tariff ID:</span>{" "}
-              {getTariffId(viewRow) ?? "—"}
-            </div>
-
-            <div className="col-span-2">
-              <span className="text-muted-foreground">Description:</span>
-              <div className="mt-1 bg-muted/40 rounded p-2">
-                {getDescription(viewRow)}
-              </div>
-            </div>
-
-            {/* Rate */}
-            <div className="col-span-2">
-              <div className="font-medium mb-1">Rate</div>
-              <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
-                <div><span className="text-muted-foreground">Category:</span> {snap?.category ?? "—"}</div>
-                <div><span className="text-muted-foreground">Details:</span> {ratePretty}</div>
-              </div>
-            </div>
-
-            {/* Workings */}
-            <div className="col-span-2">
-              <div className="font-medium mb-1">Workings</div>
-              <pre className="rounded-lg border bg-black/20 p-3 text-xs leading-5 overflow-auto whitespace-pre-wrap">
-                {snap ? renderWorkingsFromSnap(snap) : "—"}
-              </pre>
-            </div>
-
-            <div className="col-span-2">
-              <span className="text-muted-foreground">Total Duty:</span>{" "}
-              {getTotal(viewRow) != null ? `$${to2(getTotal(viewRow))}` : "—"}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button onClick={() => setViewRow(null)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* EDIT dialog: only DV/Qty are editable; ID & countries are read-only */}
-      <Dialog open={!!editRow} onOpenChange={() => setEditRow(null)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Recalculate with new inputs</DialogTitle>
-          </DialogHeader>
-
-          {editRow && (
-            <div className="space-y-4 py-2 text-sm">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-muted-foreground">Tariff ID</div>
-                  <div className="mt-1 font-medium">{editRow.snapshot?.tariffId ?? "—"}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">Category</div>
-                  <div className="mt-1 font-medium">{(editRow.snapshot?.category || "—").toString()}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">From (Partner)</div>
-                  <div className="mt-1 font-medium">{editRow.snapshot?.partnerCountry ?? "—"}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">To (Reporter)</div>
-                  <div className="mt-1 font-medium">{editRow.snapshot?.reporterCountry ?? "—"}</div>
-                </div>
-              </div>
-
-              {/* Only show allowed inputs based on category */}
-              <div className="grid grid-cols-2 gap-4">
-                {showDV && (
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label className="mb-2">Declared Value ($)</Label>
-                    <Input
-                      value={editInputs.customsValue}
-                      onChange={(e) => setEditInputs((s) => ({ ...s, customsValue: e.target.value }))}
-                      placeholder="e.g. 1000"
-                      inputMode="decimal"
-                    />
+              {confirmDeleteRow && (
+                <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+                  <div className="font-medium">{getDescription(confirmDeleteRow)}</div>
+                  <div className="text-muted-foreground">
+                    Tariff ID: <span className="font-mono">{getTariffId(confirmDeleteRow) ?? "—"}</span>
                   </div>
-                )}
-                {showQty && (
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>Quantity</Label>
-                    <Input
-                      value={editInputs.quantity}
-                      onChange={(e) => setEditInputs((s) => ({ ...s, quantity: e.target.value }))}
-                      placeholder="e.g. 10"
-                      inputMode="decimal"
-                    />
+                  {confirmDeleteRow.createdAt && (
+                    <div className="text-muted-foreground">
+                      Created: {new Date(confirmDeleteRow.createdAt).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setConfirmDeleteRow(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={confirmDeleteNow}
+                  disabled={deletingId === confirmDeleteRow?.transactionId}
+                >
+                  {deletingId === confirmDeleteRow?.transactionId ? "Deleting…" : "Delete"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* --- Bulk Delete Confirmation Dialog --- */}
+          <Dialog open={confirmBulkOpen} onOpenChange={setConfirmBulkOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Delete {selectedIds.length} selected?</DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  This will permanently remove all selected calculations.
+                </p>
+              </DialogHeader>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setConfirmBulkOpen(false)}>
+                  Cancel
+                </Button>
+                {/* was setConfirmBulkOpen(true) */}
+                <Button variant="destructive" onClick={async () => {
+                  await handleBulkDelete();
+                  setConfirmBulkOpen(false);
+                }}>
+                  Delete selected
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* details modal */}
+          <Dialog open={!!viewRow} onOpenChange={() => setViewRow(null)}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Badge variant="secondary" className="font-mono">#{getTariffId(viewRow) ?? "—"}</Badge>
+                  <span>Calculation Details</span>
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="grid grid-cols-2 gap-4 py-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Time:</span>{" "}
+                  {viewRow?.createdAt ? new Date(viewRow.createdAt).toLocaleString() : "—"}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Tariff ID:</span>{" "}
+                  {getTariffId(viewRow) ?? "—"}
+                </div>
+
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">Description:</span>
+                  <div className="mt-1 bg-muted/40 rounded p-2">
+                    {getDescription(viewRow)}
                   </div>
-                )}
+                </div>
+
+                {/* Rate */}
+                <div className="col-span-2">
+                  <div className="font-medium mb-1">Rate</div>
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
+                    <div><span className="text-muted-foreground">Category:</span> {snap?.category ?? "—"}</div>
+                    <div><span className="text-muted-foreground">Details:</span> {ratePretty}</div>
+                  </div>
+                </div>
+
+                {/* Workings */}
+                <div className="col-span-2">
+                  <div className="font-medium mb-1">Workings</div>
+                  <pre className="rounded-lg border bg-black/20 p-3 text-xs leading-5 overflow-auto whitespace-pre-wrap">
+                    {snap ? renderWorkingsFromSnap(snap) : "—"}
+                  </pre>
+                </div>
+
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">Total Duty:</span>{" "}
+                  {getTotal(viewRow) != null ? `$${to2(getTotal(viewRow))}` : "—"}
+                </div>
               </div>
 
-            </div>
-          )}
+              <DialogFooter>
+                <Button onClick={() => setViewRow(null)}>Close</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditRow(null)}>Cancel</Button>
-            <Button
-              onClick={proceedToCalculator}
-              disabled={
-                (showDV && (toNum(editInputs.customsValue) == null || toNum(editInputs.customsValue) <= 0)) ||
-                (showQty && (toNum(editInputs.quantity) == null || toNum(editInputs.quantity) <= 0))
-              }
-            >
-              Continue to Calculator
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </TooltipProvider>
+          {/* EDIT dialog: only DV/Qty are editable; ID & countries are read-only */}
+          <Dialog open={!!editRow} onOpenChange={() => setEditRow(null)}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Recalculate with new inputs</DialogTitle>
+              </DialogHeader>
+
+              {editRow && (
+                <div className="space-y-4 py-2 text-sm">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-muted-foreground">Tariff ID</div>
+                      <div className="mt-1 font-medium">{editRow.snapshot?.tariffId ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Category</div>
+                      <div className="mt-1 font-medium">{(editRow.snapshot?.category || "—").toString()}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">From (Partner)</div>
+                      <div className="mt-1 font-medium">{editRow.snapshot?.partnerCountry ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">To (Reporter)</div>
+                      <div className="mt-1 font-medium">{editRow.snapshot?.reporterCountry ?? "—"}</div>
+                    </div>
+                  </div>
+
+                  {/* Only show allowed inputs based on category */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {showDV && (
+                      <div className="col-span-2 sm:col-span-1">
+                        <Label className="mb-2">Declared Value ($)</Label>
+                        <Input
+                          value={editInputs.customsValue}
+                          onChange={(e) => setEditInputs((s) => ({ ...s, customsValue: e.target.value }))}
+                          placeholder="e.g. 1000"
+                          inputMode="decimal"
+                        />
+                      </div>
+                    )}
+                    {showQty && (
+                      <div className="col-span-2 sm:col-span-1">
+                        <Label>Quantity</Label>
+                        <Input
+                          value={editInputs.quantity}
+                          onChange={(e) => setEditInputs((s) => ({ ...s, quantity: e.target.value }))}
+                          placeholder="e.g. 10"
+                          inputMode="decimal"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setEditRow(null)}>Cancel</Button>
+                <Button
+                  onClick={proceedToCalculator}
+                  disabled={
+                    (showDV && (toNum(editInputs.customsValue) == null || toNum(editInputs.customsValue) <= 0)) ||
+                    (showQty && (toNum(editInputs.quantity) == null || toNum(editInputs.quantity) <= 0))
+                  }
+                >
+                  Continue to Calculator
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TooltipProvider>
+      </div>
+    </div>
   );
 }
 
