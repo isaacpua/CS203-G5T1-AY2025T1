@@ -343,8 +343,8 @@ export default function CalculationHistory() {
           </div>
         </CardHeader>
 
-        <CardContent className="px-0 pt-4 md:pt-6 pb-6 md:pb-8">
-          <div className="px-4 md:px-6">
+        <CardContent className="px-0 pt-4 md:pt-6 pb-6 md:pb-8 flex flex-col gap-2">
+          <div className="flex flex-col gap-2 px-4 md:px-6">
             <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-xl border mb-3">
               <Label>Search</Label>
               <div className="relative">
