@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'; // useRef is imported
 import { io } from 'socket.io-client';
 import Markdown from 'markdown-to-jsx';
+import { useTheme } from "@/components/theme-provider";
 
 // Connect to your MCP-client server
 const socket = io({path:'/chat/socket.io'});
@@ -8,7 +9,6 @@ const socket = io({path:'/chat/socket.io'});
 // Helper function to generate unique thread IDs
 const generateThreadId = () => `user_session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-// --- (All Icon components unchanged) ---
 const SpinnerIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 animate-spin">
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
@@ -41,6 +41,7 @@ const ACCEPTED_FILE_TYPES = [
 ];
 
 function Chatbot() {
+  const { theme } = useTheme();
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [messages, setMessages] = useState([]);
   const [currentInput, setCurrentInput] = useState('');
@@ -52,34 +53,32 @@ function Chatbot() {
   const [fileError, setFileError] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  // --- NEW: Ref for the end of the messages list ---
   const messagesEndRef = useRef(null);
-
-  // --- NEW: Auto-scroll effect ---
+  const [contentVisible, setContentVisible] = useState(false);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]); // Trigger every time messages array changes
+    const t = setTimeout(() => setContentVisible(true), 500);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
-    // ... (Socket.IO listeners unchanged) ...
     function onConnect() {
-      console.log('Connected to chatbot server!');
+      // console.log('Connected to chatbot server!');
       setIsConnected(true);
     }
     function onDisconnect() {
-      console.log('Disconnected from chatbot server.');
+      // console.log('Disconnected from chatbot server.');
       setIsConnected(false);
     }
     function onToolCall(data) {
-      setIsAiTyping(true); 
+      setIsAiTyping(true);
       setMessages((prevMessages) => {
         const lastMessage = prevMessages[prevMessages.length - 1];
         if (lastMessage && lastMessage.type === 'tool_group') {
           if (!lastMessage.tools.find(t => t.name === data.tool_name)) {
             return [
               ...prevMessages.slice(0, -1),
-              { 
-                ...lastMessage, 
+              {
+                ...lastMessage,
                 tools: [...lastMessage.tools, { name: data.tool_name }]
               },
             ];
@@ -88,10 +87,10 @@ function Chatbot() {
         } else {
           return [
             ...prevMessages,
-            { 
-              id: Date.now(), 
+            {
+              id: Date.now(),
               sender: 'ai',
-              type: 'tool_group', 
+              type: 'tool_group',
               tools: [{ name: data.tool_name }]
             },
           ];
@@ -111,10 +110,10 @@ function Chatbot() {
           setIsAiTyping(true);
           return [
             ...prevMessages,
-            { 
-              id: Date.now(), 
-              text: aiChunk, 
-              sender: 'ai', 
+            {
+              id: Date.now(),
+              text: aiChunk,
+              sender: 'ai',
               type: 'ai_response'
             },
           ];
@@ -128,7 +127,7 @@ function Chatbot() {
     socket.on('disconnect', onDisconnect);
     socket.on('ai_response', onAiResponse);
     socket.on('ai_response_end', onAiResponseEnd);
-    socket.on('tool_call', onToolCall); 
+    socket.on('tool_call', onToolCall);
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
@@ -139,7 +138,6 @@ function Chatbot() {
   }, []);
 
   const readFileAsBase64 = (file) => {
-    // ... (File reading logic unchanged) ...
     return new Promise((resolve, reject) => {
       if (!file) {
         resolve(null);
@@ -154,17 +152,16 @@ function Chatbot() {
         console.error("FileReader error:", error);
         reject(new Error("Failed to read file. It may be too large or unreadable by the browser."));
       };
-      reader.readAsDataURL(file); 
+      reader.readAsDataURL(file);
     });
   };
 
   const handleSend = async () => {
-    // ... (handleSend logic unchanged) ...
-    if ((!currentInput.trim() && !selectedFile) || isLoadingFile) return; 
+    if ((!currentInput.trim() && !selectedFile) || isLoadingFile) return;
     const userMessage = {
       id: Date.now(),
-      text: currentInput.trim(), 
-      fileName: selectedFile ? selectedFile.name : null, 
+      text: currentInput.trim(),
+      fileName: selectedFile ? selectedFile.name : null,
       sender: 'user',
       type: 'user',
     };
@@ -172,36 +169,35 @@ function Chatbot() {
     let fileBase64 = null;
     let fileName = null;
     if (selectedFile) {
-      setIsLoadingFile(true); 
-      setFileError(null);     
+      setIsLoadingFile(true);
+      setFileError(null);
       try {
         fileBase64 = await readFileAsBase64(selectedFile);
-        fileName = selectedFile.name; 
+        fileName = selectedFile.name;
       } catch (e) {
         console.error("File read error:", e);
         setFileError(e.message || "Failed to read file.");
-        setIsLoadingFile(false); 
-        setMessages((prev) => prev.slice(0, -1)); 
-        return; 
+        setIsLoadingFile(false);
+        setMessages((prev) => prev.slice(0, -1));
+        return;
       }
     }
     socket.emit('chat_message', {
-      message: currentInput, 
+      message: currentInput,
       thread_id: threadId,
       file_base64: fileBase64,
       file_name: fileName,
     });
     setCurrentInput('');
-    setSelectedFile(null); 
-    setIsLoadingFile(false); 
+    setSelectedFile(null);
+    setIsLoadingFile(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = null;
     }
-    setIsAiTyping(true); 
+    setIsAiTyping(true);
   };
-  
+
   const handleFile = (files) => {
-    // ... (unchanged) ...
     if (!files || files.length === 0) {
       return;
     }
@@ -225,24 +221,28 @@ function Chatbot() {
   };
 
   const handleNewChat = () => {
-    // ... (unchanged) ...
-    console.log("Starting new chat session...");
+    // console.log("Starting new chat session...");
+    try {
+      socket.emit("cancel_processing", { thread_id: threadId });
+    } catch (e) {
+      console.warn("Failed to emit cancel_processing:", e);
+    }
+
     setMessages([]);
     setCurrentInput("");
     setSelectedFile(null);
-    setFileError(null); 
+    setFileError(null);
     setIsLoadingFile(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = null;
     }
     setIsAiTyping(false);
     const newThreadId = generateThreadId();
-    setThreadId(newThreadId); 
-    console.log("New thread ID:", newThreadId);
+    setThreadId(newThreadId);
+    // console.log("New thread ID:", newThreadId);
   };
 
   const handleRemoveFile = () => {
-    // ... (unchanged) ...
     setSelectedFile(null);
     setFileError(null);
     if (fileInputRef.current) {
@@ -265,179 +265,186 @@ function Chatbot() {
     setIsDragging(false);
     handleFile(e.dataTransfer.files);
   };
-  
+
+  const formatTime = (timestamp) => {
+    try {
+      return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return "";
+    }
+  };
+  const isDark = theme === "dark" || (theme === "system");
+
   return (
-    // --- MODIFIED: Added flex, flex-col, and h-[85vh] to expand the component ---
-    <div 
-      className="p-5 font-sans relative flex flex-col h-[85vh]"
-      onDragOver={handleDragOver}
-    >
-      
-      {/* Drag-and-Drop Overlay (unchanged) */}
-      {isDragging && (
-        <div 
-          className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center z-10 border-4 border-dashed border-primary/50 rounded-lg"
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <UploadIcon />
-          <p className="mt-2 text-lg font-medium">Drop file to attach</p>
-        </div>
-      )}
+    <div className="relative min-h-screen overflow-hidden bg-transparent">
+      <div className="fixed inset-0 z-10 pointer-events-none">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          key={isDark ? "dark-video" : "light-video"} // ensures React reloads video when theme changes
 
-      {/* "New Chat" button (unchanged) */}
-      <div className="flex justify-end mb-2">
-        <button
-          onClick={handleNewChat}
-          title="Start a new chat (clears server memory)"
-          className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/90 h-9 px-3"
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
+            }`}
         >
-          New Chat
-        </button>
+          <source
+            src={isDark ? "/Barn_Night.mp4" : "/Barn_Animation.mp4"}
+            type="video/mp4"
+          />
+        </video>
+        <div
+          className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"
+            }`}
+        />
       </div>
+      <div className="relative z-10">
+        <div className="flex items-center justify-center p-6">
+          <div
+            className="relative w-full max-w-3xl bg-card/80 dark:bg-card rounded-lg shadow-xl overflow-hidden ring-1 ring-border"
+            onDragOver={handleDragOver}
+          >
 
-      {/* --- MODIFIED: Message Area now uses flex-1 to grow --- */}
-      <div className="border border-border flex-1 overflow-y-auto p-2.5 mb-2.5 rounded-md">
-        {messages.map((msg) => (
-          <div key={msg.id} className={msg.sender === 'user' ? 'text-right my-1.5' : 'text-left my-1.5'}>
-            <span className={`
-              py-2 px-3 rounded-lg inline-block text-left
-              ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}
-              ${msg.type === 'tool_group' ? '!p-0' : ''}
-              ${(msg.type === 'user' && msg.fileName && !msg.text) ? '!p-0' : ''}
-            `}>
+            {isDragging && (
+              <div
+                className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center z-10 border-4 border-dashed border-primary/50 rounded-lg"
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <UploadIcon />
+                <p className="mt-2 text-lg font-medium">Drop file to attach</p>
+              </div>
+            )}
 
-              {/* User message rendering (unchanged) */}
-              {msg.type === 'user' ? (
-                <div className="flex flex-col items-end">
-                  {msg.fileName && (
-                    <div 
-                      className="mb-1.5 flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-black/10 dark:bg-white/20"
-                      style={{ margin: (msg.fileName && !msg.text) ? '0.5rem' : '' }}
-                    >
-                      <FileIcon /> 
-                      <span className="text-sm font-medium">{msg.fileName}</span>
+            <div className="flex items-center justify-between px-4 py-3 bg-linear-to-r from-primary/10 to-transparent border-b border-border">
+              <div className="flex items-center gap-3">
+                <img src="/eve-avatar.svg" alt="T.A.R.I.F.F" className="w-10 h-10 rounded-full object-cover" />
+                <div>
+                  <div className="font-semibold text-sm">T.A.R.I.F.F</div>
+                  <div className="text-xs text-muted-foreground">AI Assistant</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleNewChat}
+                  title="Start a new chat (clears server memory)"
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-secondary text-secondary-foreground hover:bg-secondary/90 h-8 px-3"
+                >
+                  New Chat
+                </button>
+              </div>
+            </div>
+
+            <div className="h-[60vh] overflow-y-auto p-4 space-y-4 bg-linear-to-b from-transparent to-background">
+              {messages.length === 0 && (
+                <div className="text-center text-sm text-muted-foreground mt-8">No messages yet — say hello 👋</div>
+              )}
+              {messages.map((msg) => (
+                <div key={msg.id} className={`flex items-end ${msg.sender === 'user' ? 'justify-end' : ''}`}>
+                  {msg.sender !== 'user' && (
+                    <div className="shrink-0 mr-3">
+                      <img src="/eve-avatar.svg" alt="T.A.R.I.F.F" className="w-8 h-8 rounded-full object-cover" />
                     </div>
                   )}
-                  {msg.text && <span>{msg.text}</span>}
-                </div>
-              
-              // Tool Group rendering (unchanged)
-              ) : msg.type === 'tool_group' ? (
-                <div className="flex flex-col gap-2 p-2.5"> 
-                  <div className="text-xs font-medium text-muted-foreground">Running tools...</div>
-                  <div className="flex flex-wrap gap-2">
-                    {msg.tools.map((tool, index) => (
-                      <div 
-                        key={index} 
-                        className="flex items-center gap-1.5 bg-blue-100 text-blue-800 rounded-lg py-1 px-3"
-                      >
-                        <span className="text-sm font-medium">{tool.name}</span>
-                      </div>
-                    ))}
+
+                  <div className={`max-w-[75%] ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                    <div
+                      className={`inline-block px-4 py-2 rounded-lg wrap-break-word ${msg.sender === 'user'
+                          ? 'bg-primary text-primary-foreground rounded-br-none'
+                          : 'bg-white/95 dark:bg-muted text-foreground rounded-bl-none'
+                        }`}
+                    >
+                      {msg.type === 'user' ? (
+                        <div className="flex flex-col items-end">
+                          {msg.fileName && (
+                            <div className="mb-1.5 flex items-center gap-2 py-1 px-2.5 rounded-lg bg-black/5">
+                              <FileIcon />
+                              <span className="text-sm font-medium">{msg.fileName}</span>
+                            </div>
+                          )}
+                          {msg.text && <div>{msg.text}</div>}
+                        </div>
+                      ) : msg.type === 'tool_group' ? (
+                        <div className="flex flex-col gap-2">
+                          <div className="text-xs font-medium text-muted-foreground">Running tools...</div>
+                          <div className="flex flex-wrap gap-2">
+                            {msg.tools.map((tool, index) => (
+                              <div key={index} className="flex items-center gap-1.5 bg-blue-100 text-blue-800 rounded-lg py-1 px-3 text-sm">
+                                {tool.name}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="prose dark:prose-invert prose-sm wrap-break-word">
+                          <Markdown options={{ overrides: { a: { props: { target: '_blank', rel: 'noopener noreferrer', className: 'text-blue-600 dark:text-blue-400' } } } }}>
+                            {msg.text || ''}
+                          </Markdown>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-[11px] text-muted-foreground mt-1">
+                      {formatTime(msg.id)}
+                    </div>
                   </div>
                 </div>
+              ))}
 
-              // AI Response rendering (unchanged)
-              ) : (
-                <div className="prose dark:prose-invert prose-sm break-words">
-                  <Markdown
-                    options={{
-                      overrides: {
-                        a: { 
-                          props: { 
-                            target: '_blank', 
-                            rel: 'noopener noreferrer',
-                            className: 'text-blue-600 dark:text-blue-400'
-                          } 
-                        },
-                      },
-                    }}
-                  >
-                    {msg.text || ""}
-                  </Markdown>
+              {isAiTyping && (
+                <div className="flex items-center gap-2">
+                  <img src="/eve-avatar.svg" alt="T.A.R.I.F.F" className="w-8 h-8 rounded-full object-cover" />
+                  <SpinnerIcon />
+                  <div className="inline-block px-4 py-2 rounded-lg bg-white/90 dark:bg-muted text-foreground">T.A.R.I.F.F is typing...</div>
                 </div>
               )}
-            </span>
-          </div>
-        ))}
-        {/* "TARIFF is typing..." (unchanged) */}
-        {isAiTyping && <div className="text-left text-muted-foreground">TARIFF is typing...</div>}
-        
-        {/* --- NEW: Empty div with ref for auto-scrolling --- */}
-        <div ref={messagesEndRef} />
-      </div>
-      
-      {/* File "Pill" UI (unchanged) */}
-      {selectedFile && (
-        <div className="mb-2 flex justify-start">
-          <div 
-            className={`inline-flex items-center gap-2 py-1.5 px-3 rounded-full text-sm
-            ${isLoadingFile ? 'bg-blue-100 text-blue-800' : 'bg-muted text-muted-foreground'}`}
-          >
-            <span>{selectedFile.name}</span>
-            {isLoadingFile ? (
-              <SpinnerIcon />
-            ) : (
-              <button
-                onClick={handleRemoveFile}
-                title="Remove file"
-                className="inline-flex items-center justify-center w-5 h-5 rounded-full hover:bg-background/50"
-              >
-                <XIcon />
-              </button>
-            )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div className="px-4 py-3 border-t border-border bg-card">
+              {selectedFile && (
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex items-center gap-2 py-1 px-3 rounded-full bg-muted text-sm">
+                    <FileIcon />
+                    <span className="truncate max-w-[18rem]">{selectedFile.name}</span>
+                    <button onClick={handleRemoveFile} className="ml-2 p-1 rounded hover:bg-background/50">
+                      <XIcon />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {fileError && (
+                <div className="mb-2 text-red-600 text-sm">
+                  <strong>Error:</strong> {fileError}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept={ACCEPTED_FILE_TYPES.join(',')} className="hidden" disabled={isLoadingFile} />
+                <button onClick={() => fileInputRef.current.click()} title="Attach file" className="inline-flex items-center justify-center rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 h-9 w-9">
+                  <PlusIcon />
+                </button>
+                <input
+                  type="text"
+                  value={currentInput}
+                  onChange={(e) => setCurrentInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none"
+                  placeholder="Ask T.A.R.I.F.F anything..."
+                  disabled={isLoadingFile}
+                />
+                <button onClick={handleSend} className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4" disabled={isLoadingFile || isAiTyping}>
+                  Send
+                </button>
+              </div>
+
+              <div className="mt-2 text-xs text-muted-foreground">Connection: {isConnected ? <span className="text-green-500">Connected</span> : <span className="text-red-500">Disconnected</span>}</div>
+            </div>
           </div>
         </div>
-      )}
-
-      {/* File Error Message (unchanged) */}
-      {fileError && (
-        <div className="mb-2 text-red-600 text-sm">
-          <strong>Error:</strong> {fileError}
-        </div>
-      )}
-
-      {/* Input Bar (unchanged) */}
-      <div className="flex items-center gap-2">
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          accept={ACCEPTED_FILE_TYPES.join(',')}
-          className="hidden"
-          disabled={isLoadingFile}
-        />
-        <button
-          onClick={() => fileInputRef.current.click()}
-          title="Attach file"
-          className="inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/90 h-10 w-10"
-          disabled={isLoadingFile}
-        >
-          <PlusIcon />
-        </button>
-        <input
-          type="text"
-          value={currentInput}
-          onChange={(e) => setCurrentInput(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ flex: 1 }}
-          placeholder="Type your message..."
-          disabled={isLoadingFile}
-        />
-        <button
-          onClick={handleSend}
-          className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-          disabled={isLoadingFile || isAiTyping}
-        >
-          Send
-        </button>
       </div>
-
-      <p className="text-muted-foreground">
-        Connection status: {isConnected ? <span className="text-green-500">Connected</span> : <span className="text-red-500">Disconnected</span>}
-      </p>
     </div>
   );
 }

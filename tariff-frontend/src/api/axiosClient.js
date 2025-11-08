@@ -15,21 +15,20 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
+const isDevelopment = import.meta.env.MODE === 'development';
+
+const mcpBaseURL = isDevelopment
+  ? "/mcp/api/v1"
+  : "https://api.tarific.rocks/mcp/api/v1";
+
 const mcpAxiosClient = axios.create({
-  baseURL: "/mcp/api/v1",
+  baseURL: mcpBaseURL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-const bypassCFClient = axios.create({
-  baseURL: "https://api.tarific.rocks/mcp/api/v1",
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-bypassCFClient.interceptors.request.use((config) => {
+mcpAxiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -168,17 +167,15 @@ export const getForecast = async () => {
 };
 
 export const updateForecast = async () => {
-  return await bypassCFClient.post("/forecast");
-  // return await mcpAxiosClient.post(`/forecast`);
+  return await mcpAxiosClient.post(`/forecast`);
 };
 
 export const loadLive = async () =>{
-  return await bypassCFClient.post("/data/live")
+  return await mcpAxiosClient.post("/data/live")
 };
 
 export const getNewsletter = async () => {
-  return await bypassCFClient.get("/newsletter");
-  // return await mcpAxiosClient.get(`/newsletter`)
+  return await mcpAxiosClient.get(`/newsletter`)
 }
 
 export const getMailingList = async () => {
@@ -194,8 +191,7 @@ export const sendNewsletter = async (markdownContent) => {
 };
 
 export const postAnalyzable = async (analyzable) => {
-  return await bypassCFClient.post("/analyze", analyzable);
-  // return await mcpAxiosClient.post(`/analyze`, analyzable);
+  return await mcpAxiosClient.post(`/analyze`, analyzable);
 }
 
 export default axiosClient;

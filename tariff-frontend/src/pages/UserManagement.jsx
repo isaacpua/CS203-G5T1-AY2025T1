@@ -70,18 +70,18 @@ const UserManagement = () => {
         const response = await getAllUsers();
 
         if (response.status === 200) {
-          console.log("Fetched users:", response.data.users);
+          // console.log("Fetched users:", response.data.users);
           setUsers(response.data.users);
         }
       } catch (error) {
         if (error.response?.status === 401) {
-          console.log("found 401 error wow")
+          // console.log("found 401 error wow")
           setShowRelogin(true);
           return;
         }
 
         if (error.response?.status === 403) {
-          console.log("found 403 error wow")
+          // console.log("found 403 error wow")
           setShowForbidden(true);
           return;
         }
@@ -114,12 +114,12 @@ const UserManagement = () => {
         const response = await updateUsernameAndRole(userID, newUsername, newRole);
         
         if (response.status === 200) {
-          console.log(response.data.message)
+          // console.log(response.data.message)
           location.reload();
         }
       } catch (err) {
         if (err.response?.status === 401) {
-          console.log("found 401 error wow")
+          // console.log("found 401 error wow")
           setShowRelogin(true);
           return;
         }
@@ -149,12 +149,12 @@ const UserManagement = () => {
         const response = await deleteUserByID(userID);
         
         if (response.status === 200) {
-          console.log(response.data.message)
+          // console.log(response.data.message)
           location.reload();
         }
       } catch (err) {
         if (err.response?.status === 401) {
-          console.log("found 401 error wow")
+          // console.log("found 401 error wow")
           setShowRelogin(true);
           return;
         }
@@ -177,7 +177,7 @@ const UserManagement = () => {
       <Dialog open={editAction || deleteAction} onOpenChange={closeDialogs}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
+            <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary" >
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
@@ -191,11 +191,12 @@ const UserManagement = () => {
             <DropdownMenuItem
               onClick={() => {  setEditAction(true); setEditUser(user); }}
             >
-              Edit User
+              <span className="text-foreground">Edit User</span>
+              
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => { setDeleteAction(true); setDeleteUser(user); }}>
-              Delete User
+              <span className="text-destructive focus:bg-destructive/10">Delete User</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -299,9 +300,10 @@ const UserManagement = () => {
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             style={{ padding: 0 }}
+            className="group text-foreground hover:text-primary"
           >
             ID
-            <ArrowUpDown />
+            <ArrowUpDown className="ml-1 h-4 w-4 text-muted-foreground group-hover:text-primary" />
           </Button>
         )
       },
@@ -379,7 +381,7 @@ const UserManagement = () => {
             onChange={(event) =>
               table.getColumn("username")?.setFilterValue(event.target.value)
             }
-            className="max-w-sm"
+            className="max-w-sm bg-input focus:border-primary focus:ring-primary/20"
           />
           <Input
             placeholder="Filter roles..."
@@ -387,14 +389,14 @@ const UserManagement = () => {
             onChange={(event) =>
               table.getColumn("role")?.setFilterValue(event.target.value)
             }
-            className="max-w-sm"
+            className="max-w-sm bg-input focus:border-primary focus:ring-primary/20"
           />
         </div>
         <div className="overflow-hidden rounded-md border">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-secondary/40">
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
+                <TableRow key={headerGroup.id} >
                   {headerGroup.headers.map((header) => {
                     return (
                       <TableHead key={header.id}>
@@ -416,6 +418,7 @@ const UserManagement = () => {
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
+                    className="hover:bg-muted/30"
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>

@@ -10,11 +10,18 @@ import { Spinner } from "../components/ui/shadcn-io/spinner/index.jsx";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTheme } from "@/components/theme-provider";
 
 // Import API functions
-import { getAllReporterCountries, getAllPartnerCountries, getHistoricalData  } from "../api/axiosClient.js";
+import { getAllReporterCountries, getAllPartnerCountries, getHistoricalData } from "../api/axiosClient.js";
 
 export default function HistoricalTariffExplorer() {
+  const { theme } = useTheme();
+  const prefersDark =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = theme === "dark" || (theme === "system" && prefersDark);
   const [searchParams] = useSearchParams();
   // --- State Management ---
   const [data, setData] = useState([]);
@@ -40,6 +47,11 @@ export default function HistoricalTariffExplorer() {
   const [point, setPoint] = useState(null);    // last hovered/clicked data point
   const [locked, setLocked] = useState(false); // click to lock/unlock the box
 
+  const [contentVisible, setContentVisible] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setContentVisible(true), 500);
+    return () => clearTimeout(t);
+  }, []);
 
   // Headless tooltip: updates `point` whenever the hovered datum changes
   const GhostTooltip = ({ active, payload, onUpdate }) => {
@@ -307,273 +319,297 @@ export default function HistoricalTariffExplorer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
-    <div className="flex flex-col gap-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Historical Tariff Explorer</CardTitle>
-          <CardDescription>
-            Search for historical tariff data directly from the primary database.
-            Results are plotted by year and duty type.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Search Mode Toggle */}
-          <div className="flex gap-2 rounded-md bg-muted p-1">
-            <Button
-              variant={searchMode === "prefix" ? "default" : "ghost"}
-              className="flex-1"
-              onClick={() => setSearchMode("prefix")}
-            >
-              Search by Tariff ID Prefix
-            </Button>
-            <Button
-              variant={searchMode === "params" ? "default" : "ghost"}
-              className="flex-1"
-              onClick={() => setSearchMode("params")}
-            >
-              Search by Parameters
-            </Button>
-          </div>
-
-          {/* Search Inputs */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {searchMode === "prefix" ? (
-              <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <div className="md:col-span-3">
-                  <Label htmlFor="prefixSearch">Tariff ID Prefix (e.g., 170211USAU)</Label>
-                  <Input
-                    id="prefixSearch"
-                    placeholder="Enter Tariff ID (e.g., 170211USAU)"
-                    value={prefixSearch}
-                    onChange={(e) => setPrefixSearch(e.target.value)}
-                  />
-                </div>
-                <Button onClick={handleSearch} disabled={loading} className="w-full">
-                  {loading ? <Spinner /> : "Search"}
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <Label htmlFor="htsCode">6-Digit HTS Code</Label>
-                  <Input
-                    id="htsCode"
-                    placeholder="e.g., 170211"
-                    value={htsCode}
-                    onChange={(e) => setHtsCode(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Reporter Country</Label>
-                  <CountrySelector
-                    countries={reporterCountries}
-                    value={selectedReporter}
-                    onChange={setSelectedReporter}
-                    placeholder="Select Reporter..."
-                  />
-                </div>
-                <div>
-                  <Label>Partner Country</Label>
-                  <CountrySelector
-                    countries={partnerCountries}
-                    value={selectedPartner}
-                    onChange={setSelectedPartner}
-                    placeholder="Select Partner..."
-                  />
-                </div>
-                <Button onClick={handleSearch} disabled={loading} className="w-full md:self-end">
-                  {loading ? <Spinner /> : "Search"}
-                </Button>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Tariff Data Over Time</CardTitle>
-          <CardDescription>{yAxisLabel} by year.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading && (
-            <div className="flex justify-center items-center h-96">
-              <Spinner size="large" />
-            </div>
-          )}
-
-          {error && !loading && (
-            <Alert variant="destructive" className="h-96">
-              <Terminal className="h-4 w-4" />
-              <AlertTitle>Error Fetching Data</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {!loading && !error && data.length === 0 && (
-            <div className="flex flex-col justify-center items-center h-96 text-center text-muted-foreground">
-              <Waves className="h-12 w-12 mb-4" />
-              <p className="text-lg font-medium">No data to display</p>
-              <p>Please enter your search parameters above to get started.</p>
-            </div>
-          )}
-
-          {!loading && !error && data.length > 0 && (
-            <div className="relative h-96 w-full">
-              {/* Fixed top-center info panel with current point OR summary */}
-              <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-2 z-10">
-                <div className="rounded border bg-card/90 px-3 py-1 text-xs shadow whitespace-nowrap">
-                  {point ? (
-                    <>
-                      <span className="font-medium">Year {point.year}</span>{" "}
-                      <span className="text-muted-foreground">• {prettyCat(point.category)}</span>
-                      {valueText(point) ? <> • {valueText(point)}</> : null}
-                    </>
-                  ) : (
-                    <>Hover over a point to see data</>
-                  )}
-                </div>
-              </div>
-
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart
-                  data={data}
-                  margin={{ top: 28, right: 60, bottom: 30, left: 60 }}
+    <div className="relative min-h-screen overflow-hidden bg-transparent">
+      <div className="fixed inset-0 z-10 pointer-events-none">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          key={isDark ? "dark-video" : "light-video"} // ensures React reloads video when theme changes
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
+            }`}
+        >
+          <source
+            src={isDark ? "/Barn_Night.mp4" : "/Barn_Animation.mp4"}
+            type="video/mp4"
+          />
+        </video>
+        <div
+          className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"
+            }`}
+        />
+      </div>
+      <div className="relative z-10">
+        <div className="flex flex-col gap-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Historical Tariff Explorer</CardTitle>
+              <CardDescription>
+                Search for historical tariff data directly from the primary database.
+                Results are plotted by year and duty type.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Search Mode Toggle */}
+              <div className="flex gap-2 rounded-md bg-muted p-1">
+                <Button
+                  variant={searchMode === "prefix" ? "default" : "ghost"}
+                  className="flex-1"
+                  onClick={() => setSearchMode("prefix")}
                 >
-                  {/* inside <ComposedChart> */}
-                  {isComposite ? (
-                    <CartesianGrid horizontal vertical xAxisId="x" yAxisId="left"
-                      stroke="var(--chart-grid)" strokeDasharray="3 3" />
-                  ) : (
-                    <CartesianGrid horizontal vertical
-                      stroke="var(--chart-grid)" strokeDasharray="3 3" />
-                  )}
+                  Search by Tariff ID Prefix
+                </Button>
+                <Button
+                  variant={searchMode === "params" ? "default" : "ghost"}
+                  className="flex-1"
+                  onClick={() => setSearchMode("params")}
+                >
+                  Search by Parameters
+                </Button>
+              </div>
 
-                  <XAxis
-                    dataKey="year"
-                    type="number"
-                    domain={["dataMin", "dataMax"]}
-                    padding={{ left: 10, right: 20 }}
-                    stroke="var(--chart-axis)"
-                    tick={{ fill: "var(--chart-axis)" }}
-                    label={{ value: "Year", position: "insideBottom", offset: -10, fill: "var(--chart-axis)" }}
-                    tickCount={xTickCount}
-                    tickMargin={8}
-                  />
-
-                  {!isComposite ? (
-                    <>
-                      {/* Single-axis (Ad Valorem OR Specific) */}
-                      <YAxis
-                        width={60}
-                        tickMargin={8}
-                        tickCount={6}
-                        stroke="var(--chart-axis)"                 // axis line
-                        tick={{ fill: "var(--chart-axis)" }}       // tick text
-                        label={{
-                          value: yAxisLabel,
-                          angle: -90,
-                          position: "left",
-                          offset: 30,
-                          dy: -100,
-                          fill: "var(--chart-axis)",              // label text
-                        }}
-                        tickFormatter={plotCategory === "Ad Valorem" ? pctTick : moneyTick}
-                        domain={["auto", "auto"]}
+              {/* Search Inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {searchMode === "prefix" ? (
+                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div className="md:col-span-3">
+                      <Label className="p-2" htmlFor="prefixSearch">Tariff ID Prefix (e.g., 170211USAU)</Label>
+                      <Input
+                        id="prefixSearch"
+                        placeholder="Enter Tariff ID (e.g., 170211USAU)"
+                        value={prefixSearch}
+                        onChange={(e) => setPrefixSearch(e.target.value)}
                       />
-                      {/* Ghost tooltip updates `point` without rendering a popup */}
-                      <Tooltip
-                        cursor={false}
-                        isAnimationActive={false}
-                        content={<GhostTooltip onUpdate={locked ? undefined : setPoint} />}
+                    </div>
+                    <Button onClick={handleSearch} disabled={loading} className="w-full">
+                      {loading ? <Spinner /> : "Search"}
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <Label className="p-2" htmlFor="htsCode">6-Digit HTS Code</Label>
+                      <Input
+                        id="htsCode"
+                        placeholder="e.g., 170211"
+                        value={htsCode}
+                        onChange={(e) => setHtsCode(e.target.value)}
                       />
-
-                      <Legend verticalAlign="bottom" align="right" wrapperStyle={{ paddingTop: 10 }} />
-
-                      <Line
-                        type="monotone"
-                        // prefer plotValue; fall back to plotAV/plotSP if present
-                        dataKey={(d) =>
-                          typeof d.plotValue === "number"
-                            ? d.plotValue
-                            : typeof d.plotAV === "number"
-                              ? d.plotAV
-                              : typeof d.plotSP === "number"
-                                ? d.plotSP
-                                : 0
-                        }
-                        name="Trend"
-                        stroke="var(--chart-3, #3b82f6)"
-                        dot={{ r: 2 }}
-                        activeDot={{ r: 3 }}
-                        isAnimationActive={false}
+                    </div>
+                    <div>
+                      <Label className="p-2">Reporter Country</Label>
+                      <CountrySelector
+                        countries={reporterCountries}
+                        value={selectedReporter}
+                        onChange={setSelectedReporter}
+                        placeholder="Select Reporter..."
                       />
-                    </>
-                  ) : (
-                    <>
-                      {/* Dual-axis for COMPOSITE */}
-                      <YAxis
-                        yAxisId="left"
-                        width={60}
-                        tickMargin={8}
+                    </div>
+                    <div>
+                      <Label className="p-2">Partner Country</Label>
+                      <CountrySelector
+                        countries={partnerCountries}
+                        value={selectedPartner}
+                        onChange={setSelectedPartner}
+                        placeholder="Select Partner..."
+                      />
+                    </div>
+                    <Button onClick={handleSearch} disabled={loading} className="w-full md:self-end">
+                      {loading ? <Spinner /> : "Search"}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Tariff Data Over Time</CardTitle>
+              <CardDescription>{yAxisLabel} by year.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading && (
+                <div className="flex justify-center items-center h-96">
+                  <Spinner size="large" />
+                </div>
+              )}
+
+              {error && !loading && (
+                <Alert variant="destructive" className="h-96">
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Error Fetching Data</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {!loading && !error && data.length === 0 && (
+                <div className="flex flex-col justify-center items-center h-96 text-center text-muted-foreground">
+                  <Waves className="h-12 w-12 mb-4" />
+                  <p className="text-lg font-medium">No data to display</p>
+                  <p>Please enter your search parameters above to get started.</p>
+                </div>
+              )}
+
+              {!loading && !error && data.length > 0 && (
+                <div className="relative h-96 w-full">
+                  {/* Fixed top-center info panel with current point OR summary */}
+                  <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-2 z-10">
+                    <div className="rounded border bg-card/90 px-3 py-1 text-xs shadow whitespace-nowrap">
+                      {point ? (
+                        <>
+                          <span className="font-medium">Year {point.year}</span>{" "}
+                          <span className="text-muted-foreground">• {prettyCat(point.category)}</span>
+                          {valueText(point) ? <> • {valueText(point)}</> : null}
+                        </>
+                      ) : (
+                        <>Hover over a point to see data</>
+                      )}
+                    </div>
+                  </div>
+
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart
+                      data={data}
+                      margin={{ top: 28, right: 60, bottom: 30, left: 60 }}
+                    >
+                      {/* inside <ComposedChart> */}
+                      {isComposite ? (
+                        <CartesianGrid horizontal vertical xAxisId="x" yAxisId="left"
+                          stroke="var(--chart-grid)" strokeDasharray="3 3" />
+                      ) : (
+                        <CartesianGrid horizontal vertical
+                          stroke="var(--chart-grid)" strokeDasharray="3 3" />
+                      )}
+
+                      <XAxis
+                        dataKey="year"
+                        type="number"
+                        domain={["dataMin", "dataMax"]}
+                        padding={{ left: 10, right: 20 }}
                         stroke="var(--chart-axis)"
                         tick={{ fill: "var(--chart-axis)" }}
-                        label={{ value: "Ad Valorem (%)", angle: -90, position: "left", offset: 30, dy: -100, fill: "var(--chart-axis)" }}
-                        ticks={yLeftTicks}  // ← explicit dense ticks drive gridlines
-                        domain={["auto", "auto"]}
-                        tickFormatter={(v) => (v * 100).toFixed(2)}
-                      />
-                      <YAxis
-                        yAxisId="right"
-                        orientation="right"
-                        tickCount={6}
-                        width={70}
+                        label={{ value: "Year", position: "insideBottom", offset: -10, fill: "var(--chart-axis)" }}
+                        tickCount={xTickCount}
                         tickMargin={8}
-                        label={{ value: `Specific ($/${unitName})`, angle: -90, position: "right", offset: 20, fill: "var(--chart-axis)" }}
-                        tickFormatter={moneyTick}
-                        domain={["auto", "auto"]}
-                        stroke="var(--chart-axis)"                 // axis line
-                        tick={{ fill: "var(--chart-axis)" }}       // tick text
                       />
 
-                      <Tooltip
-                        cursor={false}
-                        isAnimationActive={false}
-                        content={<GhostTooltip onUpdate={locked ? undefined : setPoint} />}
-                      />
+                      {!isComposite ? (
+                        <>
+                          {/* Single-axis (Ad Valorem OR Specific) */}
+                          <YAxis
+                            width={60}
+                            tickMargin={8}
+                            tickCount={6}
+                            stroke="var(--chart-axis)"                 // axis line
+                            tick={{ fill: "var(--chart-axis)" }}       // tick text
+                            label={{
+                              value: yAxisLabel,
+                              angle: -90,
+                              position: "left",
+                              offset: 30,
+                              dy: -100,
+                              fill: "var(--chart-axis)",              // label text
+                            }}
+                            tickFormatter={plotCategory === "Ad Valorem" ? pctTick : moneyTick}
+                            domain={["auto", "auto"]}
+                          />
+                          {/* Ghost tooltip updates `point` without rendering a popup */}
+                          <Tooltip
+                            cursor={false}
+                            isAnimationActive={false}
+                            content={<GhostTooltip onUpdate={locked ? undefined : setPoint} />}
+                          />
 
-                      <Legend verticalAlign="bottom" align="right" wrapperStyle={{ paddingTop: 10 }} />
+                          <Legend verticalAlign="bottom" align="right" wrapperStyle={{ paddingTop: 10 }} />
 
-                      <Line
-                        yAxisId="left"
-                        type="monotone"
-                        dataKey="plotAV"
-                        name="Ad Valorem (%)"
-                        stroke="var(--chart-3, #3b82f6)"
-                        dot={{ r: 2 }}
-                        activeDot={{ r: 4 }}
-                        isAnimationActive={false}
-                      />
-                      <Line
-                        yAxisId="right"
-                        type="monotone"
-                        dataKey="plotSP"
-                        name={`Specific ($/${unitName})`}
-                        stroke="var(--theme-secondary, #FF6347)"
-                        strokeDasharray="4 4"
-                        dot={{ r: 2 }}
-                        activeDot={{ r: 4 }}
-                        isAnimationActive={false}
-                      />
-                    </>
-                  )}
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                          <Line
+                            type="monotone"
+                            // prefer plotValue; fall back to plotAV/plotSP if present
+                            dataKey={(d) =>
+                              typeof d.plotValue === "number"
+                                ? d.plotValue
+                                : typeof d.plotAV === "number"
+                                  ? d.plotAV
+                                  : typeof d.plotSP === "number"
+                                    ? d.plotSP
+                                    : 0
+                            }
+                            name="Trend"
+                            stroke="var(--chart-3, #3b82f6)"
+                            dot={{ r: 2 }}
+                            activeDot={{ r: 3 }}
+                            isAnimationActive={false}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          {/* Dual-axis for COMPOSITE */}
+                          <YAxis
+                            yAxisId="left"
+                            width={60}
+                            tickMargin={8}
+                            stroke="var(--chart-axis)"
+                            tick={{ fill: "var(--chart-axis)" }}
+                            label={{ value: "Ad Valorem (%)", angle: -90, position: "left", offset: 30, dy: -100, fill: "var(--chart-axis)" }}
+                            ticks={yLeftTicks}  // ← explicit dense ticks drive gridlines
+                            domain={["auto", "auto"]}
+                            tickFormatter={(v) => (v * 100).toFixed(2)}
+                          />
+                          <YAxis
+                            yAxisId="right"
+                            orientation="right"
+                            tickCount={6}
+                            width={70}
+                            tickMargin={8}
+                            label={{ value: `Specific ($/${unitName})`, angle: -90, position: "right", offset: 20, fill: "var(--chart-axis)" }}
+                            tickFormatter={moneyTick}
+                            domain={["auto", "auto"]}
+                            stroke="var(--chart-axis)"                 // axis line
+                            tick={{ fill: "var(--chart-axis)" }}       // tick text
+                          />
+
+                          <Tooltip
+                            cursor={false}
+                            isAnimationActive={false}
+                            content={<GhostTooltip onUpdate={locked ? undefined : setPoint} />}
+                          />
+
+                          <Legend verticalAlign="bottom" align="right" wrapperStyle={{ paddingTop: 10 }} />
+
+                          <Line
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="plotAV"
+                            name="Ad Valorem (%)"
+                            stroke="var(--chart-3, #3b82f6)"
+                            dot={{ r: 2 }}
+                            activeDot={{ r: 4 }}
+                            isAnimationActive={false}
+                          />
+                          <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="plotSP"
+                            name={`Specific ($/${unitName})`}
+                            stroke="var(--theme-secondary, #FF6347)"
+                            strokeDasharray="4 4"
+                            dot={{ r: 2 }}
+                            activeDot={{ r: 4 }}
+                            isAnimationActive={false}
+                          />
+                        </>
+                      )}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
