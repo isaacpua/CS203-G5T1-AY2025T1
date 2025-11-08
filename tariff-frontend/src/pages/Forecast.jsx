@@ -231,7 +231,7 @@ export default function Forecast() {
       {/* Foreground app content on a WHITE card, centered */}
       <div className="relative z-10">
         <TooltipProvider>
-          <div className="max-w-7xl mx-auto w-full px-4 md:px-6 py-0 -mt-4 md:-mt-6">
+          <div className="max-w-7xl mx-auto w-full px-4 md:px-6 pt-20">
             {/* radius + clipping live here */}
             <Card className="mt-0 border-0 shadow-lg bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden">
               {/* no rounded here; card clips the green band */}
