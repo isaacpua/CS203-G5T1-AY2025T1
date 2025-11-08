@@ -1,4 +1,5 @@
 import os
+import asyncio
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -6,6 +7,42 @@ load_dotenv()
 
 # client will read OPENAI_API_KEY from env if not passed explicitly
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+def _analyze_sync(prompt: str, instruction: str) -> dict:
+    """
+    Synchronous helper to run the blocking OpenAI call in a thread.
+    """
+    print("Asking gpt to summarize article! (in thread)")
+    try:
+        resp = client.responses.create(
+            model="gpt-4o",
+            input=prompt,
+            instructions=instruction,
+            max_output_tokens=1024,
+            temperature=0.1,
+        )
+
+        if resp.error:
+            print(f"Error: {resp.error}")
+            raise Exception(f"{resp.error}")
+
+        print("gpt call success!")
+        markdown = resp.output[0].content[0].text
+
+        return {
+            "success": True,
+            "markdown": markdown,
+            "error": None
+        }
+
+    except Exception as e:
+        print(e)
+        return {
+            "success": False,
+            "markdown": None,
+            "error": str(e)
+        }
 
 
 async def analyze(input: str) -> dict:
@@ -21,17 +58,12 @@ async def analyze(input: str) -> dict:
         the analysis of the article.
     """
 
-    
-    response = {
-        "success": None,
-        "error": None,
-        "markdown": None
-    }
-
     if not input:
-        response["success"] = False
-        response["error"] = "Input markdown cannot be empty"
-
+        return {
+            "success": False,
+            "error": "Input markdown cannot be empty",
+            "markdown": None
+        }
 
     prompt = (
         "Please analyze the article below"
@@ -59,33 +91,11 @@ async def analyze(input: str) -> dict:
         "“No tariff-related information found.”\n"
     )
 
+    # run the blocking code on a separate thread and awaits its completion without freezing the server
+    response = await asyncio.to_thread(
+        _analyze_sync,
+        prompt,
+        instruction
+    )
 
-    print("Asking gpt to summarize article!")
-    try:
-        resp = client.responses.create(
-            model="gpt-4o",
-            input=prompt,
-            instructions=instruction,
-            max_output_tokens=1024,
-            temperature=0.1,
-        )
-
-        if resp.error:
-            print(f"Error: {resp.error}")
-            raise Exception(f"{resp.error}")
-
-
-        print("gpt call success!")
-        # print(resp.output[0].content[0].text)
-        markdown = resp.output[0].content[0].text
-
-        response["success"] = True
-        response["markdown"] = markdown
-        
-        return response
-    
-    except Exception as e:
-        print(e)
-        response["success"] = False
-        response["error"] = e
-        return response
+    return response

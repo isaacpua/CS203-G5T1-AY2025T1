@@ -15,18 +15,25 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
-const chatbotAxiosClient = axios.create({
-  baseURL: 'http://localhost:5000', // Default Flask port
+const isDevelopment = import.meta.env.MODE === 'development';
+
+const mcpBaseURL = isDevelopment
+  ? "/mcp/api/v1"
+  : "https://api.tarific.rocks/mcp/api/v1";
+
+const mcpAxiosClient = axios.create({
+  baseURL: mcpBaseURL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-const mcpAxiosClient = axios.create({
-  baseURL: "/mcp/api/v1",
-  headers: {
-    'Content-Type': 'application/json',
-  },
+mcpAxiosClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem("accessToken");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export const verifyJWT = async (token) => {
@@ -151,12 +158,9 @@ export const editTransactions = async(transactionID, snapshot) => {
   return await axiosClient.put(`/tariffs/transactionHistory/${transactionID}/snapshot`, snapshot);
 };
 
-// --- ADD THIS NEW FUNCTION ---
 export const getHistoricalData = async (params) => {
-  // params will be an object like { full_tariff_id_prefix: '...' } or { hts6: '...', reporter_id: '...', partner_id: '...' }
   return await mcpAxiosClient.get(`/historical`, { params });
 };
-// --- END OF NEW FUNCTION ---
 
 export const getForecast = async () => {
   return await mcpAxiosClient.get(`/forecast`);
@@ -169,6 +173,7 @@ export const updateForecast = async () => {
 export const loadLive = async () =>{
   return await mcpAxiosClient.post("/data/live")
 };
+
 export const getNewsletter = async () => {
   return await mcpAxiosClient.get(`/newsletter`)
 }

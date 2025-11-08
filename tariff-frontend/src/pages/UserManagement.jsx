@@ -70,18 +70,18 @@ const UserManagement = () => {
         const response = await getAllUsers();
 
         if (response.status === 200) {
-          console.log("Fetched users:", response.data.users);
+          // console.log("Fetched users:", response.data.users);
           setUsers(response.data.users);
         }
       } catch (error) {
         if (error.response?.status === 401) {
-          console.log("found 401 error wow")
+          // console.log("found 401 error wow")
           setShowRelogin(true);
           return;
         }
 
         if (error.response?.status === 403) {
-          console.log("found 403 error wow")
+          // console.log("found 403 error wow")
           setShowForbidden(true);
           return;
         }
@@ -114,12 +114,12 @@ const UserManagement = () => {
         const response = await updateUsernameAndRole(userID, newUsername, newRole);
         
         if (response.status === 200) {
-          console.log(response.data.message)
+          // console.log(response.data.message)
           location.reload();
         }
       } catch (err) {
         if (err.response?.status === 401) {
-          console.log("found 401 error wow")
+          // console.log("found 401 error wow")
           setShowRelogin(true);
           return;
         }
@@ -149,12 +149,12 @@ const UserManagement = () => {
         const response = await deleteUserByID(userID);
         
         if (response.status === 200) {
-          console.log(response.data.message)
+          // console.log(response.data.message)
           location.reload();
         }
       } catch (err) {
         if (err.response?.status === 401) {
-          console.log("found 401 error wow")
+          // console.log("found 401 error wow")
           setShowRelogin(true);
           return;
         }

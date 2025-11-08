@@ -56,7 +56,7 @@ def build_graph(tools: List[BaseTool] = [], access_token: str = ""):
 
     # --- 4. Bind Tools and Create Agent ---
     if tools:
-        llm = llm.bind_tools(tools)
+        llm = llm.bind_tools(tools, parallel_tool_calls=False)
         
         # Create the tool descriptions for the prompt
         tools_descriptions = "\n\n".join(

@@ -1168,16 +1168,16 @@ export default function Dashboard() {
 
   const onSaveChanges = async (formData) => {
     setActionLoading(true); setActionError("");
-    console.log("Form data to submit:", formData);
+    // console.log("Form data to submit:", formData);
     delete formData.tariffid;
     delete formData.tariffIdDisplay;
     try {
       if (showEdit) {
-        console.log("Updating tariff with ID:", selectedRow.id, "and data:", formData);
+        // console.log("Updating tariff with ID:", selectedRow.id, "and data:", formData);
         await updateTariff(selectedRow.id, formData);
         toast.success("Tariff updated successfully");
       } else {
-        console.log("Creating tariff with data:", formData);
+        // console.log("Creating tariff with data:", formData);
         await createTariff(formData);
         toast.success("Tariff created successfully");
       }

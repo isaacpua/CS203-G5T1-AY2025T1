@@ -1,6 +1,4 @@
-"use client"
-
-import { useState } from "react" // Added React import
+import { useState } from "react"
 import { getUserData, loginUser, registerUser } from "@/api/axiosClient"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -11,6 +9,7 @@ import { decodeJWT, getRoleFromToken } from "@/utils/jwtDecoder"
 import { Loader2, AlertCircle, X, Sprout } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
+import { toast } from "sonner"
 
 const Login = () => {
   const { setUser, setUserRole } = useAuth()
@@ -24,24 +23,6 @@ const Login = () => {
   const location = useLocation()
   const from = location.state?.from?.pathname || "/" // Default to landing page
 
-  // --- Data for the Chart ---
-  const chartData = [
-    { date: "2014", value: 100, volume: 50 },
-    { date: "2015", value: 120, volume: 60 },
-    { date: "2016", value: 110, volume: 45 },
-    { date: "2017", value: 130, volume: 70 },
-    { date: "2018", value: 125, volume: 55 },
-    { date: "2019", value: 140, volume: 80 },
-    { date: "2020", value: 135, volume: 65 },
-    { date: "2021", value: 150, volume: 90 },
-    { date: "2022", value: 145, volume: 75 },
-    { date: "2023", value: 160, volume: 95 },
-    { date: "2024", value: 155, volume: 85 },
-    { date: "2025", value: 170, volume: 100 },
-  ]
-  // --- End Chart Data ---
-
-  // --- Authentication Logic ---
   const handleLogin = async () => {
     setIsLoading(true)
     setError(null)
@@ -81,8 +62,8 @@ const Login = () => {
       const credentials = JSON.stringify({ username: trimmedUsername, password: trimmedPassword })
       const response = await registerUser(credentials)
       if (response.status === 200 && response.data?.success) {
-        console.log(response.data)
-        // toast.success("Registration successful! Please log in."); // Optional success feedback
+        // console.log(response.data)
+        toast.success("Registration successful! Please log in.");
         toggleMode()
       } else {
         throw new Error(response.data?.message || "Registration failed.")
@@ -100,11 +81,10 @@ const Login = () => {
     else if (err.response?.data?.message) setError(err.response.data.message)
     else if (err instanceof Error) setError(err.message)
     else {
-      console.error("Login/Register Error:", err)
+      // console.error("Login/Register Error:", err)
       setError("An unexpected error occurred. Please try again.")
     }
   }
-  // --- End Authentication Logic ---
 
   // Switch between Login and Register modes
   const toggleMode = () => {

@@ -10,7 +10,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 # YEAR = 2025
 
 def load_usitc_data():
-    for YEAR in range(2002, 2026):
+    for YEAR in range(2025, 2026):
         df = get_csv_from_usitc(YEAR)
         df = process_csv(df, YEAR)
         connection_string = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_URL}"

@@ -5,10 +5,11 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from sqlalchemy import create_engine, Column, Text, Float, Date, text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import DeclarativeBase
 import re
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 
 class Tariff(Base):

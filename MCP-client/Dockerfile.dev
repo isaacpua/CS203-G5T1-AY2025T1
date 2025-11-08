@@ -1,0 +1,22 @@
+# --- Stage 1: Builder (with shell, Python, and uv) ---
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS builder
+
+WORKDIR /app
+COPY . .
+
+# Create virtual environment and install dependencies
+RUN uv venv
+RUN uv pip install -r requirements.txt
+
+# --- Stage 2: Runtime (minimal) ---
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS runtime
+
+ARG BASE_URL
+ENV BASE_URL=${BASE_URL}
+
+WORKDIR /app
+COPY --from=builder /app /app
+COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
+
+EXPOSE 8000
+ENTRYPOINT ["uv", "run", "run_client.py"]

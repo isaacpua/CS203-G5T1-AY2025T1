@@ -4,12 +4,11 @@ import Markdown from 'markdown-to-jsx';
 import { useTheme } from "@/components/theme-provider";
 
 // Connect to your MCP-client server
-const socket = io('http://127.0.0.1:8001');
+const socket = io({path:'/chat/socket.io'});
 
 // Helper function to generate unique thread IDs
 const generateThreadId = () => `user_session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-// --- (All Icon components unchanged) ---
 const SpinnerIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 animate-spin">
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
@@ -60,17 +59,14 @@ function Chatbot() {
     const t = setTimeout(() => setContentVisible(true), 500);
     return () => clearTimeout(t);
   }, []);
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   useEffect(() => {
     function onConnect() {
-      console.log('Connected to chatbot server!');
+      // console.log('Connected to chatbot server!');
       setIsConnected(true);
     }
     function onDisconnect() {
-      console.log('Disconnected from chatbot server.');
+      // console.log('Disconnected from chatbot server.');
       setIsConnected(false);
     }
     function onToolCall(data) {
@@ -142,7 +138,6 @@ function Chatbot() {
   }, []);
 
   const readFileAsBase64 = (file) => {
-    // ... (File reading logic unchanged) ...
     return new Promise((resolve, reject) => {
       if (!file) {
         resolve(null);
@@ -162,7 +157,6 @@ function Chatbot() {
   };
 
   const handleSend = async () => {
-    // ... (handleSend logic unchanged) ...
     if ((!currentInput.trim() && !selectedFile) || isLoadingFile) return;
     const userMessage = {
       id: Date.now(),
@@ -204,7 +198,6 @@ function Chatbot() {
   };
 
   const handleFile = (files) => {
-    // ... (unchanged) ...
     if (!files || files.length === 0) {
       return;
     }
@@ -228,7 +221,7 @@ function Chatbot() {
   };
 
   const handleNewChat = () => {
-    console.log("Starting new chat session...");
+    // console.log("Starting new chat session...");
     try {
       socket.emit("cancel_processing", { thread_id: threadId });
     } catch (e) {
@@ -246,11 +239,10 @@ function Chatbot() {
     setIsAiTyping(false);
     const newThreadId = generateThreadId();
     setThreadId(newThreadId);
-    console.log("New thread ID:", newThreadId);
+    // console.log("New thread ID:", newThreadId);
   };
 
   const handleRemoveFile = () => {
-    // ... (unchanged) ...
     setSelectedFile(null);
     setFileError(null);
     if (fileInputRef.current) {
@@ -277,11 +269,11 @@ function Chatbot() {
   const formatTime = (timestamp) => {
     try {
       return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    } catch (e) {
+    } catch {
       return "";
     }
   };
-  const isDark = theme === "dark" || (theme === "system" && prefersDark);
+  const isDark = theme === "dark" || (theme === "system");
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-transparent">
@@ -324,7 +316,7 @@ function Chatbot() {
               </div>
             )}
 
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/10 to-transparent border-b border-border">
+            <div className="flex items-center justify-between px-4 py-3 bg-linear-to-r from-primary/10 to-transparent border-b border-border">
               <div className="flex items-center gap-3">
                 <img src="/eve-avatar.svg" alt="T.A.R.I.F.F" className="w-10 h-10 rounded-full object-cover" />
                 <div>
@@ -343,21 +335,21 @@ function Chatbot() {
               </div>
             </div>
 
-            <div className="h-[60vh] overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-background">
+            <div className="h-[60vh] overflow-y-auto p-4 space-y-4 bg-linear-to-b from-transparent to-background">
               {messages.length === 0 && (
                 <div className="text-center text-sm text-muted-foreground mt-8">No messages yet — say hello 👋</div>
               )}
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex items-end ${msg.sender === 'user' ? 'justify-end' : ''}`}>
                   {msg.sender !== 'user' && (
-                    <div className="flex-shrink-0 mr-3">
+                    <div className="shrink-0 mr-3">
                       <img src="/eve-avatar.svg" alt="T.A.R.I.F.F" className="w-8 h-8 rounded-full object-cover" />
                     </div>
                   )}
 
                   <div className={`max-w-[75%] ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
                     <div
-                      className={`inline-block px-4 py-2 rounded-lg break-words ${msg.sender === 'user'
+                      className={`inline-block px-4 py-2 rounded-lg wrap-break-word ${msg.sender === 'user'
                           ? 'bg-primary text-primary-foreground rounded-br-none'
                           : 'bg-white/95 dark:bg-muted text-foreground rounded-bl-none'
                         }`}

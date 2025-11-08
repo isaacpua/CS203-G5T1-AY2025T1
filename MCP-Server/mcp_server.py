@@ -36,7 +36,7 @@ mcp = FastMCP(
 )
 
 
-@mcp.custom_route("/", methods=["GET"])
+@mcp.custom_route("/health", methods=["GET"])
 async def healthcheck(request: Request) -> JSONResponse:
     """
     Responds with a 200 OK status for health checks, required by Cloud Run.

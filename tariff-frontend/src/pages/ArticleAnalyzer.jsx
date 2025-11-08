@@ -3,6 +3,7 @@ import { postAnalyzable } from "@/api/axiosClient";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTheme } from "@/components/theme-provider";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 export default function Analyzer() {
   const [url, setUrl] = useState("");
@@ -121,7 +122,11 @@ export default function Analyzer() {
                     disabled={!canAnalyze || loading}
                     className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                   >
-                    {loading ? "Analyzing…" : "Analyze"}
+                    {loading ?
+                      <div className="flex items-center justify-center">
+                        <div>Analyzing...</div>
+                        <Spinner />
+                      </div> : "Analyze"}
                   </button>
 
                   <button

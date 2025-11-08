@@ -374,7 +374,7 @@ export default function HistoricalTariffExplorer() {
                 {searchMode === "prefix" ? (
                   <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div className="md:col-span-3">
-                      <Label htmlFor="prefixSearch">Tariff ID Prefix (e.g., 170211USAU)</Label>
+                      <Label className="p-2" htmlFor="prefixSearch">Tariff ID Prefix (e.g., 170211USAU)</Label>
                       <Input
                         id="prefixSearch"
                         placeholder="Enter Tariff ID (e.g., 170211USAU)"
@@ -389,7 +389,7 @@ export default function HistoricalTariffExplorer() {
                 ) : (
                   <>
                     <div>
-                      <Label htmlFor="htsCode">6-Digit HTS Code</Label>
+                      <Label className="p-2" htmlFor="htsCode">6-Digit HTS Code</Label>
                       <Input
                         id="htsCode"
                         placeholder="e.g., 170211"
@@ -398,7 +398,7 @@ export default function HistoricalTariffExplorer() {
                       />
                     </div>
                     <div>
-                      <Label>Reporter Country</Label>
+                      <Label className="p-2">Reporter Country</Label>
                       <CountrySelector
                         countries={reporterCountries}
                         value={selectedReporter}
@@ -407,7 +407,7 @@ export default function HistoricalTariffExplorer() {
                       />
                     </div>
                     <div>
-                      <Label>Partner Country</Label>
+                      <Label className="p-2">Partner Country</Label>
                       <CountrySelector
                         countries={partnerCountries}
                         value={selectedPartner}

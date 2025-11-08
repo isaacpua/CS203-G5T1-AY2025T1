@@ -1,13 +1,11 @@
 import os,json
 import logging
 import httpx
-from fastapi import APIRouter, HTTPException, Body, Request
-from fastapi.responses import JSONResponse, StreamingResponse # Added Request
+from fastapi import APIRouter, HTTPException, Body
+from fastapi.responses import JSONResponse
 from fastmcp import Client
 import pandas as pd
-# --- THIS IS THE FIX ---
-from sqlalchemy import create_engine, Column, String, Integer, Float, Date, Text # Added 'Text'
-# --- END OF FIX ---
+from sqlalchemy import create_engine, Column, String, Integer, Float, Date, Text, text
 from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase # Added ORM imports
 from load_data import main as data
 import datetime
@@ -18,8 +16,8 @@ from openai import OpenAI
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__) # <-- This is the logger definition
-BASE_URL = "http://127.0.0.1:8000"
+logger = logging.getLogger(__name__)
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 MCP_SERVER_URL = f"{BASE_URL}/mcp/"
 DB_CONFIG = {
     "DB_URL": os.getenv("DB_URL"),
@@ -27,14 +25,12 @@ DB_CONFIG = {
     "DB_PASSWORD": os.getenv("DB_PASSWORD"),
 }
 
-# --- CORRECTED FILE PATHS ---
 DATA_DIR = Path("data")
-NEWSLETTER_CONTENT_PATH = DATA_DIR / "newsletter.json"
-MAILING_LIST_PATH = DATA_DIR / "mailinglist.json" 
+# This is for the new mailing list
+MAILING_LIST_PATH = DATA_DIR / "mailinglist.json"
+# Ensure the data directory exists
 DATA_DIR.mkdir(exist_ok=True)
-# --- END CORRECTION ---
 
-# --- NEW: GLOBAL DB CONNECTION (for all endpoints) ---
 try:
     if not DB_CONFIG["DB_URL"] or not DB_CONFIG["DB_USERNAME"] or not DB_CONFIG["DB_PASSWORD"]:
         raise ValueError("DB_URL, DB_USER, or DB_PASSWORD is not set in .env")
@@ -52,17 +48,19 @@ except Exception as e:
     logger.error(f"MCP-Gateway: Failed to create SQLAlchemy engine: {e}")
     sqlalchemy_engine = None
     SessionLocal = None
-# --- END NEW DB CONNECTION ---
 
 
-router = APIRouter(prefix="/mcp/api/v1") # This prefix is correct
+router = APIRouter(prefix="/mcp/api/v1")
 client = Client(MCP_SERVER_URL)
 
 
 class NewsletterRequest(BaseModel):
-    markdown_content: str = Field(..., description="The full raw markdown content of the newsletter.")
+    # The server will get the list from its file
+    # recipients: List[str] = Field(..., description="A list of email addresses to send the newsletter to.")
+    markdown_content: str = Field(
+        ..., description="The full raw markdown content of the newsletter.")
 
-# --- NEW: ORM Base and Model for Historical Data ---
+
 class Base(DeclarativeBase):
     pass
 
@@ -103,9 +101,8 @@ class TariffMaster(Base):
             "expirydate": self.expirydate.strftime('%Y-%m-%d') if self.expirydate else None,
             "datasource": self.datasource
         }
-# --- END NEW ORM MODEL ---
 
-# --- NEW: Data Access Function for Historical Data ---
+
 def get_historical_data(
     db_session: Session,
     full_tariff_id_prefix: Optional[str] = None,
@@ -171,6 +168,7 @@ async def _get_mailing_list() -> List[str]:
         logging.warning("Could not read or parse data/mailinglist.json")
         return []
 
+
 async def _save_mailing_list(recipients: List[str]) -> bool:
     """Saves the mailing list to data/mailinglist.json."""
     try:
@@ -229,6 +227,11 @@ async def greet(name: str):
         raise HTTPException(status_code=444, detail=str(e)) # Changed status to avoid clash with 404
 
 
+@router.get("/health")
+async def healthcheck():
+    return JSONResponse({"status": "ok"})
+
+
 @router.get("/forecast")
 async def get_forecast():
     try:
@@ -270,31 +273,37 @@ async def forecast_tariffs():
     except Exception as e:
         logging.error(f"Error details: {e}")
         raise HTTPException(status_code=409, detail=str(e))
-    
 
 @router.get("/newsletter")
 async def get_newsletter():
     try:
+        connection_string = f"postgresql://{DB_CONFIG["DB_USERNAME"]}:{DB_CONFIG["DB_PASSWORD"]}@{DB_CONFIG["DB_URL"]}"
+        db_engine = create_engine(connection_string)
+        today = datetime.date.today()
+
+        # Try to fetch today's newsletter from the database (cache hit)
+        try:
+            query = text("SELECT content FROM tariffs.tariff_newsletters WHERE date = :today")
+            with db_engine.connect() as connection:
+                result = connection.execute(query, {"today": today}).fetchone()
+
+            if result:
+                print("Found today's newsletter in DB! Returning that...")
+                response = {
+                    "success": True,
+                    "error": None,
+                    "markdown": result.content
+                }
+                return response
+            else:
+                print("Stored newsletter is old or not found in DB!")
+
+        except Exception as e:
+            # If DB read fails, log it and fall through to scraping
+            print(f"Failed to read from DB: {e}. Fetching new content...")
+
+        # scrape it
         async with client:
-            try:
-                with open(NEWSLETTER_CONTENT_PATH, "r", encoding="utf-8") as file:
-                    print("Reading stored newsletter")
-                    curr_newsletter_json = json.load(file)
-                
-                if datetime.datetime.strptime(curr_newsletter_json["date"], "%d/%m/%Y").date() == datetime.date.today():
-                    print("Stored newsletter is updated! Returning that...")
-                    response = {
-                        "success": True,
-                        "error": None,
-                        "markdown": curr_newsletter_json["content"]
-                    }
-                    return response
-                else:
-                    print("Stored newsletter is old!")
-            except(FileNotFoundError, json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
-                print(f"Failed to read stored newsletter or date: {e}")
-
-
             logging.info(f"Calling newsletter tool on {MCP_SERVER_URL} ...")
             mcp_response = await client.call_tool("newsletter_scrape")
             logging.info(f"Successfully called newsletter tool!")
@@ -303,25 +312,37 @@ async def get_newsletter():
             if not response["success"]:
                 raise Exception(response["error"])
 
-            print("Creating newsletter json...")
-            new_newsletter_json = {
-                "date": datetime.date.today().strftime("%d/%m/%Y"),
-                "content": response["markdown"]
-            }
-            with open(NEWSLETTER_CONTENT_PATH, "w", encoding="utf-8") as file:
-                print("Writing today's Newsletter to file...")
-                json.dump(new_newsletter_json, file, indent = 4)
+            # save the newly scraped content to the database
+            print("Writing today's Newsletter to DB...")
+            new_markdown = response["markdown"]
 
+            # INSERT a new row or UPDATE the existing row for today
+            insert_query = text("""
+                INSERT INTO tariffs.tariff_newsletters (date, content)
+                VALUES (:today, :content)
+                ON CONFLICT (date)
+                DO UPDATE SET content = EXCLUDED.content;
+            """)
+
+            # .begin() automatically commits on success or rolls back on error
+            with db_engine.begin() as connection:
+                connection.execute(insert_query, {"today": today, "content": new_markdown})
+
+            print("Successfully wrote to DB.")
+
+            # Return the freshly scraped response
             return response
-        
+
     except Exception as e:
         logging.error(f"Error details: {e}")
         raise HTTPException(status_code=444, detail=str(e)) # Changed status to avoid clash with 404
+
 
 @router.get("/newsletter/mailinglist")
 async def get_mailing_list():
     recipients = await _get_mailing_list()
     return {"recipients": recipients}
+
 
 @router.post("/newsletter/mailinglist")
 async def update_mailing_list(recipients: List[str] = Body(..., embed=True)):
@@ -333,22 +354,33 @@ async def update_mailing_list(recipients: List[str] = Body(..., embed=True)):
 
 @router.post("/newsletter/send")
 async def send_newsletter(request: NewsletterRequest = Body(...)):
+    """
+    This endpoint orchestrates the newsletter sending process:
+    1. Reads the mailing list from data/mailinglist.json.
+    2. Summarizes the markdown content using OpenAI.
+    3. Sends the summary to each recipient using the MCP-Server's email tool.
+    """
+
     recipients = await _get_mailing_list()
     if not recipients:
-        raise HTTPException(status_code=400, detail="No recipients in mailing list. Please add emails first.")
-    
+        raise HTTPException(
+            status_code=400, detail="No recipients in mailing list. Please add emails first.")
+
     if not request.markdown_content:
-        raise HTTPException(status_code=400, detail="No markdown content provided.")
+        raise HTTPException(
+            status_code=400, detail="No markdown content provided.")
 
     logging.info("Summarizing newsletter content...")
     try:
         email_body = await summarize_newsletter(request.markdown_content)
-        subject = "Your Weekly Tariff Newsletter Digest"
+        # Suggestion: Change "Weekly" to "Daily" if it's a daily newsletter
+        subject = "Your Daily Tariff Newsletter Digest"
     except HTTPException as e:
         return e
-    
+
     logging.info("Summary complete. Starting email dispatch...")
 
+    # Step 2: Send emails concurrently
     tasks = []
     try:
         async with client:
@@ -359,51 +391,49 @@ async def send_newsletter(request: NewsletterRequest = Body(...)):
                     "body": email_body
                 }
                 tasks.append(client.call_tool("send_email", tool_payload))
-            
             mcp_results = await asyncio.gather(*tasks, return_exceptions=True)
 
     except Exception as e:
         logging.error(f"Error connecting to MCP server: {e}")
-        raise HTTPException(status_code=503, detail=f"Failed to connect to MCP-Server: {e}")
-    
+        raise HTTPException(
+            status_code=503, detail=f"Failed to connect to MCP-Server: {e}")
+
     logging.info("Email dispatch complete. Compiling results...")
 
     dispatch_results = []
     success_count = 0
-    
     for email, result in zip(recipients, mcp_results):
         if isinstance(result, Exception):
             dispatch_results.append({
-                "email": email, 
-                "status": "error", 
+                "email": email,
+                "status": "error",
                 "detail": f"Task failed: {result}"
             })
         else:
             try:
-                tool_output = json.loads(result.content[0].text) 
-                
+                tool_output = json.loads(result.content[0].text)
+
                 if tool_output.get("status") == "success":
                     success_count += 1
                     dispatch_results.append({
-                        "email": email, 
-                        "status": "success", 
+                        "email": email,
+                        "status": "success",
                         "message_id": tool_output.get("message_id")
                     })
                 else:
                     dispatch_results.append({
-                        "email": email, 
-                        "status": "error", 
+                        "email": email,
+                        "status": "error",
                         "detail": tool_output.get("detail", "Unknown error from email tool")
                     })
             except Exception as e:
                 dispatch_results.append({
-                    "email": email, 
-                    "status": "error", 
+                    "email": email,
+                    "status": "error",
                     "detail": f"Failed to parse tool response: {e}"
                 })
 
     failed_count = len(recipients) - success_count
-    
     return {
         "status": "complete",
         "total_sent": success_count,
@@ -441,14 +471,13 @@ async def analyze(data: dict):
 
             if not response["success"]:
                 raise Exception(response["error"])
-            
+
             return response
-        
+
     except Exception as e:
         logging.error(f"Error details: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 
 
-# --- THIS IS THE NEW ENDPOINT THAT FIXES THE 404 ---
 @router.get("/historical")
 async def get_historical_data_endpoint(
     full_tariff_id_prefix: Optional[str] = None,
@@ -458,7 +487,6 @@ async def get_historical_data_endpoint(
 ):
     """
     Endpoint to get historical tariff data.
-    Accessible via: /mcp/api/v1/historical
     
     Supports two search modes:
     1. ?full_tariff_id_prefix=170211USAU
@@ -506,7 +534,6 @@ async def get_historical_data_endpoint(
         raise HTTPException(status_code=500, detail=f"Error fetching historical data: {str(e)}")
     finally:
         db_session.close() # Always close the session
-# --- END OF NEW ENDPOINT ---
 
 @router.post("/data/live")
 async def load_live_data():

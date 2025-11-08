@@ -119,7 +119,7 @@ export default function Forecast() {
       await updateForecast();
       fetchForecast(true);
     } catch (err) {
-      console.log(err)
+      // console.error(err)
       toast.error("Failed to refresh forecast data", {
         description: err?.response?.data?.detail || "An error occurred while loading the data"
       });

@@ -8,9 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle, X, CheckCircle2, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Spinner } from '@/components/ui/shadcn-io/spinner';
 import { useTheme } from "@/components/theme-provider";
 
-// --- This function is unchanged ---
 function splitIntoItems(md) {
   if (!md) return [];
   // Split by horizontal rules or ## headers
@@ -194,7 +194,12 @@ function Newsletter() {
     }
   };
 
-  if (loading) return <div>Loading newsletter...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center p-8">
+      <div>Loading newsletter...</div>
+      <Spinner />
+    </div>
+  );
   if (error) return <div>Error loading newsletter.</div>;
 
   return (

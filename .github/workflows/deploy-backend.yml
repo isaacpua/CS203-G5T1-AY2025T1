@@ -1,0 +1,85 @@
+name: Deploy Backend Services to ECR and ECS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'tariff-backend/**'
+      - 'MCP-client/**'
+      - 'MCP-Gateway/**'
+      - 'MCP-Server/**'
+      - '.github/workflows/deploy-backend.yml'
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER_NAME }}
+  IMAGE_TAG: latest
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        service:
+          - name: tariff
+            context: ./tariff-backend
+            dockerfile: Dockerfile.dev
+            ecr_repo: tarific-tariff-backend
+            ecs_service: tarific-tariff
+          - name: gateway
+            context: ./MCP-Gateway
+            dockerfile: Dockerfile.dev
+            ecr_repo: tarific-mcp-gateway-backend
+            ecs_service: tarific-mcp-gateway
+          - name: chatbot
+            context: ./MCP-client
+            dockerfile: Dockerfile.dev
+            ecr_repo: tarific-mcp-chatbot-backend
+            ecs_service: tarific-mcp-chatbot
+          - name: server
+            context: ./MCP-Server
+            dockerfile: Dockerfile.dev
+            ecr_repo: tarific-mcp-server-backend
+            ecs_service: tarific-mcp-server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push ${{ matrix.service.name }} image tagged as 'latest'
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ matrix.service.ecr_repo }}
+          SERVICE_CONTEXT: ${{ matrix.service.context }}
+          DOCKERFILE: ${{ matrix.service.dockerfile }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        run: |
+          IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          
+          docker build -t $IMAGE_URI \
+                       -f $SERVICE_CONTEXT/$DOCKERFILE \
+                       $SERVICE_CONTEXT
+          
+          docker push $IMAGE_URI
+          
+          echo "Successfully pushed $IMAGE_URI to ECR."
+
+      - name: Force new deployment for ${{ matrix.service.ecs_service }}
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ matrix.service.ecs_service }} \
+            --force-new-deployment
