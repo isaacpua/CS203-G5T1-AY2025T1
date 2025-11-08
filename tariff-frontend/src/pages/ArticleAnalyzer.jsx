@@ -57,34 +57,34 @@ export default function Analyzer() {
           loop
           muted
           playsInline
-          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
-            }`}
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${
+            contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
+          }`}
         >
           <source src="/Barn_Animation.mp4" type="video/mp4" />
         </video>
         <div
-          className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"
-            }`}
+          className={`absolute inset-0 transition-opacity duration-1000 ${
+            contentVisible ? (isDark ? "bg-black/70" : "bg-black/40") : "bg-black/30"
+          }`}
         />
       </div>
 
-      {/* Foreground white card like Forecast */}
+      {/* Foreground card */}
       <div className="relative z-10">
         <div className="mx-auto max-w-6xl px-4 py-10">
-          <div className="rounded-2xl border bg-white shadow-xl">
-            {/* green header bar */}
-            <div className="rounded-t-2xl border-b bg-green-50 px-6 py-6">
-              <h1 className="text-xl md:text-2xl font-bold text-foreground">
-                Article Analyzer
-              </h1>
+          <div className="rounded-2xl border border-border bg-card text-card-foreground shadow-xl">
+            {/* header bar */}
+            <div className="rounded-t-2xl border-b border-border px-6 py-6 bg-emerald-50 dark:bg-emerald-900/20">
+              <h1 className="text-xl md:text-2xl font-bold">Article Analyzer</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 Enter a tariff article URL or paste tariff article text (or both), then click Analyze.
               </p>
             </div>
 
-            {/* inner content */}
+            {/* body */}
             <div className="px-4 md:px-6 py-6">
-              <div className="mb-4 rounded-xl border bg-white p-4">
+              <div className="mb-4 rounded-xl border border-border bg-card p-4">
                 <label className="block">
                   <span className="text-sm font-medium">Article URL</span>
                   <input
@@ -92,7 +92,7 @@ export default function Analyzer() {
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder="https://example.com/tariff-article"
-                    className="mt-1 block w-full rounded-md border px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                    className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </label>
 
@@ -103,12 +103,12 @@ export default function Analyzer() {
                     onChange={(e) => setText(e.target.value)}
                     placeholder="Paste markdown or article text here..."
                     rows={10}
-                    className="mt-1 block w-full rounded-md border px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                    className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </label>
 
                 {error && (
-                  <div className="mt-3 text-sm text-red-600" role="alert">
+                  <div className="mt-3 text-sm text-red-600 dark:text-red-400" role="alert">
                     {error}
                   </div>
                 )}
@@ -117,8 +117,7 @@ export default function Analyzer() {
                   <button
                     onClick={handleAnalyze}
                     disabled={!canAnalyze || loading}
-                    className={`inline-flex items-center rounded-md px-4 py-2 text-white disabled:opacity-50 ${isDark ? "bg-primary" : "bg-primary"
-                      }`}
+                    className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                   >
                     {loading ? "Analyzing…" : "Analyze"}
                   </button>
@@ -131,21 +130,23 @@ export default function Analyzer() {
                       setResult(null);
                       setError("");
                     }}
-                    className="inline-flex items-center rounded-md border px-3 py-2"
+                    className="inline-flex items-center rounded-md border border-input bg-background px-3 py-2 text-foreground hover:bg-muted"
                   >
                     Reset
                   </button>
                 </div>
               </div>
 
-              {result && (
-                <div className="rounded-xl border bg-white p-4">
+              {result ? (
+                <div className="rounded-xl border border-border bg-card p-4">
                   <h3 className="mb-2 font-semibold">Full model output</h3>
-                  <div className="prose max-w-none">
+                  <div className="prose max-w-none dark:prose-invert">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        ul: ({ children }) => <ul className="ml-6 list-disc space-y-2">{children}</ul>,
+                        ul: ({ children }) => (
+                          <ul className="ml-6 list-disc space-y-2">{children}</ul>
+                        ),
                         p: ({ children }) => <p className="mb-4">{children}</p>,
                       }}
                     >
@@ -153,10 +154,8 @@ export default function Analyzer() {
                     </ReactMarkdown>
                   </div>
                 </div>
-              )}
-
-              {!result && (
-                <div className="mt-4 rounded-xl border bg-white p-6 text-sm text-muted-foreground">
+              ) : (
+                <div className="mt-4 rounded-xl border border-border bg-muted p-6 text-sm text-muted-foreground">
                   Paste content or a URL above, then click Analyze.
                 </div>
               )}
