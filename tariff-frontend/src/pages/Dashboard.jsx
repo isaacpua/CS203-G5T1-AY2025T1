@@ -18,6 +18,7 @@ import Papa from 'papaparse';
 import CountrySelector from "@/components/CountrySelector";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "@/components/theme-provider";
 
 function useDebounce(value, delayMs = 500) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -884,6 +885,12 @@ export default function Dashboard() {
   const [fromYear, setFromYear] = useState(2002);
   const [toYear, setToYear] = useState(2025);
   const [isLoadingLive, setIsLoadingLive] = useState(false);
+  const { theme } = useTheme();
+  const prefersDark =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = theme === "dark" || (theme === "system" && prefersDark);
   // Build a year list (2002..current year). Change start if you need.
   const yearOptions = useMemo(() => {
     const start = 2002;
@@ -902,7 +909,11 @@ export default function Dashboard() {
     setPage(0);
   }, [mode, debouncedQuery, fromYear, toYear]);
   const isMobile = useMediaQuery("(max-width: 768px)");
-
+  const [contentVisible, setContentVisible] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setContentVisible(true), 500);
+    return () => clearTimeout(t);
+  }, []);
   const handleLoadLive = async () => {
     try {
       setIsLoadingLive(true);
@@ -1200,275 +1211,298 @@ export default function Dashboard() {
   };
 
   return (
-    <TooltipProvider>
-      {showRelogin && <Relogin />}
-      <Card className="border-0 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 md:p-6">
-          <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-center md:space-y-0">
-            <div className="space-y-1">
-              <CardTitle className="text-xl md:text-2xl font-bold text-foreground">Tariff Management</CardTitle>
-              <CardDescription className="text-sm md:text-base text-muted-foreground">Manage and explore tariff data with advanced filtering and editing capabilities</CardDescription>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Refresh data</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={handleDownload} disabled={isDownloading}>
-                    <Download className={`h-4 w-4 ${isDownloading ? "animate-spin" : ""}`} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Export data</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLoadLive}
-                    disabled={isLoadingLive}
-                  >
-                    <Bolt className={`h-4 w-4 ${isLoadingLive ? "animate-pulse" : ""}`} />
-                    <span className="ml-2 hidden sm:inline">Load Live</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Pull & load latest USITC data (background)</TooltipContent>
-              </Tooltip>
-              {userRole === "admin" && (
-                <Button onClick={handleCreate} size="sm" className="text-sm">
-                  <Plus className="mr-1 md:mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Create Tariff</span>
-                  <span className="sm:hidden">Create</span>
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="px-0 pt-4 md:pt-6 pb-6 md:pb-8">
-          <div className="px-4 md:px-6">
-            {/* Search Controls */}
-            <div className="flex flex-col md:flex-row md:items-end gap-4 mb-6 p-4 bg-muted/30 rounded-xl border">
-              <div className="w-full md:flex-1">
-                <Label className="text-sm font-medium text-foreground">Search Method</Label>
-                <Select value={mode} onValueChange={setMode}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="id"><div className="flex items-center"><Badge variant="outline" className="mr-2 text-xs">ID</Badge>Tariff ID</div></SelectItem>
-                    <SelectItem value="desc"><div className="flex items-center"><Search className="mr-2 h-3 w-3" />Description</div></SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="w-full md:flex-[3]">
-                <Label className="text-sm font-medium text-foreground">{mode === "id" ? "Enter Tariff ID" : "Search Description"}</Label>
-                <div className="relative mt-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input value={query} onChange={(e) => setQuery(e.target.value)} className="pl-10 pr-4" placeholder={mode === "id" ? "e.g., 12345" : "e.g., electronics, beverages..."} />
-                  {query && (
-                    <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0" onClick={() => setQuery("")}>
-                      <X className="h-3 w-3" />
+    <div className="relative min-h-screen overflow-hidden bg-transparent">
+      <div className="fixed inset-0 z-10 pointer-events-none">
+        <video
+          autoPlay
+          loop
+          muted
+          key={isDark ? "dark-video" : "light-video"} // ensures React reloads video when theme changes
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${contentVisible ? "blur-sm scale-105" : "blur-0 scale-100"
+            }`}
+        >
+          <source
+            src={isDark ? "/Barn_Night.mp4" : "/Barn_Animation.mp4"}
+            type="video/mp4"
+          />
+        </video>
+        <div
+          className={`absolute inset-0 bg-black/40 transition-opacity duration-1000 ${contentVisible ? "opacity-60" : "opacity-30"
+            }`}
+        />
+      </div>
+      <div className="relative z-10">
+        <TooltipProvider>
+          {showRelogin && <Relogin />}
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 md:p-6">
+              <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-center md:space-y-0">
+                <div className="space-y-1">
+                  <CardTitle className="text-xl md:text-2xl font-bold text-foreground">Tariff Management</CardTitle>
+                  <CardDescription className="text-sm md:text-base text-muted-foreground">Manage and explore tariff data with advanced filtering and editing capabilities</CardDescription>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+                        <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Refresh data</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={handleDownload} disabled={isDownloading}>
+                        <Download className={`h-4 w-4 ${isDownloading ? "animate-spin" : ""}`} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Export data</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleLoadLive}
+                        disabled={isLoadingLive}
+                      >
+                        <Bolt className={`h-4 w-4 ${isLoadingLive ? "animate-pulse" : ""}`} />
+                        <span className="ml-2 hidden sm:inline">Load Live</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Pull & load latest USITC data (background)</TooltipContent>
+                  </Tooltip>
+                  {userRole === "admin" && (
+                    <Button onClick={handleCreate} size="sm" className="text-sm">
+                      <Plus className="mr-1 md:mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">Create Tariff</span>
+                      <span className="sm:hidden">Create</span>
                     </Button>
                   )}
                 </div>
               </div>
+            </CardHeader>
 
-              <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-2">
-                <Badge variant="secondary" className="text-xs">{results ? `${results.totalElements ?? results.content.length} results` : "Loading..."}</Badge>
-                {debouncedQuery && <Badge variant="outline" className="text-xs">Filtered</Badge>}
-              </div>
-              {/* From Year */}
-              <div className="w-full md:w-40">
-                <Label className="text-sm font-medium text-foreground">From Year</Label>
-                <Select
-                  value={String(fromYear)}
-                  onValueChange={(v) => {
-                    const y = Number(v);
-                    setFromYear(y);
-                    if (toYear < y) setToYear(y); // enforce To >= From immediately
-                  }}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {yearOptions.map((y) => (
-                      <SelectItem key={y} value={String(y)}>
-                        {y}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <CardContent className="px-0 pt-4 md:pt-6 pb-6 md:pb-8">
+              <div className="px-4 md:px-6">
+                {/* Search Controls */}
+                <div className="flex flex-col md:flex-row md:items-end gap-4 mb-6 p-4 bg-muted/30 rounded-xl border">
+                  <div className="w-full md:flex-1">
+                    <Label className="text-sm font-medium text-foreground">Search Method</Label>
+                    <Select value={mode} onValueChange={setMode}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="id"><div className="flex items-center"><Badge variant="outline" className="mr-2 text-xs">ID</Badge>Tariff ID</div></SelectItem>
+                        <SelectItem value="desc"><div className="flex items-center"><Search className="mr-2 h-3 w-3" />Description</div></SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {/* To Year */}
-              <div className="w-full md:w-40">
-                <Label className="text-sm font-medium text-foreground">To Year</Label>
-                <Select
-                  value={String(toYear)}
-                  onValueChange={(v) => setToYear(Math.max(Number(v), fromYear))}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {yearOptions.map((y) => (
-                      <SelectItem
-                        key={y}
-                        value={String(y)}
-                        disabled={y < fromYear} // prevent picking < fromYear
-                      >
-                        {y}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Content area */}
-          {error ? (
-            <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-destructive/10 border border-destructive/20 rounded-xl">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-destructive/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <X className="h-8 w-8 text-destructive" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Error Loading Data</h3>
-                <p className="text-muted-foreground mb-4">{error}</p>
-                <Button onClick={() => fetchTariffs()} variant="outline"><RefreshCw className="mr-2 h-4 w-4" />Try Again</Button>
-              </div>
-            </div>
-          ) : loading ? (
-            <div className="border rounded-xl bg-card h-[520px] grid place-items-center">
-              <div className="flex items-center space-x-3">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                <span className="text-muted-foreground">Loading tariff data…</span>
-              </div>
-            </div>
-          ) : results && results.content.length > 0 ? (
-            <TariffGrid
-              userRole={userRole}
-              data={results.content}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onView={handleView}
-              isMobile={isMobile}
-              countryMap={countryMap}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-muted/30 border rounded-xl">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">No Results Found</h3>
-                <p className="text-muted-foreground mb-4">{query ? `No tariffs match "${query}"` : "No tariff data available"}</p>
-                {query && <Button onClick={() => setQuery("")} variant="outline">Clear Search</Button>}
-              </div>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {results && results.totalPages > 1 && (
-            <div className="flex flex-col gap-4 pt-6 border-t px-4 md:px-6 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <span>Showing page {page + 1} of {results.totalPages}</span>
-                <Badge variant="outline" className="text-xs">{results.content.length} records</Badge>
-              </div>
-
-              <div className="overflow-x-auto">
-                <div className="flex items-center gap-2 min-w-max">
-                  <Button variant="outline" size="sm" disabled={page <= 0} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, results.totalPages) }, (_, i) => {
-                      const pageNum = i + Math.max(0, page - 2);
-                      if (pageNum >= results.totalPages) return null;
-                      return (
-                        <Button key={pageNum} variant={pageNum === page ? "default" : "outline"} size="sm" className="w-8 h-8 p-0" onClick={() => setPage(pageNum)}>
-                          {pageNum + 1}
+                  <div className="w-full md:flex-[3]">
+                    <Label className="text-sm font-medium text-foreground">{mode === "id" ? "Enter Tariff ID" : "Search Description"}</Label>
+                    <div className="relative mt-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input value={query} onChange={(e) => setQuery(e.target.value)} className="pl-10 pr-4" placeholder={mode === "id" ? "e.g., 12345" : "e.g., electronics, beverages..."} />
+                      {query && (
+                        <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0" onClick={() => setQuery("")}>
+                          <X className="h-3 w-3" />
                         </Button>
-                      );
-                    })}
+                      )}
+                    </div>
                   </div>
-                  <Button variant="outline" size="sm" disabled={page + 1 >= results.totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Modals */}
-      <TariffModal
-        isOpen={showCreate}
-        onClose={closeDialogs}
-        onSubmit={onSaveChanges}
-        initialData={{ category: "", descriptionwcountry: "", partnerCountry: "", reporterCountry: "", adValorem: "", specificPerUnit: "", unitname: "" }}
-        isEditing={false}
-        isLoading={actionLoading}
-        error={actionError}
-      />
-      <TariffModal isOpen={showEdit} onClose={closeDialogs} onSubmit={onSaveChanges} initialData={selectedRow} isEditing={true} isLoading={actionLoading} error={actionError} />
-      <ViewDetailsModal isOpen={showView} onClose={closeDialogs} data={selectedRow} />
+                  <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-2">
+                    <Badge variant="secondary" className="text-xs">{results ? `${results.totalElements ?? results.content.length} results` : "Loading..."}</Badge>
+                    {debouncedQuery && <Badge variant="outline" className="text-xs">Filtered</Badge>}
+                  </div>
+                  {/* From Year */}
+                  <div className="w-full md:w-40">
+                    <Label className="text-sm font-medium text-foreground">From Year</Label>
+                    <Select
+                      value={String(fromYear)}
+                      onValueChange={(v) => {
+                        const y = Number(v);
+                        setFromYear(y);
+                        if (toYear < y) setToYear(y); // enforce To >= From immediately
+                      }}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {yearOptions.map((y) => (
+                          <SelectItem key={y} value={String(y)}>
+                            {y}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-      <Dialog open={showDelete} onOpenChange={closeDialogs}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center"><Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" /></div>
-              <span>Delete Tariff</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="py-4">
-            <p className="text-muted-foreground">Are you sure you want to delete this tariff entry? This action cannot be undone.</p>
-            {selectedRow && (
-              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  {(() => {
-                    const idValue = selectedRow.tariffIdDisplay ?? selectedRow.tariffid;
-                    const badgeLabel = idValue ? `#${idValue}` : "—";
-                    return <Badge variant="secondary" className="font-mono">{badgeLabel}</Badge>;
-                  })()}
-                  <div
-                    className="text-sm text-muted-foreground block min-w-0 flex-1 leading-snug"
-                    style={{
-                      maxWidth: "600px",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      whiteSpace: "normal",
-                      wordBreak: "break-word",
-                      WebkitMaskImage: "linear-gradient(90deg, #000 85%, rgba(0,0,0,0))",
-                      maskImage: "linear-gradient(90deg, #000 85%, rgba(0,0,0,0))",
-                    }}
-                  >
-                    {selectedRow.descriptionwcountry || "—"}
+                  {/* To Year */}
+                  <div className="w-full md:w-40">
+                    <Label className="text-sm font-medium text-foreground">To Year</Label>
+                    <Select
+                      value={String(toYear)}
+                      onValueChange={(v) => setToYear(Math.max(Number(v), fromYear))}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {yearOptions.map((y) => (
+                          <SelectItem
+                            key={y}
+                            value={String(y)}
+                            disabled={y < fromYear} // prevent picking < fromYear
+                          >
+                            {y}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
 
-          {actionError && <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"><p className="text-sm text-red-600 dark:text-red-400">{actionError}</p></div>}
+              {/* Content area */}
+              {error ? (
+                <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-destructive/10 border border-destructive/20 rounded-xl">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-destructive/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <X className="h-8 w-8 text-destructive" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Error Loading Data</h3>
+                    <p className="text-muted-foreground mb-4">{error}</p>
+                    <Button onClick={() => fetchTariffs()} variant="outline"><RefreshCw className="mr-2 h-4 w-4" />Try Again</Button>
+                  </div>
+                </div>
+              ) : loading ? (
+                <div className="border rounded-xl bg-card h-[520px] grid place-items-center">
+                  <div className="flex items-center space-x-3">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span className="text-muted-foreground">Loading tariff data…</span>
+                  </div>
+                </div>
+              ) : results && results.content.length > 0 ? (
+                <TariffGrid
+                  userRole={userRole}
+                  data={results.content}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onView={handleView}
+                  isMobile={isMobile}
+                  countryMap={countryMap}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center p-12 h-[520px] bg-muted/30 border rounded-xl">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Search className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">No Results Found</h3>
+                    <p className="text-muted-foreground mb-4">{query ? `No tariffs match "${query}"` : "No tariff data available"}</p>
+                    {query && <Button onClick={() => setQuery("")} variant="outline">Clear Search</Button>}
+                  </div>
+                </div>
+              )}
 
-          <DialogFooter className="flex gap-3">
-            <Button variant="outline" onClick={closeDialogs} disabled={actionLoading}>Cancel</Button>
-            <Button variant="destructive" onClick={onDeleteConfirm} disabled={actionLoading}>
-              {actionLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Deleting...</>) : (<><Trash2 className="mr-2 h-4 w-4" />Delete</>)}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </TooltipProvider>
+              {/* Pagination */}
+              {results && results.totalPages > 1 && (
+                <div className="flex flex-col gap-4 pt-6 border-t px-4 md:px-6 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <span>Showing page {page + 1} of {results.totalPages}</span>
+                    <Badge variant="outline" className="text-xs">{results.content.length} records</Badge>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <div className="flex items-center gap-2 min-w-max">
+                      <Button variant="outline" size="sm" disabled={page <= 0} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, results.totalPages) }, (_, i) => {
+                          const pageNum = i + Math.max(0, page - 2);
+                          if (pageNum >= results.totalPages) return null;
+                          return (
+                            <Button key={pageNum} variant={pageNum === page ? "default" : "outline"} size="sm" className="w-8 h-8 p-0" onClick={() => setPage(pageNum)}>
+                              {pageNum + 1}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      <Button variant="outline" size="sm" disabled={page + 1 >= results.totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Modals */}
+          <TariffModal
+            isOpen={showCreate}
+            onClose={closeDialogs}
+            onSubmit={onSaveChanges}
+            initialData={{ category: "", descriptionwcountry: "", partnerCountry: "", reporterCountry: "", adValorem: "", specificPerUnit: "", unitname: "" }}
+            isEditing={false}
+            isLoading={actionLoading}
+            error={actionError}
+          />
+          <TariffModal isOpen={showEdit} onClose={closeDialogs} onSubmit={onSaveChanges} initialData={selectedRow} isEditing={true} isLoading={actionLoading} error={actionError} />
+          <ViewDetailsModal isOpen={showView} onClose={closeDialogs} data={selectedRow} />
+
+          <Dialog open={showDelete} onOpenChange={closeDialogs}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center"><Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" /></div>
+                  <span>Delete Tariff</span>
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="py-4">
+                <p className="text-muted-foreground">Are you sure you want to delete this tariff entry? This action cannot be undone.</p>
+                {selectedRow && (
+                  <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      {(() => {
+                        const idValue = selectedRow.tariffIdDisplay ?? selectedRow.tariffid;
+                        const badgeLabel = idValue ? `#${idValue}` : "—";
+                        return <Badge variant="secondary" className="font-mono">{badgeLabel}</Badge>;
+                      })()}
+                      <div
+                        className="text-sm text-muted-foreground block min-w-0 flex-1 leading-snug"
+                        style={{
+                          maxWidth: "600px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          whiteSpace: "normal",
+                          wordBreak: "break-word",
+                          WebkitMaskImage: "linear-gradient(90deg, #000 85%, rgba(0,0,0,0))",
+                          maskImage: "linear-gradient(90deg, #000 85%, rgba(0,0,0,0))",
+                        }}
+                      >
+                        {selectedRow.descriptionwcountry || "—"}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {actionError && <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md"><p className="text-sm text-red-600 dark:text-red-400">{actionError}</p></div>}
+
+              <DialogFooter className="flex gap-3">
+                <Button variant="outline" onClick={closeDialogs} disabled={actionLoading}>Cancel</Button>
+                <Button variant="destructive" onClick={onDeleteConfirm} disabled={actionLoading}>
+                  {actionLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Deleting...</>) : (<><Trash2 className="mr-2 h-4 w-4" />Delete</>)}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TooltipProvider>
+      </div>
+    </div>
   );
 };

@@ -31,12 +31,6 @@ export default function AdminPanel({open, onOpenChange}) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} className="p-5">
-      <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2" data-admin-panel-trigger>
-          <Shield className="h-4 w-4" />
-          Admin Panel
-        </Button>
-      </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">Admin Panel</DialogTitle>
