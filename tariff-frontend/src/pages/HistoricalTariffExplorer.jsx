@@ -360,13 +360,6 @@ export default function HistoricalTariffExplorer() {
                 >
                   Search by Tariff ID Prefix
                 </Button>
-                <Button
-                  variant={searchMode === "params" ? "default" : "ghost"}
-                  className="flex-1"
-                  onClick={() => setSearchMode("params")}
-                >
-                  Search by Parameters
-                </Button>
               </div>
 
               {/* Search Inputs */}
