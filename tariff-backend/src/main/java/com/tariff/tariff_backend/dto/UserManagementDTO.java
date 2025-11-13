@@ -4,6 +4,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
@@ -13,13 +14,10 @@ import lombok.Builder;
 @AllArgsConstructor
 public class UserManagementDTO {
     private UUID id;
-    private String username;
-    private String role;
 
-    // Constructor without ID for create operations
-    public UserManagementDTO(String username, String role) {
-        this.username = username;
-        this.role = role;
-        this.id = null;
-    }
+    @NotNull
+    private String username;
+
+    @NotNull
+    private String role;
 }

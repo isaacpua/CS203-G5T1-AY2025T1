@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -45,6 +46,7 @@ public class AuthenticationController {
     })
     @PostMapping("/register")
     public ResponseEntity<?> register(
+        @Valid
         @Parameter(description = "User registration details", required = true)
         @RequestBody UserDTO user) {
         AuthResponse authRes = authenticationService.register(user);
@@ -71,6 +73,7 @@ public class AuthenticationController {
     })
     @PostMapping("/login")
     public ResponseEntity<?> login(
+        @Valid
         @Parameter(description = "User login credentials", required = true)
         @RequestBody UserDTO user) {
         AuthResponse authRes = authenticationService.login(user);

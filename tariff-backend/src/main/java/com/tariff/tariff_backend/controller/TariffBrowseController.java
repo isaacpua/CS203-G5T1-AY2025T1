@@ -26,6 +26,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -138,6 +140,7 @@ public class TariffBrowseController {
     })
     @PostMapping("/calc")
     public ResponseEntity<CalculateDutyResponse> calculate(
+        @Valid
         @Parameter(description = "Calculation request with transaction details", required = true)
         @RequestBody CalculateDutyRequest req) {
         return ResponseEntity.ok(calcService.calculateAndStore(req));

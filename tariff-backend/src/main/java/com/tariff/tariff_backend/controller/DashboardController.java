@@ -35,6 +35,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/dashboard")
@@ -67,6 +68,7 @@ public class DashboardController {
     public ResponseEntity<?> createTariff(
         @Parameter(description = "Bearer token for admin authentication", required = true)
         @RequestHeader("Authorization") String authHeader,
+        @Valid
         @Parameter(description = "Tariff data to create", required = true)
         @RequestBody TariffPatchDTO request) {
         if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
@@ -98,6 +100,7 @@ public class DashboardController {
         @RequestHeader("Authorization") String authHeader,
         @Parameter(description = "ID of the tariff to update", required = true, example = "1")
         @PathVariable String tariffid,
+        @Valid
         @Parameter(description = "Updated tariff data", required = true)
         @RequestBody TariffPatchDTO patchDTO) {
         if (authHeader == null || !jwtService.hasRole(jwtService.getTokenFromHeader(authHeader), "admin")) {
