@@ -42,6 +42,7 @@ public class DashboardService {
                 throw new Exception("Country " + newTariffDTO.getReporterCountry() + " not found in database");
             }
             Tariff newTariff = Tariff.builder()
+                    .tariffId(newTariffDTO.getTariffId())
                     .descriptionwcountry(newTariffDTO.getDescriptionwcountry())
                     .partnerCountry(partnerCountries.get(0))
                     .reporterCountry(reporterCountries.get(0))
@@ -52,6 +53,7 @@ public class DashboardService {
                     .effectivedate(newTariffDTO.getEffectivedate())
                     .expirydate(newTariffDTO.getExpirydate())
                     .datasource(newTariffDTO.getDatasource())
+                    .year(newTariffDTO.getYear())
                     .build();
 
             Tariff savedTariff = tariffRepo.save(newTariff);
@@ -106,6 +108,9 @@ public class DashboardService {
             }
             if (patchDTO.getSpecificPerUnit() != null) {
                 existingTariff.setSpecificPerUnit(patchDTO.getSpecificPerUnit());
+            }
+            if (patchDTO.getYear() != null) {
+                existingTariff.setYear(patchDTO.getYear());
             }
             existingTariff.setEffectivedate(patchDTO.getEffectivedate());
             existingTariff.setExpirydate(patchDTO.getExpirydate());
