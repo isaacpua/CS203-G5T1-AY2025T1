@@ -3,7 +3,7 @@ name: Deploy Frontend to S3 and CloudFront
 on:
   push:
     branches:
-      - main
+      # - main
     paths:
       - 'tariff-frontend/**'                    # Triggers only on changes within the frontend code
       - '.github/workflows/deploy-frontend.yml' # Always run if the workflow itself changes
