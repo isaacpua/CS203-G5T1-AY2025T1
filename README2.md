@@ -44,9 +44,6 @@ The platform is designed with a strong focus on **clarity**, **usability**, and 
 |------|-------------|
 | Dynamic Tariff Calculator | Search for specific tariffs, filter by origin and destination countries, and input values like “declared value” and “quantity” to get accurate calculations. |
 | Calculation History | A dedicated page for users to review their past tariff calculations, separate from the main calculator interface. |
-| Advanced Tariff Search & Filtering | Provides a fast and flexible search system. Users can search by tariff ID or description, and filter by reporter or partner country using text-based search. |
-| Detailed Tariff Information | Users can view comprehensive information about each tariff, including description, category, ad valorem rate, specific per-unit rate, and applicable trade programs. |
-| Tariff Management (Admin) | Allows administrators to create new tariffs, edit existing ones, and delete tariffs that are no longer needed. |
 
 ---
 
@@ -54,6 +51,9 @@ The platform is designed with a strong focus on **clarity**, **usability**, and 
 
 | Area | Description |
 |------|-------------|
+| Advanced Tariff Search & Filtering | Provides a fast and flexible search system. Users can search by tariff ID or description, and filter by reporter or partner country using text-based search. |
+| Detailed Tariff Information | Users can view comprehensive information about each tariff, including description, category, ad valorem rate, specific per-unit rate, and applicable trade programs. |
+| Tariff Management (Admin) | Allows administrators to create new tariffs, edit existing ones, and delete tariffs that are no longer needed. |
 | Data Export | Users can export the entire tariff database as a CSV file for analysis, reporting, or record-keeping. |
 | Historical Data Explorer | An interactive visualization tool that enables users to explore multi-year tariff trends. Filters include reporter country, partner country, item code, and date ranges. Pre-configured “Recommended” presets provide common exploration shortcuts. |
 | Tariff Data Forecasting | A predictive analytics feature that forecasts tariff rates for the next three years using a regression model. Results are visualized in a dedicated Forecast page, helping users anticipate market changes and make informed decisions. |
@@ -67,6 +67,11 @@ The platform is designed with a strong focus on **clarity**, **usability**, and 
 | Tariff Newsletter Service | A content-curation system that automatically collects and compiles the latest tariff-related news from public sources. Admins can preview and edit the newsletter before sending it out. |
 | Tariff Mailing List | A complete mailing list management system integrated into the Newsletter page. Admins can add/remove recipients and dispatch curated newsletters with a single click using a secure email service. |
 | Tariff Article Analysis | An AI-powered tool that processes external articles and reports to extract key tariff-related insights. It identifies countries, goods, sentiment, and important tariff changes, providing a concise summary and structured intelligence. |
+
+## 📰 Model Context Protocol (MCP)
+
+| Area | Description |
+|------|-------------|
 | MCP Tool Server | The centralized intelligence microservice powering TARIFIC’s advanced tools such as forecasting, article analysis, and agent-based workflows. |
 | MCP Assistant (T.A.R.I.F.F. Agent) | A powerful agentic AI assistant that can understand natural language tasks, execute multi-step workflows, run backend tools, and deliver intelligent insights as if it were an assistant employee. |
 
