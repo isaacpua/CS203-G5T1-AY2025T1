@@ -106,6 +106,10 @@ export default function TariffCalc() {
     const prevDQRef = useRef(debouncedQ);
     const [contentVisible, setContentVisible] = useState(false);
 
+    const [displayDV, setDisplayDV] = useState("");
+    const [displayQty, setDisplayQty] = useState("");
+
+
     useEffect(() => {
         const t = setTimeout(() => setContentVisible(true), 500);
         return () => clearTimeout(t);
@@ -379,6 +383,8 @@ export default function TariffCalc() {
         setComputeError("");
         setComputeRes(null);
         setShowWorkings(false);
+        setDisplayDV(declaredValue);
+        setDisplayQty(quantity);
 
         try {
             const payload = {
@@ -425,10 +431,10 @@ export default function TariffCalc() {
     const avMult = avDec != null ? 1 + avDec : null; // 1.05
     const sp = toNumberOrNull(selected?.specificperunit);
     const unit = selected?.unitname || "unit";
-    const dvNum = toNumberOrNull(declaredValue);
-    const qtyNum = toNumberOrNull(quantity);
+    const dvNum = toNumberOrNull(displayDV);
+    const qtyNum = toNumberOrNull(displayQty);
 
-    // ✅ compute intermediates safely for display
+    // compute intermediates safely for display
     const specPart =
         (cat === "SPECIFIC_PER_UNIT" || cat === "COMPOSITE") && qtyNum != null && sp != null
             ? qtyNum * sp
