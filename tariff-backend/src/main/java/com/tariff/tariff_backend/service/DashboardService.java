@@ -156,22 +156,23 @@ public class DashboardService {
         }
 
         if (fromYear == null || toYear == null) {
-                if (tariffId != null && !tariffId.isBlank()) {
-                    pageResult = tariffRepo.findByTariffId(tariffId, pageable);
-                } else if (query != null && !query.isBlank()) {
-                    pageResult = tariffRepo.findByDescriptionwcountryContainingIgnoreCase(query, pageable);
-                } else {
-                    pageResult = tariffRepo.findAll(pageable);
-                }
+            if (tariffId != null && !tariffId.isBlank()) {
+                System.out.println("service: tariffid query is: " + tariffId);
+                pageResult = tariffRepo.findByTariffIdContaining(tariffId, pageable);
+            } else if (query != null && !query.isBlank()) {
+                pageResult = tariffRepo.findByDescriptionwcountryContainingIgnoreCase(query, pageable);
             } else {
-                if (tariffId != null && !tariffId.isBlank()) {
-                    pageResult = tariffRepo.findByYearBetweenAndTariffId(fromYear, toYear, tariffId, pageable);
-                } else if (query != null && !query.isBlank()) {
-                    pageResult = tariffRepo.findByYearBetweenAndDescriptionwcountryContainingIgnoreCase(fromYear, toYear, query, pageable);
-                } else {
-                    pageResult = tariffRepo.findByYearBetween(fromYear, toYear, pageable);
-                }
+                pageResult = tariffRepo.findAll(pageable);
             }
+        } else {
+            if (tariffId != null && !tariffId.isBlank()) {
+                pageResult = tariffRepo.findByYearBetweenAndTariffIdContaining(fromYear, toYear, tariffId, pageable);
+            } else if (query != null && !query.isBlank()) {
+                pageResult = tariffRepo.findByYearBetweenAndDescriptionwcountryContainingIgnoreCase(fromYear, toYear, query, pageable);
+            } else {
+                pageResult = tariffRepo.findByYearBetween(fromYear, toYear, pageable);
+            }
+        }
 
         List<TariffPatchDTO> tariffDtoList = pageResult.getContent().stream()
                 .map(tariff -> new TariffPatchDTO(
