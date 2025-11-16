@@ -42,6 +42,7 @@ public class DashboardService {
                 throw new Exception("Country " + newTariffDTO.getReporterCountry() + " not found in database");
             }
             Tariff newTariff = Tariff.builder()
+                    .tariffId(newTariffDTO.getTariffId())
                     .descriptionwcountry(newTariffDTO.getDescriptionwcountry())
                     .partnerCountry(partnerCountries.get(0))
                     .reporterCountry(reporterCountries.get(0))
@@ -52,6 +53,7 @@ public class DashboardService {
                     .effectivedate(newTariffDTO.getEffectivedate())
                     .expirydate(newTariffDTO.getExpirydate())
                     .datasource(newTariffDTO.getDatasource())
+                    .year(newTariffDTO.getYear())
                     .build();
 
             Tariff savedTariff = tariffRepo.save(newTariff);
@@ -107,6 +109,9 @@ public class DashboardService {
             if (patchDTO.getSpecificPerUnit() != null) {
                 existingTariff.setSpecificPerUnit(patchDTO.getSpecificPerUnit());
             }
+            if (patchDTO.getYear() != null) {
+                existingTariff.setYear(patchDTO.getYear());
+            }
             existingTariff.setEffectivedate(patchDTO.getEffectivedate());
             existingTariff.setExpirydate(patchDTO.getExpirydate());
             if (patchDTO.getDatasource() != null) { // Datasource might be nullable in DB
@@ -151,22 +156,23 @@ public class DashboardService {
         }
 
         if (fromYear == null || toYear == null) {
-                if (tariffId != null && !tariffId.isBlank()) {
-                    pageResult = tariffRepo.findByTariffId(tariffId, pageable);
-                } else if (query != null && !query.isBlank()) {
-                    pageResult = tariffRepo.findByDescriptionwcountryContainingIgnoreCase(query, pageable);
-                } else {
-                    pageResult = tariffRepo.findAll(pageable);
-                }
+            if (tariffId != null && !tariffId.isBlank()) {
+                System.out.println("service: tariffid query is: " + tariffId);
+                pageResult = tariffRepo.findByTariffIdContaining(tariffId, pageable);
+            } else if (query != null && !query.isBlank()) {
+                pageResult = tariffRepo.findByDescriptionwcountryContainingIgnoreCase(query, pageable);
             } else {
-                if (tariffId != null && !tariffId.isBlank()) {
-                    pageResult = tariffRepo.findByYearBetweenAndTariffId(fromYear, toYear, tariffId, pageable);
-                } else if (query != null && !query.isBlank()) {
-                    pageResult = tariffRepo.findByYearBetweenAndDescriptionwcountryContainingIgnoreCase(fromYear, toYear, query, pageable);
-                } else {
-                    pageResult = tariffRepo.findByYearBetween(fromYear, toYear, pageable);
-                }
+                pageResult = tariffRepo.findAll(pageable);
             }
+        } else {
+            if (tariffId != null && !tariffId.isBlank()) {
+                pageResult = tariffRepo.findByYearBetweenAndTariffIdContaining(fromYear, toYear, tariffId, pageable);
+            } else if (query != null && !query.isBlank()) {
+                pageResult = tariffRepo.findByYearBetweenAndDescriptionwcountryContainingIgnoreCase(fromYear, toYear, query, pageable);
+            } else {
+                pageResult = tariffRepo.findByYearBetween(fromYear, toYear, pageable);
+            }
+        }
 
         List<TariffPatchDTO> tariffDtoList = pageResult.getContent().stream()
                 .map(tariff -> new TariffPatchDTO(

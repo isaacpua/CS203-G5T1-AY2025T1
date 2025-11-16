@@ -180,6 +180,7 @@ public class UserManagementController {
         @Parameter(description = "UUID of the user to update", required = true,
                   example = "550e8400-e29b-41d4-a716-446655440000")
         @PathVariable UUID id,
+        @Valid
         @Parameter(description = "Updated user information", required = true)
         @RequestBody UserManagementDTO dto) {
         UserManagementResponse response = UserManagementResponse.builder().build();

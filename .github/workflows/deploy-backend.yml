@@ -3,7 +3,8 @@ name: Deploy Backend Services to ECR and ECS
 on:
   push:
     branches:
-      - main
+      # - main
+      - none
     paths:
       - 'tariff-backend/**'
       - 'MCP-client/**'

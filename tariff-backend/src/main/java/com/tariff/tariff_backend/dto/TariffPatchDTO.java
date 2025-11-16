@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,21 +16,26 @@ import lombok.NoArgsConstructor;
 public class TariffPatchDTO {
     
     @Schema(description = "Unique tariff identifier", example = "12345")
+    @NotNull
     private String tariffId;
     
     @Schema(description = "Product description including country-specific details", example = "Wheat flour - Canada to USA")
+    @NotNull
     private String descriptionwcountry;
     
     @Schema(description = "Partner/source country name", example = "Canada")
+    @NotNull
     private String partnerCountry;
     
     @Schema(description = "Reporter/destination country name", example = "United States")
+    @NotNull
     private String reporterCountry;
     
     @Schema(description = "Unit of measurement for the tariff", example = "kg")
     private String unitname;
     
     @Schema(description = "Product category classification", example = "Agricultural Products")
+    @NotNull
     private String category;
     
     @Schema(description = "Ad valorem tariff rate as percentage", example = "12.50")
@@ -48,5 +54,6 @@ public class TariffPatchDTO {
     private String datasource;
 
     @Schema(description = "year sourced for the tariff data", example = "2002")
+    @NotNull
     private Integer year;
 }

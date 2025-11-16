@@ -12,7 +12,6 @@ import com.tariff.tariff_backend.model.dashboard.DashboardResponse;
 import com.tariff.tariff_backend.model.history.HistoricalPoint;
 import com.tariff.tariff_backend.model.history.HistoricalResponse;
 import com.tariff.tariff_backend.model.history.HistoryPreset;
-import com.tariff.tariff_backend.model.tariffs_new.Country;
 import com.tariff.tariff_backend.model.user_management.PasswordUpdateResponse;
 import com.tariff.tariff_backend.model.user_management.UserManagementResponse;
 import com.tariff.tariff_backend.model.user_management.UserResponse;
@@ -37,7 +36,7 @@ class DtoAndModelTest {
     void testUserManagementDTO() {
         UUID id = UUID.randomUUID();
         UserManagementDTO dto1 = new UserManagementDTO(id, "user", "admin");
-        UserManagementDTO dto2 = new UserManagementDTO("user2", "user");
+        UserManagementDTO dto2 = new UserManagementDTO(null, "user2", "user");
         dto2.setId(id);
         
         assertEquals(id, dto1.getId());

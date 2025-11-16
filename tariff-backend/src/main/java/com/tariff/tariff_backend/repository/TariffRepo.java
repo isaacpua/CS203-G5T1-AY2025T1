@@ -92,7 +92,7 @@ public interface TariffRepo extends JpaRepository<Tariff, String>, JpaSpecificat
       """, nativeQuery = true)
   List<Object[]> availableFromRawByTo(@Param("toId") Integer toId);
 
-  Page<Tariff> findByTariffId(String tariffid, Pageable pageable);
+  Page<Tariff> findByTariffIdContaining(String tariffid, Pageable pageable);
 
   Page<Tariff> findByDescriptionwcountryContainingIgnoreCase(String q, Pageable pageable);
 
@@ -101,7 +101,7 @@ public interface TariffRepo extends JpaRepository<Tariff, String>, JpaSpecificat
 
   Page<Tariff> findByYearBetweenAndDescriptionwcountryContainingIgnoreCase(int fromYear, int toYear, String q, Pageable pageable);
 
-  Page<Tariff> findByYearBetweenAndTariffId(int fromYear, int toYear, String tariffId, Pageable pageable);
+  Page<Tariff> findByYearBetweenAndTariffIdContaining(int fromYear, int toYear, String tariffId, Pageable pageable);
 
   // ---------- Convenience DTO mappers ----------
 

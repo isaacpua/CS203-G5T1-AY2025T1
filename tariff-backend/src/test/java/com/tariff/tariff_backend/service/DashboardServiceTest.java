@@ -202,7 +202,7 @@ class DashboardServiceTest {
 
     @Test
     void getTariffs_Branch1_NoYear_WithTariffId() {
-        when(tariffRepo.findByTariffId(eq("t1"), any(Pageable.class))).thenReturn(mockPage());
+        when(tariffRepo.findByTariffIdContaining(eq("t1"), any(Pageable.class))).thenReturn(mockPage());
         DashboardMetrics metrics = dashboardService.getTariffs("t1", null, Pageable.unpaged(), null, null);
         assertEquals(1, metrics.getTotalElements());
     }
@@ -223,7 +223,7 @@ class DashboardServiceTest {
 
     @Test
     void getTariffs_Branch4_WithYear_WithTariffId() {
-        when(tariffRepo.findByYearBetweenAndTariffId(eq(2020), eq(2024), eq("t1"), any(Pageable.class))).thenReturn(mockPage());
+        when(tariffRepo.findByYearBetweenAndTariffIdContaining(eq(2020), eq(2024), eq("t1"), any(Pageable.class))).thenReturn(mockPage());
         DashboardMetrics metrics = dashboardService.getTariffs("t1", null, Pageable.unpaged(), 2020, 2024);
         assertEquals(1, metrics.getTotalElements());
     }

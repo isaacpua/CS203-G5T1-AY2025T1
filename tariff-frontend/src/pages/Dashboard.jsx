@@ -387,9 +387,18 @@ const validateTariffForm = (form) => {
 const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoading, error }) => {
   // --- Define initial state including new fields ---
   const initialFormState = {
-    category: "", descriptionwcountry: "", partnerCountry: "", reporterCountry: "",
-    adValorem: "", specificPerUnit: "", unitname: "",
-    effectivedate: "", expirydate: "", datasource: "" // Added new fields
+    tariffid: "",
+    category: "",
+    descriptionwcountry: "",
+    partnerCountry: "", 
+    reporterCountry: "",
+    adValorem: "", 
+    specificPerUnit: "",
+    unitname: "",
+    effectivedate: "", 
+    expirydate: "",
+    datasource: "", // Added new fields
+    year: "",
   };
 
   const [form, setForm] = useState(initialFormState);
@@ -446,6 +455,7 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
       // Handles cases where dates might be null or already formatted
       const formattedData = {
         ...initialData,
+        tariffid: (initialData.tariffIdDisplay ?? initialData.tariffid ?? initialData.tariffId ?? "").toString(),
         effectivedate: initialData.effectivedate ? String(initialData.effectivedate).split('T')[0] : "",
         expirydate: initialData.expirydate ? String(initialData.expirydate).split('T')[0] : "",
         // Ensure other fields are strings or empty strings for controlled inputs
@@ -456,7 +466,8 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
         adValorem: initialData.adValorem != null ? String(initialData.adValorem) : "",
         specificPerUnit: initialData.specificPerUnit != null ? String(initialData.specificPerUnit) : "",
         unitname: initialData.unitname || "",
-        datasource: initialData.datasource || ""
+        datasource: initialData.datasource || "",
+        year: initialData.year || ""
       };
       setForm(formattedData);
     } else {
@@ -470,7 +481,17 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
     const errors = {};
     if (!formData.category || formData.category.trim() === "") errors.category = "Category is required";
     if (!formData.descriptionwcountry || formData.descriptionwcountry.trim() === "") errors.descriptionwcountry = "Description is required";
-
+    if (!formData.tariffid || String(formData.tariffid).trim() === "") {
+        errors.tariffid = "Tariff ID is required";
+    }
+      if (!formData.year || String(formData.year).trim() === "") {
+        errors.year = "Year is required";
+    } else {
+        const yr = Number(formData.year);
+        if (!Number.isInteger(yr) || yr < 1900 || yr > 2100) {
+        errors.year = "Year must be a valid 4-digit year";
+        }
+    }
     // Validate country selections - check if the selected name exists in the fetched list
     if (!formData.partnerCountry || !countries.some(c => c.name === formData.partnerCountry)) {
       errors.partnerCountry = "Partner Country is required and must be selected from the list";
@@ -553,6 +574,43 @@ const TariffModal = ({ isOpen, onClose, onSubmit, initialData, isEditing, isLoad
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 py-6 max-h-[70vh] overflow-y-auto pr-3"> {/* Added scroll */}
+          {/* Tariff ID */}
+            <div className="space-y-2">
+                <Label htmlFor="tariffid">
+                Tariff ID <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                id="tariffid"
+                value={form.tariffid || ""}
+                onChange={(e) => setForm((f) => ({ ...f, tariffid: e.target.value }))}
+                placeholder="e.g., 151211USIN2025"
+                className={cn(errors.tariffid ? "border-red-500" : "")}
+                // Disable editing ID when in edit mode, but allow on create
+                disabled={isEditing}
+                />
+                {errors.tariffid && (
+                <p className="text-sm text-red-500">{errors.tariffid}</p>
+                )}
+            </div>
+            {/* Year */}
+            <div className="space-y-2">
+                <Label htmlFor="year">
+                Year <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                id="year"
+                type="number"
+                min="1900"
+                max="2100"
+                value={form.year || ""}
+                onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
+                placeholder="e.g., 2025"
+                className={cn(errors.year ? "border-red-500" : "")}
+                />
+                {errors.year && (
+                <p className="text-sm text-red-500">{errors.year}</p>
+                )}
+            </div>
           {/* Category */}
           <div className="space-y-2">
             <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
@@ -1167,31 +1225,48 @@ export default function Dashboard() {
   };
 
   const onSaveChanges = async (formData) => {
-    setActionLoading(true); setActionError("");
-    // console.log("Form data to submit:", formData);
-    delete formData.tariffid;
-    delete formData.tariffIdDisplay;
-    try {
-      if (showEdit) {
-        // console.log("Updating tariff with ID:", selectedRow.id, "and data:", formData);
-        await updateTariff(selectedRow.id, formData);
-        toast.success("Tariff updated successfully");
-      } else {
-        // console.log("Creating tariff with data:", formData);
-        await createTariff(formData);
-        toast.success("Tariff created successfully");
-      }
-      closeDialogs();
-      fetchTariffs();
-    } catch (err) {
-      if (err.response?.status === 401) { setShowRelogin(true); return; }
-      const errorMsg = err.response?.data?.message || "Failed to save changes.";
-      setActionError(errorMsg);
-      toast.error(errorMsg);
-    } finally {
-      setActionLoading(false);
+    setActionLoading(true);
+    setActionError("");
+
+    // Prepare a clean payload
+    const payload = { ...formData };
+
+    // Map form tariffid -> backend tariffId
+        if (payload.tariffid != null) {
+            payload.tariffId = String(payload.tariffid).trim();
+        }
+        if (payload.year != null && String(payload.year).trim() !== "") {
+        const yr = Number(payload.year);
+        payload.year = Number.isFinite(yr) ? yr : null;
+    } else {
+        payload.year = null;
     }
-  };
+    delete payload.tariffid;
+    delete payload.tariffIdDisplay;
+
+    try {
+        if (showEdit) {
+        // ID comes from selectedRow.id; typically we don't allow changing ID
+        await updateTariff(selectedRow.id, payload);
+        toast.success("Tariff updated successfully");
+        } else {
+        await createTariff(payload);
+        toast.success("Tariff created successfully");
+        }
+        closeDialogs();
+        fetchTariffs();
+    } catch (err) {
+        if (err.response?.status === 401) {
+        setShowRelogin(true);
+        return;
+        }
+        const errorMsg = err.response?.data?.message || "Failed to save changes.";
+        setActionError(errorMsg);
+        toast.error(errorMsg);
+    } finally {
+        setActionLoading(false);
+    }
+};
 
   const onDeleteConfirm = async () => {
     setActionLoading(true); setActionError("");
@@ -1442,7 +1517,7 @@ export default function Dashboard() {
             isOpen={showCreate}
             onClose={closeDialogs}
             onSubmit={onSaveChanges}
-            initialData={{ category: "", descriptionwcountry: "", partnerCountry: "", reporterCountry: "", adValorem: "", specificPerUnit: "", unitname: "" }}
+            initialData={{ tariffId: "",category: "", descriptionwcountry: "", partnerCountry: "", reporterCountry: "", adValorem: "", specificPerUnit: "", unitname: "", year: String(toYear), }}
             isEditing={false}
             isLoading={actionLoading}
             error={actionError}
