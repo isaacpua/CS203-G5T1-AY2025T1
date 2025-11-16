@@ -116,6 +116,7 @@ Whether you’re calculating duties, forecasting trends, or analyzing policy new
 
 # System Architecture
 ![alt text](/docs/images/Architecture_Diagram.png)
+Note: We have torn down the deployment after the final presentation
 ## Frontend Architecture (infra/frontend)
 
 The frontend is a static single-page application (SPA) hosted on Amazon S3 and served globally by Amazon CloudFront.
@@ -231,3 +232,4 @@ To run the TARIFIC platform locally, simply start the development infrastructure
 ```bash
 cd infra
 docker compose -f docker-compose.dev.yml up -d
+```
